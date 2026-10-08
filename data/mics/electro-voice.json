@@ -1,0 +1,27 @@
+{
+  "maker": "Electro-Voice",
+  "entries": [
+    {
+      "manufacturer": "Electro-Voice",
+      "model": "RE20",
+      "transducerType": "dynamic",
+      "polarPatterns": [
+        "cardioid"
+      ],
+      "powering": "none",
+      "provenance": [
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "Transcribe from the official spec sheet, record its URL, then review.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "powering"
+          ]
+        }
+      ]
+    }
+  ]
+}

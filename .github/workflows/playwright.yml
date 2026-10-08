@@ -42,6 +42,8 @@ jobs:
       DATABASE_URL: postgresql://kigumi@localhost:5433/kigumi
       # Parallel workers all sign in from 127.0.0.1; see rateLimit in src/lib/auth.ts.
       AUTH_RATE_LIMIT: off
+      # The seeded owner reviews the mic catalogue in the E2E suite.
+      PLATFORM_ADMIN_EMAILS: owner@kigumi.test
 
     steps:
       - name: Generate per-run secrets

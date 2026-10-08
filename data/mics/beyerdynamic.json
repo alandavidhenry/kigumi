@@ -1,0 +1,27 @@
+{
+  "maker": "Beyerdynamic",
+  "entries": [
+    {
+      "manufacturer": "Beyerdynamic",
+      "model": "M 160",
+      "transducerType": "ribbon",
+      "polarPatterns": [
+        "hypercardioid"
+      ],
+      "powering": "none",
+      "provenance": [
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "Check phantom-power tolerance (phantomSafe) on the spec sheet: it is deliberately left blank.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "powering"
+          ]
+        }
+      ]
+    }
+  ]
+}

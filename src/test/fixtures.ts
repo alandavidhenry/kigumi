@@ -49,6 +49,7 @@ export function makeFakeDb() {
     room: fakeModel(),
     equipmentItem: fakeModel(),
     attachment: fakeModel(),
+    microphoneUnit: fakeModel(),
     auditLog: fakeModel()
   }
 }

@@ -24,6 +24,27 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Bulk edit and soft-delete/restore** for inventory.
 - **`Feature.BULK_IMPORT`** (Studio) is unused; CSV import is currently available on every tier per `plans.ts`.
 
+## Mic data sourcing (ADR 0008, Phase 2a spike)
+
+- **Manufacturer outreach:** permission/data requests to the top ~10 makers (Neumann, Sennheiser, Shure and RØDE first). Permission lifts the per-maker cap (L2).
+- **Surrey dataset model list:** extract the 25-mic table from the open-access JAES paper and match it against the starter list.
+- **Licence enquiries (L7, deferred):** ask Odratek (Micpedia) or Icecat about a commercial licence when breadth beyond the starter list matters.
+- **LLM-assisted spec drafting** (allowed by L6): build the offline admin script after manual transcription of the first batch is working.
+- **IP opinion:** consider a short paid opinion before public launch.
+
+## Deferred from Phase 2
+
+- **Transcribe the real specs:** the 22 seeded mics carry structural facts only. Sensitivity, self-noise, max SPL, impedance, pads, filters, weight, connector and ribbon `phantomSafe` still need transcribing from official spec sheets (record the URL and SHA-256, then delete the download), then review and publish. The other ~56 mics on the starter list are not seeded yet. Fill in `data/mics/makers.json` range sizes so the per-maker cap (L2) is enforced rather than just reported.
+- **ADR 0008 count:** the starter list marks 22 models with a star but the ADR says 25. Decide whether three are missing from the first batch.
+- **Frequency and polar curves:** none are seeded. Run `npm run mics:derive` over the Surrey (CC BY 4.0) and DirPat impulse responses for the C414, K2 and similar overlaps, and digitise manufacturer graphs by hand. The Surrey model table is still to be extracted from the paper.
+- **Importers not built:** Wikidata identity IDs, the SOYUZ CSV data and DirPat's AES69/SOFA files. I couldn't verify their formats offline, so only the WAV-based IR analysis exists. `wikidataId` is in the schema.
+- **Curve editing UI:** the admin form edits specs and one source; curves and multi-source provenance go through the seed files or the admin PATCH API.
+- **LLM-assisted drafting script (L6)** is still unbuilt. The review queue already handles its output: `llm_drafted` provenance needs the reviewer's attestation to publish.
+- **Platform audit trail:** admin catalogue changes are not in the per-tenant `AuditLog` (see ADR 0012). Add a platform-level log, and replace the env-var admin list if the team grows.
+- **Availability by session date:** the locker's "Available" means the inventory item is in service. Date-based double-booking arrives with sessions (Phase 5).
+- **Mic page extras:** the AI summary and the comparison view (2–4 mics) are Phase 3. Equipment pages don't yet show their catalogue link, and bulk locker linking from existing microphone inventory is manual.
+- **Existing E2E flake:** `inventory.spec.ts` ("S/N SN-42" after editing) failed once in roughly six full dev-server runs. It doesn't touch Phase 2 code, but it's worth stabilising.
+
 ## Monetisation (ADR 0011)
 
 - **Stripe billing:** checkout, customer portal, webhooks setting `Organization.planTier`; replace "Contact us" on the plans comparison.

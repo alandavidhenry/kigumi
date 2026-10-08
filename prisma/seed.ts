@@ -3,11 +3,16 @@
 //
 // Creates verified users for every role so each permission path can be
 // exercised: owner@, manager@, engineer@ and viewer@kigumi.test.
+import fs from 'node:fs'
+import path from 'node:path'
+
 import { PrismaPg } from '@prisma/adapter-pg'
 import { hashPassword } from 'better-auth/crypto'
 import { config } from 'dotenv'
 
 import { PrismaClient } from '../src/generated/prisma/client'
+import { micSlug } from '../src/lib/mics/schemas'
+import { ingestEntries, seedFileSchema } from '../src/lib/mics/seed'
 
 config({ path: '.env.local', override: true })
 config()
@@ -50,6 +55,68 @@ async function upsertUser(role: (typeof ROLES)[number], passwordHash: string) {
       role
     }
   })
+}
+
+// Loads the starter mic seed files and, for local development and E2E only,
+// publishes them so the catalogue and locker can be exercised without a review
+// pass. They keep their "unverified draft" provenance, which the UI shows.
+// Never run this seed against production: real publishing goes through the
+// admin review queue (ADR 0008).
+async function seedMicCatalogue() {
+  const dir = path.resolve('data/mics')
+  const entries = fs
+    .readdirSync(dir)
+    .filter((name) => name.endsWith('.json') && name !== 'makers.json')
+    .flatMap(
+      (name) =>
+        seedFileSchema.parse(
+          JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8'))
+        ).entries
+    )
+  await prisma.$transaction((tx) => ingestEntries(tx, entries), {
+    timeout: 120_000
+  })
+
+  const slugs = entries.map((entry) => micSlug(entry.manufacturer, entry.model))
+  await prisma.microphoneModel.updateMany({
+    where: { slug: { in: slugs }, status: { not: 'published' } },
+    data: {
+      status: 'published',
+      publishedAt: new Date(),
+      reviewNotes:
+        'Dev seed: published without review. Values are unverified drafts.'
+    }
+  })
+
+  const units = [
+    {
+      id: 'seed-unit-u87',
+      slug: 'neumann-u-87-ai',
+      equipmentItemId: 'seed-eq-u87'
+    },
+    {
+      id: 'seed-unit-sm57',
+      slug: 'shure-sm57',
+      equipmentItemId: 'seed-eq-sm57'
+    }
+  ]
+  for (const unit of units) {
+    const model = await prisma.microphoneModel.findUnique({
+      where: { slug: unit.slug },
+      select: { id: true }
+    })
+    if (!model) continue
+    await prisma.microphoneUnit.upsert({
+      where: { id: unit.id },
+      update: {},
+      create: {
+        id: unit.id,
+        organisationId: ORG_ID,
+        micModelId: model.id,
+        equipmentItemId: unit.equipmentItemId
+      }
+    })
+  }
 }
 
 async function main() {
@@ -161,6 +228,8 @@ async function main() {
       create: { ...item, organisationId: ORG_ID }
     })
   }
+
+  await seedMicCatalogue()
 
   console.warn(
     `Seeded ${ROLES.map((role) => `${role}@kigumi.test`).join(', ')} with the given password`

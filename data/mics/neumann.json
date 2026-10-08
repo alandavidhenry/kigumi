@@ -1,0 +1,73 @@
+{
+  "maker": "Neumann",
+  "entries": [
+    {
+      "manufacturer": "Neumann",
+      "model": "U 87 Ai",
+      "transducerType": "ldc",
+      "polarPatterns": [
+        "omni",
+        "cardioid",
+        "figure8"
+      ],
+      "powering": "phantom",
+      "provenance": [
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "Transcribe from the official spec sheet, record its URL, then review.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "powering"
+          ]
+        }
+      ]
+    },
+    {
+      "manufacturer": "Neumann",
+      "model": "TLM 103",
+      "transducerType": "ldc",
+      "polarPatterns": [
+        "cardioid"
+      ],
+      "powering": "phantom",
+      "provenance": [
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "Transcribe from the official spec sheet, record its URL, then review.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "powering"
+          ]
+        }
+      ]
+    },
+    {
+      "manufacturer": "Neumann",
+      "model": "KM 184",
+      "transducerType": "sdc",
+      "polarPatterns": [
+        "cardioid"
+      ],
+      "powering": "phantom",
+      "provenance": [
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "Transcribe from the official spec sheet, record its URL, then review.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "powering"
+          ]
+        }
+      ]
+    }
+  ]
+}

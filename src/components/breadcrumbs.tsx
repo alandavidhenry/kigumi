@@ -15,6 +15,10 @@ const ROUTE_LABELS: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/studios': 'Studios & rooms',
   '/activity': 'Activity',
+  '/mics': 'Mic catalogue',
+  '/locker': 'Mic locker',
+  '/admin': 'Platform',
+  '/admin/mics': 'Mic review queue',
   '/settings/members': 'Members',
   '/settings/organisation': 'Organisation'
 }

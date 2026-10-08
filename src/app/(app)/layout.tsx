@@ -5,6 +5,7 @@ import { TenantProvider } from '@/components/providers/tenant-provider'
 import type { ClientTenant } from '@/components/providers/tenant-provider'
 import { isAppError } from '@/lib/errors'
 import { listMyOrganisations } from '@/lib/members'
+import { isCurrentUserPlatformAdmin } from '@/lib/platform-admin'
 import { getTenantContext } from '@/lib/tenant-context'
 import type { TenantContext } from '@/lib/tenant-context'
 
@@ -30,7 +31,10 @@ export default async function AppLayout({
   readonly children: React.ReactNode
 }) {
   const ctx = await resolveTenant()
-  const organisations = await listMyOrganisations(ctx.userId)
+  const [organisations, isPlatformAdmin] = await Promise.all([
+    listMyOrganisations(ctx.userId),
+    isCurrentUserPlatformAdmin()
+  ])
 
   const tenant: ClientTenant = {
     userId: ctx.userId,
@@ -40,6 +44,7 @@ export default async function AppLayout({
     organisationName: ctx.organisationName,
     role: ctx.role,
     planTier: ctx.planTier,
+    isPlatformAdmin,
     organisations
   }
 

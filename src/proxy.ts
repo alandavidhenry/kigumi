@@ -20,6 +20,9 @@ export const config = {
     '/studios/:path*',
     '/settings/:path*',
     '/activity/:path*',
+    '/mics/:path*',
+    '/locker/:path*',
+    '/admin/:path*',
     '/onboarding/:path*'
   ]
 }

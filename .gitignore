@@ -75,3 +75,4 @@ dev-credentials.txt
 .VSCodeCounter
 /src/generated/prisma
 example_docs
+studio-planner-phase-prompts.md
