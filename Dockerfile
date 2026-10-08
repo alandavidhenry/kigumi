@@ -1,5 +1,5 @@
 # Build stage
-FROM node:26.10.0-alpine3.24-dev@sha256:62b5dbaa16acf23a35f3801a40c2916f95fbf09806838a230907033d46c9944e AS builder
+FROM dhi.io/node:26.10.0-alpine3.24-dev@sha256:62b5dbaa16acf23a35f3801a40c2916f95fbf09806838a230907033d46c9944e AS builder
 WORKDIR /app
 
 # Install dependencies (the postinstall hook runs `prisma generate`, so it needs the schema)
