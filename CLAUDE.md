@@ -40,7 +40,7 @@ Always-relevant patterns:
 
 - **Tenancy (ADR 0003):** every tenant-owned model has non-null `organisationId` and is listed in `TENANT_MODELS` (`src/lib/tenant-scope.ts`). Tenant data is only read or written through `tenantDb(ctx)` inside `src/lib/`; ESLint blocks `@/lib/prisma` outside `src/lib`. Cross-tenant access surfaces as 404.
 - **Request flow:** route handler → `getTenantContext()` → lib function (`requirePermission(ctx, Permission.X)` → `tenantDb(ctx)` → `recordAudit(ctx, …)`) → `toErrorResponse` on failure. Roles and permissions live in `src/types/rbac.ts`.
-- **Plan limits:** `src/lib/plans.ts`, checked on create.
+- **Plans (ADR 0011):** `src/lib/plans.ts`. Limits via `canAdd` on create; paid features via `requireFeature(ctx, Feature.X)` in lib and `useTenant().has(feature)` in UI. New paid features go in `FEATURE_MINIMUM_TIER`, show an `UpgradeNotice` (not hidden) on lower tiers, and get a plan-gate test.
 - Better Auth tables use US spelling (`Organization`, `organizationId`); Kigumi's own models use `organisationId`.
 - Path alias `@/*` → `src/*`. Tailwind v4 with semantic tokens from `src/app/globals.css` (no hardcoded palette classes). Radix UI primitives (shadcn new-york).
 - `src/proxy.ts` is the Next.js 16 proxy (not `middleware`). It only does an optimistic session-cookie redirect; real checks happen server-side.

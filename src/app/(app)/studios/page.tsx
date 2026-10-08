@@ -6,7 +6,14 @@ import { PageHeader } from '@/components/page-header'
 import { StudioFormDialog } from '@/components/studios/studio-form-dialog'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { canAdd, formatLimit, getPlanLimits } from '@/lib/plans'
+import { UpgradeNotice } from '@/components/upgrade-notice'
+import {
+  PLAN_LABELS,
+  canAdd,
+  formatLimit,
+  getPlanLimits,
+  upgradeTierFor
+} from '@/lib/plans'
 import { listStudios } from '@/lib/studios'
 import { getTenantContext } from '@/lib/tenant-context'
 import { Permission, hasPermission } from '@/types/rbac'
@@ -19,6 +26,8 @@ export default async function StudiosPage() {
   const canManage = hasPermission(ctx.role, Permission.MANAGE_STUDIOS)
   const withinPlan = canAdd(ctx.planTier, 'studios', studios.length)
   const limit = getPlanLimits(ctx.planTier).studios
+  const upgradeTier = upgradeTierFor(ctx.planTier, 'studios', studios.length)
+  const upgradeLabel = upgradeTier ? PLAN_LABELS[upgradeTier] : null
 
   const addButton = canManage ? (
     <StudioFormDialog
@@ -40,9 +49,11 @@ export default async function StudiosPage() {
       />
 
       {!withinPlan && canManage && (
-        <p className='text-sm text-muted-foreground'>
-          You’ve reached your plan’s studio limit.
-        </p>
+        <UpgradeNotice
+          compact
+          title='You’ve reached your plan’s studio limit.'
+          planLabel={upgradeLabel}
+        />
       )}
 
       {studios.length === 0 ? (

@@ -12,6 +12,7 @@ import { StudioFormDialog } from '@/components/studios/studio-form-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from '@/components/ui/use-toast'
+import { UpgradeNotice } from '@/components/upgrade-notice'
 import { apiFetch } from '@/lib/client-api'
 import type { StudioDetail as StudioDetailData } from '@/lib/studios'
 import { formatDimensions } from '@/lib/validation'
@@ -19,11 +20,13 @@ import { formatDimensions } from '@/lib/validation'
 export function StudioDetail({
   studio,
   canManage,
-  canAddRoom
+  canAddRoom,
+  upgradePlanLabel
 }: {
   readonly studio: StudioDetailData
   readonly canManage: boolean
   readonly canAddRoom: boolean
+  readonly upgradePlanLabel: string | null
 }) {
   const router = useRouter()
   useBreadcrumbLabel(`/studios/${studio.id}`, studio.name)
@@ -99,9 +102,12 @@ export function StudioDetail({
         </CardHeader>
         <CardContent className='p-0'>
           {!canAddRoom && canManage && (
-            <p className='px-4 pb-3 text-sm text-muted-foreground'>
-              You’ve reached your plan’s room limit.
-            </p>
+            <UpgradeNotice
+              compact
+              className='mx-4 mb-3'
+              title='You’ve reached your plan’s room limit.'
+              planLabel={upgradePlanLabel}
+            />
           )}
           {studio.rooms.length === 0 ? (
             <EmptyState

@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { auth } from '@/lib/auth'
+import { Feature, PlanTier } from '@/lib/plans'
 import prisma from '@/lib/prisma'
-import { getTenantContext, requirePermission } from '@/lib/tenant-context'
+import {
+  getTenantContext,
+  requireFeature,
+  requirePermission
+} from '@/lib/tenant-context'
 import { MemberRole, Permission } from '@/types/rbac'
 
 vi.mock('next/headers', () => ({ headers: vi.fn(async () => new Headers()) }))
@@ -102,5 +107,24 @@ describe('requirePermission', () => {
     expect(() =>
       requirePermission({ role: MemberRole.VIEWER }, Permission.MANAGE_STUDIOS)
     ).toThrow(expect.objectContaining({ code: 'FORBIDDEN' }))
+  })
+})
+
+describe('requireFeature', () => {
+  it('passes when the plan includes the feature', () => {
+    expect(() =>
+      requireFeature({ planTier: PlanTier.PRO }, Feature.VALUATION_REPORT)
+    ).not.toThrow()
+  })
+
+  it('names the cheapest plan that includes it', () => {
+    expect(() =>
+      requireFeature({ planTier: PlanTier.FREE }, Feature.AUDIT_LOG)
+    ).toThrow(
+      expect.objectContaining({
+        code: 'FEATURE_NOT_IN_PLAN',
+        message: 'Activity log is available on the Studio plan and above.'
+      })
+    )
   })
 })

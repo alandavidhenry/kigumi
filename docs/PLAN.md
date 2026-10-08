@@ -35,6 +35,7 @@ Later it grows into full studio management (booking, CRM, invoicing, payments).
 | Mic data | Research spike in Phase 2 | [0008](decisions/0008-mic-data-sourcing.md) |
 | Background jobs | GitHub Actions cron → `/api/cron/*` protected by `CRON_SECRET` | [0009](decisions/0009-background-jobs.md) |
 | Audit log | Postgres `AuditLog` table | [0010](decisions/0010-audit-log.md) |
+| Monetisation | Free / Pro / Studio / Facility subscriptions, feature entitlements | [0011](decisions/0011-monetisation.md) |
 | Email | Azure Communication Services (`src/lib/email.ts`) | — |
 | UI | Tailwind v4 semantic tokens, Radix primitives (shadcn new-york), lucide, cmdk | — |
 | Tests | Vitest (unit + integration), Playwright (E2E) | — |
@@ -43,7 +44,7 @@ Later it grows into full studio management (booking, CRM, invoicing, payments).
 ### 2.2 Cross-cutting rules
 - **Tenancy:** Organisation → Studio(s) → Rooms. Users belong to organisations through `Member` with role Owner / Manager / Engineer / Viewer. All tenant data access goes through `tenantDb(ctx)`; routes and components never query tenant models with the raw client.
 - **Authorisation:** `requirePermission(ctx, Permission.X)` using the role → permission matrix in `src/types/rbac.ts`.
-- **Plan limits:** `src/lib/plans.ts` (see §6). Checked on create.
+- **Plans:** `src/lib/plans.ts` (see §6). Limits checked on create with `canAdd`; paid features gated with `requireFeature(ctx, Feature.X)` and shown as upgrade prompts in the UI.
 - **Audit:** every inventory/session/organisation mutation writes an `AuditLog` row via `src/lib/audit.ts`.
 - **LLM:** structured outputs validated with Zod; prompt templates versioned in code; cache by input hash; per-tenant monthly token budgets; user text is treated as untrusted (prompt-injection handling).
 - **Accessibility & responsive:** usable on a tablet at the console.
@@ -159,10 +160,30 @@ Dashboard (upcoming sessions, overdue maintenance, expiring warranties); global 
 
 ---
 
-## 6. Pricing tiers (plan limits only, no billing yet)
+## 6. Monetisation (ADR [0011](decisions/0011-monetisation.md))
 
-| Tier | Studios | Rooms | Seats | AI requests / month |
+Four subscription tiers; no billing yet. Limits and entitlements are enforced now so Stripe can be added without new checks. Prices are hypotheses to validate.
+
+| | Free | Pro | Studio | Facility |
 | --- | --- | --- | --- | --- |
+| For | Home / bedroom studios | Solo pros, project studios | Commercial studios with staff | Multi-site, education |
+| Price (GBP) | £0 | £10/mo or £96/yr | £35/mo or £336/yr | From £90/mo |
+| Studios / rooms | 1 / 2 | 1 / 4 | 2 / 15 | Unlimited |
+| Seats | 1 | 3 | 15 | 50 (custom) |
+| Inventory items | 250 | Unlimited | Unlimited | Unlimited |
+| AI requests / month | 25 | 400 | 2,500 | 10,000 (custom) |
+| Storage | 250 MB | 5 GB | 50 GB | 200 GB (custom) |
+
+- **Free keeps the core workflow:** inventory, mic catalogue and comparisons, mic locker, layouts, sessions, input lists, recall sheets, safety warnings, CSV import/export, QR labels, branded share links.
+- **Pro adds** (upgrade hooks for one-person studios): insurance and valuation report, email reminders, unbranded PDFs and share links, templates, AI receipt scanning.
+- **Studio adds:** activity log, usage-hour maintenance, PAT testing, shared console templates, bulk import, booking calendar.
+- **Facility adds:** multi-site reporting, SSO, class and cohort accounts, annual invoicing, priority support. Education is a discount on Studio or Facility.
+- Paid features show as upgrade prompts on lower tiers. Gated data is still recorded, and data over the limits after a downgrade becomes read-only, never deleted.
+- **No general buy-once licence.** At launch, consider a capped founders' deal, AI credit packs and a reverse trial (14 days of Pro, then Free).
+
+Source of truth: `src/lib/plans.ts` (`PLAN_LIMITS`, `FEATURE_MINIMUM_TIER`, `PLAN_INFO`). `Organization.planTier` defaults to `free`.
+
+--- | --- | --- | --- | --- |
 | Free | 1 | 1 | 2 | 50 |
 | Pro | 1 | 5 | 5 | 1,000 |
 | Studio | 3 | unlimited | 15 | 5,000 |
@@ -193,5 +214,5 @@ Limits live in `src/lib/plans.ts`; `Organization.planTier` defaults to `free`.
 3. **Auth:** Better Auth + organization plugin.
 4. **LLM:** Anthropic API; `claude-sonnet-5-5` by default, `claude-haiku-5-5` for cheap tasks; budgets by tier (§6).
 5. **Starter mic list:** proposed during the Phase 2 spike.
-6. **Pricing tiers:** §6 (proposed; adjust any time).
+6. **Pricing tiers:** Free / Pro / Studio / Facility, §6 and ADR 0011. No general buy-once licence.
 7. **Name:** Kigumi.

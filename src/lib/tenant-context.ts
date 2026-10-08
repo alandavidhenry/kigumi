@@ -2,8 +2,21 @@ import { headers } from 'next/headers'
 import { cache } from 'react'
 
 import { auth } from '@/lib/auth'
-import { AppError, forbidden, unauthorized } from '@/lib/errors'
-import { PlanTier, toPlanTier } from '@/lib/plans'
+import {
+  AppError,
+  featureNotInPlan,
+  forbidden,
+  unauthorized
+} from '@/lib/errors'
+import {
+  FEATURE_LABELS,
+  PLAN_LABELS,
+  PlanTier,
+  hasFeature,
+  minimumTierFor,
+  toPlanTier
+} from '@/lib/plans'
+import type { Feature } from '@/lib/plans'
 import prisma from '@/lib/prisma'
 import { hasPermission, isMemberRole, MemberRole } from '@/types/rbac'
 import type { Permission } from '@/types/rbac'
@@ -62,6 +75,20 @@ export const getTenantContext = cache(async (): Promise<TenantContext> => {
     planTier: toPlanTier(member.organization.planTier)
   }
 })
+
+// Plan entitlement check (ADR 0011): throws FEATURE_NOT_IN_PLAN (403) naming
+// the cheapest plan that includes the feature, for upgrade prompts.
+export function requireFeature(
+  ctx: Pick<TenantContext, 'planTier'>,
+  feature: Feature
+): void {
+  if (!hasFeature(ctx.planTier, feature)) {
+    throw featureNotInPlan(
+      FEATURE_LABELS[feature],
+      PLAN_LABELS[minimumTierFor(feature)]
+    )
+  }
+}
 
 export function requirePermission(
   ctx: Pick<TenantContext, 'role'>,

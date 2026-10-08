@@ -14,3 +14,4 @@ One short file per decision: `NNNN-title.md` with **Status**, **Context**, **Dec
 | 0008 | [Mic data sourcing](0008-mic-data-sourcing.md)   | Proposed (Phase 2 spike) |
 | 0009 | [Background jobs](0009-background-jobs.md)       | Accepted                 |
 | 0010 | [Audit log](0010-audit-log.md)                   | Accepted                 |
+| 0011 | [Monetisation](0011-monetisation.md)             | Accepted                 |

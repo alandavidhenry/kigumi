@@ -6,7 +6,7 @@ Current coverage by area. Add to this file when you add tests.
 
 - **Tenancy:** `tenant-scope` covers every operation type (where-merging for reads, updates, deletes, counts and aggregates; create/createMany data; upsert), the same-org explicit filter, rejection of another org, operator filters, relation connects, moving rows between orgs, a missing organisation, and pass-through for non-tenant models. `tenant-db` checks the extension wiring and that it throws before querying. `tenant-context` covers 401 without a session, 403 without an active org or membership, context building, and unknown role/tier downgrades. `requirePermission` is covered too.
 - **RBAC** (`rbac.test.ts`): the full permission matrix, `hasPermission` edge cases, `isMemberRole`, `assignableRoles`.
-- **Plans** (`plans.test.ts`): tier parsing, limits, `canAdd` including unlimited, `formatLimit`.
+- **Plans** (`plans.test.ts`): tier parsing, documented Free limits, limits and features never shrink up the tiers, `canAdd` including unlimited, `upgradeTierFor`, feature inheritance, `minimumTierFor`, every feature labelled and never Free-gated, pricing sanity, formatters. `requireFeature` is in `tenant-context.test.ts`; the audit log plan gate (Free/Pro refused, Studio/Facility allowed) is in `audit.test.ts`.
 - **Studios and rooms** (`studios.test.ts`): list, get (404), create (plan limit, viewer 403, validation before DB), update (404 when nothing matched, audit metadata), delete (404), room create (cross-org studio 404, org-wide room limit), room update/delete, usage.
 - **Audit** (`audit.test.ts`), **members** (`members.test.ts`), **seats and health** (`seats-and-health.test.ts`), **auth hooks** (`auth-hooks.test.ts`: default active org, seat-limit invitation rejection, unknown roles, every audit hook), **email** (`email.test.ts`: dev logging, production refusal, ACS send, HTML escaping), **validation**, **api/errors**, **client-api**, **slug**, **safe-redirect** (open-redirect rejection), **navigation**.
 
@@ -25,6 +25,7 @@ Runs against a migrated and seeded database. Against a production build (`npm ru
 - `sign-in.spec.ts`: unauthenticated redirect with `callbackUrl`, wrong password, return to the requested page.
 - `onboarding.spec.ts`: sign up → verify (DB) → sign in → onboarding creates the org and first studio → add a room in metres → Free-plan room limit blocks a second room.
 - `studios.spec.ts`: owner views the seeded studio, adds, edits and deletes a room, and sees the activity log.
+- `onboarding.spec.ts` › Free plan upgrade prompts: a Free owner sees the activity log as an upgrade prompt (and the API returns 403), invites are blocked by the one-seat limit, and the plans comparison marks Free as current.
 - `viewer.spec.ts`: viewer has no edit controls, the API returns 403 for a direct POST, and `/activity` redirects.
 
 Manually verified during Phase 0 against real Postgres (not automated): a second organisation's user gets 404 for every read, update, delete and create on the first organisation's studio and rooms.

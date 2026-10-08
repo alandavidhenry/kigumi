@@ -23,6 +23,7 @@ Emails (`src/lib/email.ts`) go through ACS. Without ACS configured, development 
 - `getTenantContext()` (`src/lib/tenant-context.ts`, cached per request): session → active organisation → membership. Throws `UNAUTHORIZED` (401) or `NO_ACTIVE_ORGANISATION` (403).
 - `tenantDb(ctx)` (`src/lib/tenant-db.ts`): a Prisma `$extends` query extension that runs every operation through `scopeArgs` (`src/lib/tenant-scope.ts`). That merges `organisationId` into `where`, sets it on create, and throws `CROSS_TENANT` (404) when a query names another organisation or uses a relation-style `organisation` connect.
 - `requirePermission(ctx, Permission.X)`: role → permission matrix in `src/types/rbac.ts`. Owner has everything; Manager manages studios and members and sees the audit log; Engineer and Viewer are read-only in Phase 0 (Engineer gains session permissions later).
+- `requireFeature(ctx, Feature.X)`: plan entitlements from `src/lib/plans.ts` (ADR 0011). Throws `FEATURE_NOT_IN_PLAN` (403), naming the cheapest plan that includes the feature. Lib functions call it next to `requirePermission` (e.g. `listAuditLog` needs owner/manager **and** Studio+).
 - Errors are typed (`src/lib/errors.ts`) and mapped to JSON by `toErrorResponse` (`src/lib/api.ts`). Zod errors become 400 with field paths.
 - Better Auth's own tables (Member, Invitation) are read in `src/lib/members.ts` with an explicit `organizationId` filter, since they aren't `tenantDb` models.
 
@@ -56,6 +57,7 @@ Server components read data by calling lib functions directly with the tenant co
 - **Shell:** `src/components/app-shell.tsx`: hover/expanded/collapsed sidebar (`sidebar-control.tsx`, persisted in `localStorage`) plus a 48px top bar (breadcrumbs, command palette, theme toggle, user menu with organisation switcher). A drawer below `md`.
 - **Navigation model:** `src/lib/navigation.ts` (`buildNavGroups(can)`), rendered by `app-sidebar.tsx` and reused by `command-palette.tsx` (⌘K/Ctrl+K, which also lists studios).
 - **Client permissions:** `useTenant().can(Permission.X)` from `TenantProvider`. This is for affordances only; the server re-checks.
+- **Upgrade prompts:** `UpgradeNotice` (`src/components/upgrade-notice.tsx`) wherever a limit or paid feature stops the user, linking to the plan comparison (`PlanComparison` on `/settings/organisation#plans`, generated from `plans.ts`). `upgradeTierFor(tier, resource, count)` names the cheapest plan that lifts a limit. Paid pages stay in the nav and render the prompt instead of the content.
 - **Destructive actions:** `ConfirmDeleteButton` (an in-app dialog, never `window.confirm`).
 - **Units:** forms collect metres; storage is millimetres (`metresToMm`, `formatDimensions` in `src/lib/validation.ts`).
 - Tablet-friendly: 36px+ touch rows on small screens, dialogs and lists that work at 768px.

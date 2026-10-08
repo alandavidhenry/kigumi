@@ -3,7 +3,8 @@
 import { createContext, useContext, useMemo } from 'react'
 
 import type { OrganisationOption } from '@/lib/members'
-import type { PlanTier } from '@/lib/plans'
+import { hasFeature } from '@/lib/plans'
+import type { Feature, PlanTier } from '@/lib/plans'
 import { hasPermission } from '@/types/rbac'
 import type { MemberRole, Permission } from '@/types/rbac'
 
@@ -23,6 +24,7 @@ export interface ClientTenant {
 
 interface TenantContextValue extends ClientTenant {
   can: (permission: Permission) => boolean
+  has: (feature: Feature) => boolean
 }
 
 const TenantContext = createContext<TenantContextValue | null>(null)
@@ -37,7 +39,8 @@ export function TenantProvider({
   const value = useMemo(
     () => ({
       ...tenant,
-      can: (permission: Permission) => hasPermission(tenant.role, permission)
+      can: (permission: Permission) => hasPermission(tenant.role, permission),
+      has: (feature: Feature) => hasFeature(tenant.planTier, feature)
     }),
     [tenant]
   )

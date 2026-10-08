@@ -1,7 +1,10 @@
+import { Feature } from '@/lib/plans'
 import prisma from '@/lib/prisma'
 import { toJsonValue } from '@/lib/prisma-json'
+import { requireFeature, requirePermission } from '@/lib/tenant-context'
 import type { TenantContext } from '@/lib/tenant-context'
 import { tenantDb } from '@/lib/tenant-db'
+import { Permission } from '@/types/rbac'
 
 export interface AuditEntry {
   action: string // '<entity>.<verb>', e.g. 'room.create'
@@ -59,10 +62,15 @@ export async function recordAudit(
   })
 }
 
+// Reading the log needs the permission (owner/manager) and the plan feature
+// (Studio+). Writing is never gated: every plan records history, so upgrading
+// reveals the full trail.
 export async function listAuditLog(
   ctx: TenantContext,
   { limit = 50 }: { limit?: number } = {}
 ): Promise<AuditLogRow[]> {
+  requirePermission(ctx, Permission.VIEW_AUDIT_LOG)
+  requireFeature(ctx, Feature.AUDIT_LOG)
   return tenantDb(ctx).auditLog.findMany({
     orderBy: { createdAt: 'desc' },
     take: Math.min(Math.max(limit, 1), 200),

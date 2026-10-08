@@ -8,6 +8,7 @@ export type AppErrorCode =
   | 'FORBIDDEN'
   | 'NOT_FOUND'
   | 'PLAN_LIMIT'
+  | 'FEATURE_NOT_IN_PLAN'
   | 'BAD_REQUEST'
   | 'CROSS_TENANT'
 
@@ -17,6 +18,7 @@ const STATUS_BY_CODE: Readonly<Record<AppErrorCode, number>> = {
   FORBIDDEN: 403,
   NOT_FOUND: 404,
   PLAN_LIMIT: 403,
+  FEATURE_NOT_IN_PLAN: 403,
   BAD_REQUEST: 400,
   CROSS_TENANT: 404
 }
@@ -53,6 +55,13 @@ export const planLimit = (resource: string, limit: number) =>
     'PLAN_LIMIT',
     `Your plan allows ${limit} ${resource}. Upgrade to add more.`,
     { resource, limit }
+  )
+
+export const featureNotInPlan = (featureLabel: string, planLabel: string) =>
+  new AppError(
+    'FEATURE_NOT_IN_PLAN',
+    `${featureLabel} is available on the ${planLabel} plan and above.`,
+    { feature: featureLabel, requiredPlan: planLabel }
   )
 
 export const badRequest = (message: string, details?: unknown) =>

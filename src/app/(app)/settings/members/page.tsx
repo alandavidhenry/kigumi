@@ -1,7 +1,12 @@
 import { MembersManager } from '@/app/(app)/settings/members/members-manager'
 import { PageHeader } from '@/components/page-header'
 import { listMembers, listPendingInvitations } from '@/lib/members'
-import { formatLimit, getPlanLimits } from '@/lib/plans'
+import {
+  PLAN_LABELS,
+  formatLimit,
+  getPlanLimits,
+  upgradeTierFor
+} from '@/lib/plans'
 import { countUsedSeats } from '@/lib/seats'
 import { getTenantContext } from '@/lib/tenant-context'
 import { Permission, hasPermission } from '@/types/rbac'
@@ -17,6 +22,8 @@ export default async function MembersPage() {
     countUsedSeats(ctx.organisationId)
   ])
   const seats = getPlanLimits(ctx.planTier).seats
+  const upgradeTier = upgradeTierFor(ctx.planTier, 'seats', usedSeats)
+  const upgradeLabel = upgradeTier ? PLAN_LABELS[upgradeTier] : null
 
   return (
     <div className='space-y-6'>
@@ -29,6 +36,7 @@ export default async function MembersPage() {
         invitations={invitations}
         canManage={canManage}
         seatsAvailable={usedSeats < seats}
+        upgradePlanLabel={upgradeLabel}
       />
     </div>
   )

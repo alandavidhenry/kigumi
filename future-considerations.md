@@ -13,6 +13,16 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Gitleaks locally:** the pre-commit hook skips the secret scan when gitleaks isn't installed; CI always runs it.
 - **Dev-only npm advisory:** `braces` via `@next/eslint-plugin-next` → `fast-glob` has no fix; CI audits production dependencies only.
 
+## Monetisation (ADR 0011)
+
+- **Stripe billing:** checkout, customer portal, webhooks setting `Organization.planTier`; replace "Contact us" on the plans comparison.
+- **Reverse trial:** 14 days of Pro for new signups, then Free (needs a `trialEndsAt` on Organization).
+- **Downgrades:** make data over the limits read-only (not deleted) when a plan drops; currently limits only block new creates.
+- **Per-organisation overrides** for Facility (custom seats, AI and storage).
+- **Usage metering:** inventory count (Phase 1), AI requests (Phase 3) and storage (Phase 1 attachments) against `PLAN_LIMITS`.
+- **Launch options:** capped founders' deal, AI credit packs, price lock for early subscribers. No general lifetime licence.
+- **Validate prices** with studio-owner interviews before launch.
+
 ## Later phases (summary)
 
 Equipment inventory (P1), mic catalogue + data-sourcing spike (P2), AI layer (P3), recommendations (P4), layouts and sessions (P5), recall sheets (P6), maintenance and warranty (P7), hardening (P8). See `docs/PLAN.md`.

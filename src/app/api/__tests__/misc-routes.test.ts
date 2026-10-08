@@ -4,7 +4,9 @@ import { GET as auditLogRoute } from '@/app/api/audit-log/route'
 import { GET as deepHealth } from '@/app/api/health/deep/route'
 import { GET as health } from '@/app/api/health/route'
 import { listAuditLog } from '@/lib/audit'
+import { featureNotInPlan } from '@/lib/errors'
 import { checkDatabase, checkStorage } from '@/lib/health'
+import { PlanTier } from '@/lib/plans'
 import { getTenantContext } from '@/lib/tenant-context'
 import { makeContext } from '@/test/fixtures'
 import { MemberRole } from '@/types/rbac'
@@ -74,12 +76,15 @@ describe('GET /api/audit-log', () => {
     expect(listAuditLog).toHaveBeenCalledWith(expect.anything(), { limit: 50 })
   })
 
-  it('403s for engineers', async () => {
+  it('passes permission and plan errors through as 403s', async () => {
     vi.mocked(getTenantContext).mockResolvedValue(
-      makeContext({ role: MemberRole.ENGINEER })
+      makeContext({ planTier: PlanTier.PRO })
+    )
+    vi.mocked(listAuditLog).mockRejectedValue(
+      featureNotInPlan('Activity log', 'Studio')
     )
     const response = await auditLogRoute(new Request('http://x/api/audit-log'))
     expect(response.status).toBe(403)
-    expect(listAuditLog).not.toHaveBeenCalled()
+    expect((await response.json()).code).toBe('FEATURE_NOT_IN_PLAN')
   })
 })

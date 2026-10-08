@@ -83,24 +83,25 @@ describe('withDefaultActiveOrganisation', () => {
 
 describe('seatLimitFor', () => {
   it('reads seats from the plan tier', async () => {
-    expect(await seatLimitFor(org)).toBe(2)
+    expect(await seatLimitFor(org)).toBe(1)
+    expect(await seatLimitFor({ ...org, planTier: 'pro' })).toBe(3)
     expect(await seatLimitFor({ ...org, planTier: 'studio' })).toBe(15)
   })
 })
 
 describe('beforeCreateInvitation', () => {
   it('allows an invitation within the seat limit', async () => {
-    vi.mocked(countUsedSeats).mockResolvedValue(1)
+    vi.mocked(countUsedSeats).mockResolvedValue(2)
     await expect(
       beforeCreateInvitation({
         invitation: { role: 'viewer' },
-        organization: org
+        organization: { ...org, planTier: 'pro' }
       })
     ).resolves.toBeUndefined()
   })
 
   it('rejects once members plus pending invitations fill the plan', async () => {
-    vi.mocked(countUsedSeats).mockResolvedValue(2)
+    vi.mocked(countUsedSeats).mockResolvedValue(1)
     await expect(
       beforeCreateInvitation({
         invitation: { role: 'viewer' },

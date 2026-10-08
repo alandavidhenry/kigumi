@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation'
 
 import { StudioDetail } from '@/app/(app)/studios/[studioId]/studio-detail'
 import { isAppError } from '@/lib/errors'
-import { canAdd } from '@/lib/plans'
+import { PLAN_LABELS, canAdd, upgradeTierFor } from '@/lib/plans'
 import { getOrganisationUsage, getStudio } from '@/lib/studios'
 import { getTenantContext } from '@/lib/tenant-context'
 import { Permission, hasPermission } from '@/types/rbac'
@@ -35,12 +35,14 @@ export default async function StudioPage({ params }: PageProps) {
   const { studioId } = await params
   const { ctx, studio } = await loadStudio(studioId)
   const usage = await getOrganisationUsage(ctx)
+  const upgradeTier = upgradeTierFor(ctx.planTier, 'rooms', usage.rooms)
 
   return (
     <StudioDetail
       studio={studio}
       canManage={hasPermission(ctx.role, Permission.MANAGE_STUDIOS)}
       canAddRoom={canAdd(ctx.planTier, 'rooms', usage.rooms)}
+      upgradePlanLabel={upgradeTier ? PLAN_LABELS[upgradeTier] : null}
     />
   )
 }

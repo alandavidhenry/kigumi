@@ -29,6 +29,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { toast } from '@/components/ui/use-toast'
+import { UpgradeNotice } from '@/components/upgrade-notice'
 import { authClient } from '@/lib/auth-client'
 import type { InvitationRow, MemberRow } from '@/lib/members'
 import { MEMBER_ROLE_LABELS, MemberRole, assignableRoles } from '@/types/rbac'
@@ -166,12 +167,14 @@ export function MembersManager({
   members,
   invitations,
   canManage,
-  seatsAvailable
+  seatsAvailable,
+  upgradePlanLabel
 }: {
   readonly members: MemberRow[]
   readonly invitations: InvitationRow[]
   readonly canManage: boolean
   readonly seatsAvailable: boolean
+  readonly upgradePlanLabel: string | null
 }) {
   const router = useRouter()
   const { userId, role } = useTenant()
@@ -230,9 +233,12 @@ export function MembersManager({
         </CardHeader>
         <CardContent className='p-0'>
           {canManage && !seatsAvailable && (
-            <p className='px-4 pb-3 text-sm text-muted-foreground'>
-              All seats on your plan are in use.
-            </p>
+            <UpgradeNotice
+              compact
+              className='mx-4 mb-3'
+              title='All seats on your plan are in use'
+              planLabel={upgradePlanLabel}
+            />
           )}
           <ul className='divide-y border-t'>
             {members.map((member) => (

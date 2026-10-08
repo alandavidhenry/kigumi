@@ -19,7 +19,7 @@ Schema: `prisma/schema.prisma`. The target model for later phases is in `docs/PL
 - `src/lib/studios.ts`: `listStudios`, `getStudio`, `createStudio`, `updateStudio`, `deleteStudio`, `createRoom`, `updateRoom`, `deleteRoom`, `getOrganisationUsage`. All take a `TenantContext`, check permissions, validate with Zod, enforce plan limits on create (room limits are organisation-wide), and audit every mutation. Updates use `updateMany` plus a re-read so a cross-tenant id is simply "not found".
 - `src/lib/members.ts`: `listMembers`, `listPendingInvitations` (managers+), `listMyOrganisations`, `countMembers`.
 - `src/lib/audit.ts`: `recordAudit(ctx, entry)` (via `tenantDb`), `writeAuditLog(orgId, actorId, entry)` (for Better Auth hooks), `listAuditLog(ctx, { limit })` (clamped 1–200).
-- `src/lib/plans.ts`: `PLAN_LIMITS`, `getPlanLimits`, `canAdd`, `toPlanTier`, `formatLimit`.
+- `src/lib/plans.ts` (ADR 0011): tiers `free` / `pro` / `studio` / `facility` (`PLAN_ORDER`); `PLAN_LIMITS` (studios, rooms, seats, inventoryItems, aiRequestsPerMonth, storageMb); `Feature` + `FEATURE_MINIMUM_TIER`; `PLAN_INFO` (labels, audiences, prices in pence); helpers `getPlanLimits`, `canAdd`, `hasFeature`, `minimumTierFor`, `upgradeTierFor`, `featuresFor`, `featuresIntroducedBy`, formatters. Unknown tiers (including the retired `education`) fall back to `free`.
 - `src/lib/seats.ts`: `countUsedSeats` (members + live pending invitations).
 - `src/lib/validation.ts`: `studioInputSchema`/`studioUpdateSchema` (the update schema is built from raw fields, so defaults never overwrite stored values), `roomInputSchema`/`roomUpdateSchema`, unit helpers.
 - `src/lib/slug.ts`: `uniqueSlug` for organisation slugs.

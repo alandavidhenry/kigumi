@@ -12,7 +12,9 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
+import { UpgradeNotice } from '@/components/upgrade-notice'
 import { listAuditLog } from '@/lib/audit'
+import { Feature, PLAN_LABELS, hasFeature, minimumTierFor } from '@/lib/plans'
 import { getTenantContext } from '@/lib/tenant-context'
 import { Permission, hasPermission } from '@/types/rbac'
 
@@ -27,6 +29,24 @@ export default async function ActivityPage() {
   const ctx = await getTenantContext()
   if (!hasPermission(ctx.role, Permission.VIEW_AUDIT_LOG))
     redirect('/dashboard')
+
+  // Below Studio, history is still recorded but shown only after upgrading.
+  if (!hasFeature(ctx.planTier, Feature.AUDIT_LOG)) {
+    return (
+      <div className='space-y-6'>
+        <PageHeader
+          title='Activity'
+          description='Changes to studios, rooms, members and settings.'
+        />
+        <UpgradeNotice
+          title='See who changed what, and when'
+          description='The activity log is part of the Studio plan. Kigumi is already recording your history, so it will all be here when you upgrade.'
+          planLabel={PLAN_LABELS[minimumTierFor(Feature.AUDIT_LOG)]}
+        />
+      </div>
+    )
+  }
+
   const entries = await listAuditLog(ctx, { limit: 200 })
 
   return (

@@ -12,7 +12,13 @@ import {
 } from '@/components/ui/card'
 import { listAuditLog } from '@/lib/audit'
 import { countMembers } from '@/lib/members'
-import { PLAN_LABELS, formatLimit, getPlanLimits } from '@/lib/plans'
+import {
+  Feature,
+  PLAN_LABELS,
+  formatLimit,
+  getPlanLimits,
+  hasFeature
+} from '@/lib/plans'
 import { getOrganisationUsage } from '@/lib/studios'
 import { getTenantContext } from '@/lib/tenant-context'
 import { Permission, hasPermission } from '@/types/rbac'
@@ -26,7 +32,9 @@ const dateTime = new Intl.DateTimeFormat('en-GB', {
 
 export default async function DashboardPage() {
   const ctx = await getTenantContext()
-  const canSeeActivity = hasPermission(ctx.role, Permission.VIEW_AUDIT_LOG)
+  const canSeeActivity =
+    hasPermission(ctx.role, Permission.VIEW_AUDIT_LOG) &&
+    hasFeature(ctx.planTier, Feature.AUDIT_LOG)
   const [usage, members, activity] = await Promise.all([
     getOrganisationUsage(ctx),
     countMembers(ctx),

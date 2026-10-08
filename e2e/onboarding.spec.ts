@@ -45,9 +45,65 @@ test('a new user can set up their organisation, studio and first room', async ({
 
   await expect(page.getByText('6.50 × 8.00 × 3.20 m')).toBeVisible()
 
-  // Free plan allows one room, so adding another is blocked.
+  await page.getByRole('button', { name: 'Add room' }).click()
+  const second = page.getByRole('dialog')
+  await second.getByLabel('Name').fill('Control room')
+  await second.getByLabel('Width').fill('4')
+  await second.getByLabel('Length').fill('5')
+  await second.getByRole('button', { name: 'Add room' }).click()
+  await expect(page.getByText('4.00 × 5.00 m')).toBeVisible()
+
+  // Free allows two rooms; the third is blocked with an upgrade prompt.
   await expect(page.getByRole('button', { name: 'Add room' })).toBeDisabled()
   await expect(
     page.getByText('You’ve reached your plan’s room limit.')
   ).toBeVisible()
+  await expect(page.getByRole('link', { name: 'See Pro plan' })).toBeVisible()
+})
+
+test.describe('Free plan upgrade prompts', () => {
+  test('a Free owner sees paid features as upgrade prompts', async ({
+    page
+  }) => {
+    const suffix = uniqueSuffix()
+    const email = `free-${suffix}@kigumi.test`
+    const password = 'free-user-password'
+
+    await page.goto('/auth/sign-up')
+    await page.getByLabel('Your name').fill('Solo Engineer')
+    await page.getByLabel('Email').fill(email)
+    await page.getByLabel('Password', { exact: true }).fill(password)
+    await page.getByRole('button', { name: 'Create account' }).click()
+    await expect(
+      page.getByRole('heading', { name: 'Check your inbox' })
+    ).toBeVisible()
+    await markEmailVerified(email)
+    await signIn(page, email, password)
+    await page.waitForURL(/\/onboarding$/)
+    await page.getByLabel('Organisation name').fill(`Solo ${suffix}`)
+    await page.getByRole('button', { name: 'Continue' }).click()
+    await page.waitForURL(/\/dashboard$/)
+
+    // The activity log is a Studio feature: visible, but as an upgrade prompt.
+    await page.goto('/activity')
+    await expect(page.getByText('See who changed what, and when')).toBeVisible()
+    await expect(page.getByRole('table')).toHaveCount(0)
+    expect((await page.request.get('/api/audit-log')).status()).toBe(403)
+
+    // Free includes one seat, so inviting is blocked.
+    await page.goto('/settings/members')
+    await expect(page.getByRole('button', { name: 'Invite' })).toBeDisabled()
+    await expect(
+      page.getByText('All seats on your plan are in use')
+    ).toBeVisible()
+
+    // The plans comparison marks the current plan.
+    await page.goto('/settings/organisation')
+    await expect(
+      page.getByRole('region', { name: 'Free plan' }).getByText('Current plan')
+    ).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Pro plan' })).toContainText(
+      'Insurance & valuation report'
+    )
+  })
 })

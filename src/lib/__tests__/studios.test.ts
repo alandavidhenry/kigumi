@@ -232,7 +232,7 @@ describe('createRoom', () => {
 
   it('counts rooms organisation-wide against the plan', async () => {
     db.studio.findFirst.mockResolvedValue({ id: 's1', name: 'Abbey' })
-    db.room.count.mockResolvedValue(1)
+    db.room.count.mockResolvedValue(2)
     await expectAppError(createRoom(freeOwner, 's1', input), 'PLAN_LIMIT')
     expect(db.room.count).toHaveBeenCalledWith()
   })
