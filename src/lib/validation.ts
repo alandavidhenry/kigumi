@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { EQUIPMENT_CATEGORIES, EQUIPMENT_STATUSES } from '@/lib/equipment-types'
+
 // Input schemas shared by route handlers and forms. Lengths are stored in
 // millimetres; forms collect metres and convert with metresToMm.
 
@@ -55,6 +57,92 @@ export const roomInputSchema = z.object({
 })
 
 export const roomUpdateSchema = roomInputSchema.partial()
+
+// ---------------------------------------------------------------------------
+// Equipment (Phase 1). Prices are stored in minor units (pence); forms and CSV
+// collect major units and convert with majorToMinor.
+// ---------------------------------------------------------------------------
+
+const isoDate = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Use the format YYYY-MM-DD')
+  .refine((value) => !Number.isNaN(Date.parse(value)), 'Not a valid date')
+
+const equipmentFields = {
+  category: z.enum(EQUIPMENT_CATEGORIES),
+  make: z.string().trim().min(1, 'Make is required').max(100),
+  model: z.string().trim().min(1, 'Model is required').max(100),
+  serial: optionalText(100),
+  quantity: z.number().int('Whole numbers only').min(1).max(10_000),
+  status: z.enum(EQUIPMENT_STATUSES),
+  roomId: z.string().trim().min(1).optional().nullable(),
+  purchaseDate: isoDate
+    .optional()
+    .nullable()
+    .transform((value) => value ?? null),
+  purchasePriceMinor: z
+    .number()
+    .int('Use whole pence')
+    .min(0)
+    .max(100_000_000)
+    .optional()
+    .nullable()
+    .transform((value) => value ?? null),
+  supplier: optionalText(150),
+  tags: z
+    .array(z.string().trim().min(1).max(40))
+    .max(20, 'At most 20 tags')
+    .transform((tags) => [...new Set(tags)]),
+  customFields: z
+    .record(z.string().trim().min(1).max(60), z.string().trim().max(300))
+    .refine((fields) => Object.keys(fields).length <= 20, 'At most 20 fields')
+    .optional()
+    .nullable()
+    .transform((value) =>
+      value && Object.keys(value).length > 0 ? value : null
+    ),
+  notes: optionalText(2000)
+}
+
+export const equipmentInputSchema = z.object({
+  ...equipmentFields,
+  quantity: equipmentFields.quantity.default(1),
+  status: equipmentFields.status.default('in_service'),
+  tags: equipmentFields.tags.default([])
+})
+
+// Raw fields (not .partial() on the input schema) so defaults never overwrite
+// stored values on a partial update.
+export const equipmentUpdateSchema = z.object(equipmentFields).partial()
+
+export const equipmentFilterSchema = z.object({
+  q: z.string().trim().max(100).optional(),
+  category: z.enum(EQUIPMENT_CATEGORIES).optional(),
+  status: z.enum(EQUIPMENT_STATUSES).optional(),
+  roomId: z.string().trim().min(1).optional(),
+  tag: z.string().trim().min(1).max(40).optional()
+})
+
+export type EquipmentInput = z.input<typeof equipmentInputSchema>
+export type EquipmentUpdate = z.input<typeof equipmentUpdateSchema>
+export type EquipmentFilter = z.input<typeof equipmentFilterSchema>
+
+export function majorToMinor(major: number): number {
+  return Math.round(major * 100)
+}
+
+export function minorToMajor(minor: number): number {
+  return minor / 100
+}
+
+export function formatMoney(minor: number | null | undefined): string {
+  if (minor === null || minor === undefined) return '—'
+  return new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP'
+  }).format(minorToMajor(minor))
+}
 
 export type StudioInput = z.input<typeof studioInputSchema>
 export type StudioUpdate = z.input<typeof studioUpdateSchema>

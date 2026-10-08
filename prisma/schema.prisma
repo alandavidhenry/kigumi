@@ -98,6 +98,8 @@ model Organization {
   studios     Studio[]
   rooms       Room[]
   auditLogs   AuditLog[]
+  equipment   EquipmentItem[]
+  attachments Attachment[]
 
   @@map("organization")
 }
@@ -169,8 +171,9 @@ model Room {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organisation Organization @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  studio       Studio       @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  organisation Organization    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  studio       Studio          @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  equipment    EquipmentItem[]
 
   @@index([organisationId])
   @@index([studioId])
@@ -192,5 +195,53 @@ model AuditLog {
   actor        User?        @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([organisationId, createdAt])
+  @@index([organisationId, entityType, entityId])
+}
+
+// Studio-owned gear (Phase 1). category/status are string enums validated in
+// src/lib/equipment-types.ts. Cables and accessories use quantity.
+model EquipmentItem {
+  id                 String    @id @default(cuid())
+  organisationId     String
+  roomId             String?
+  category           String // EquipmentCategory
+  make               String
+  model              String
+  serial             String?
+  quantity           Int       @default(1)
+  status             String    @default("in_service") // EquipmentStatus
+  purchaseDate       DateTime?
+  purchasePriceMinor Int? // pence / cents, per item
+  supplier           String?
+  tags               String[]
+  customFields       Json?
+  notes              String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  organisation Organization @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  room         Room?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId])
+  @@index([organisationId, category])
+  @@index([roomId])
+}
+
+// Files in Blob Storage (photos now; receipts and manuals in Phase 7). The
+// entity is referenced polymorphically, so there is no foreign key to it.
+model Attachment {
+  id             String   @id @default(cuid())
+  organisationId String
+  entityType     String // 'equipment'
+  entityId       String
+  blobPath       String
+  fileName       String
+  mimeType       String
+  sizeBytes      Int
+  kind           String   @default("photo") // AttachmentKind
+  createdAt      DateTime @default(now())
+
+  organisation Organization @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
   @@index([organisationId, entityType, entityId])
 }

@@ -13,13 +13,24 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Gitleaks locally:** the pre-commit hook skips the secret scan when gitleaks isn't installed; CI always runs it.
 - **Dev-only npm advisory:** `braces` via `@next/eslint-plugin-next` → `fast-glob` has no fix; CI audits production dependencies only.
 
+## Deferred from Phase 1
+
+- **Valuation as a real PDF:** the report is an HTML page printed via the browser (plus CSV). `@react-pdf/renderer` would give a branded, server-generated PDF.
+- **Excel import/export:** CSV only for now; `exceljs` (as in Minato) can add `.xlsx`.
+- **Currency:** prices are stored in minor units and shown in GBP; add an organisation currency setting.
+- **Label sheets:** one QR label per item today; add multi-up label sheets (e.g. Avery) for bulk printing.
+- **Orphaned blobs:** if the DB write fails after a blob upload, the blob is left behind; add a periodic sweep in Phase 8.
+- **Photo thumbnails and EXIF stripping:** images are stored and served as uploaded.
+- **Bulk edit and soft-delete/restore** for inventory.
+- **`Feature.BULK_IMPORT`** (Studio) is unused; CSV import is currently available on every tier per `plans.ts`.
+
 ## Monetisation (ADR 0011)
 
 - **Stripe billing:** checkout, customer portal, webhooks setting `Organization.planTier`; replace "Contact us" on the plans comparison.
 - **Reverse trial:** 14 days of Pro for new signups, then Free (needs a `trialEndsAt` on Organization).
 - **Downgrades:** make data over the limits read-only (not deleted) when a plan drops; currently limits only block new creates.
 - **Per-organisation overrides** for Facility (custom seats, AI and storage).
-- **Usage metering:** inventory count (Phase 1), AI requests (Phase 3) and storage (Phase 1 attachments) against `PLAN_LIMITS`.
+- **Usage metering:** AI requests (Phase 3), and a usage display for inventory count and storage against `PLAN_LIMITS`.
 - **Launch options:** capped founders' deal, AI credit packs, price lock for early subscribers. No general lifetime licence.
 - **Validate prices** with studio-owner interviews before launch.
 

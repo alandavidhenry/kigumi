@@ -12,3 +12,4 @@ export const viewerCredentials = { email: 'viewer@kigumi.test', password }
 
 export const SEEDED_ORGANISATION = 'Northern Lights Recording'
 export const SEEDED_STUDIO_ID = 'seed-studio-main'
+export const SEEDED_EQUIPMENT_ID = 'seed-eq-u87'

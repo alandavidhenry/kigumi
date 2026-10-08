@@ -39,14 +39,16 @@ src/app/
                             #   UNAUTHORIZED → /auth/sign-in, NO_ACTIVE_ORGANISATION → /onboarding
   (app)/dashboard           # usage vs plan, recent activity
   (app)/studios             # studio list; [studioId] detail with room CRUD
+  (app)/inventory           # equipment list (URL filters), [equipmentId] detail (photos, QR label), valuation report
   (app)/settings/members    # members, invitations, role changes
   (app)/settings/organisation  # rename, plan + usage
   (app)/activity            # audit log (owner/manager)
   api/auth/[...all]         # Better Auth handler
   api/studios, api/studios/[studioId], api/studios/[studioId]/rooms, api/rooms/[roomId]
+  api/equipment, api/equipment/[equipmentId], .../photos, /export, /import, /valuation, api/attachments/[attachmentId]
   api/audit-log, api/health, api/health/deep
 src/lib/                    # all domain logic (tested); the only place that touches Prisma
-src/components/             # shell, providers, ui/ (Radix primitives copied from Minato), studios/, auth/
+src/components/             # shell, providers, ui/ (Radix primitives copied from Minato), studios/, inventory/, auth/
 ```
 
 Server components read data by calling lib functions directly with the tenant context. Client components mutate through the API routes (`apiFetch`, `src/lib/client-api.ts`) or the Better Auth client, then `router.refresh()`.
@@ -59,5 +61,6 @@ Server components read data by calling lib functions directly with the tenant co
 - **Client permissions:** `useTenant().can(Permission.X)` from `TenantProvider`. This is for affordances only; the server re-checks.
 - **Upgrade prompts:** `UpgradeNotice` (`src/components/upgrade-notice.tsx`) wherever a limit or paid feature stops the user, linking to the plan comparison (`PlanComparison` on `/settings/organisation#plans`, generated from `plans.ts`). `upgradeTierFor(tier, resource, count)` names the cheapest plan that lifts a limit. Paid pages stay in the nav and render the prompt instead of the content.
 - **Destructive actions:** `ConfirmDeleteButton` (an in-app dialog, never `window.confirm`).
+- **Inventory:** viewers read, engineers and above manage (`VIEW_INVENTORY` / `MANAGE_INVENTORY`). Filters are URL search params (`InventoryFilters`), so views are shareable and the CSV export reuses them. Photos upload as multipart to `/api/equipment/[id]/photos` and are served through `/api/attachments/[id]` (authenticated, `nosniff`), never by public blob URL. The asset label is a `qrcode.react` QR linking to the item page; printing uses the `.print-area` rule in `globals.css`. The valuation report is a Pro feature: the page shows an upgrade prompt and the API returns 403 on lower tiers; "PDF" is the browser's print-to-PDF of that page.
 - **Units:** forms collect metres; storage is millimetres (`metresToMm`, `formatDimensions` in `src/lib/validation.ts`).
 - Tablet-friendly: 36px+ touch rows on small screens, dialogs and lists that work at 768px.

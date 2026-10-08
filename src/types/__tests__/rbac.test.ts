@@ -88,3 +88,25 @@ describe('assignableRoles', () => {
     expect(assignableRoles(null)).toEqual([])
   })
 })
+
+describe('inventory permissions', () => {
+  it('lets owners, managers and engineers manage inventory', () => {
+    for (const role of [
+      MemberRole.OWNER,
+      MemberRole.MANAGER,
+      MemberRole.ENGINEER
+    ]) {
+      expect(hasPermission(role, Permission.VIEW_INVENTORY)).toBe(true)
+      expect(hasPermission(role, Permission.MANAGE_INVENTORY)).toBe(true)
+    }
+  })
+
+  it('lets viewers view but not manage inventory', () => {
+    expect(hasPermission(MemberRole.VIEWER, Permission.VIEW_INVENTORY)).toBe(
+      true
+    )
+    expect(hasPermission(MemberRole.VIEWER, Permission.MANAGE_INVENTORY)).toBe(
+      false
+    )
+  })
+})

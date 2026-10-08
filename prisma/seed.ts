@@ -113,6 +113,55 @@ async function main() {
     })
   }
 
+  const equipment = [
+    {
+      id: 'seed-eq-u87',
+      category: 'microphone',
+      make: 'Neumann',
+      model: 'U 87 Ai',
+      serial: 'U87-1042',
+      roomId: 'seed-room-booth',
+      purchasePriceMinor: 229900,
+      tags: ['vocal', 'ldc']
+    },
+    {
+      id: 'seed-eq-sm57',
+      category: 'microphone',
+      make: 'Shure',
+      model: 'SM57',
+      quantity: 6,
+      roomId: 'seed-room-live',
+      purchasePriceMinor: 9900,
+      tags: ['dynamic', 'snare']
+    },
+    {
+      id: 'seed-eq-1176',
+      category: 'outboard',
+      make: 'Universal Audio',
+      model: '1176LN',
+      roomId: 'seed-room-control',
+      status: 'repair',
+      purchasePriceMinor: 189900,
+      tags: ['compressor']
+    },
+    {
+      id: 'seed-eq-xlr',
+      category: 'cable',
+      make: 'Mogami',
+      model: '2534 XLR 5 m',
+      quantity: 24,
+      purchasePriceMinor: 2800,
+      tags: []
+    }
+  ]
+  for (const item of equipment) {
+    await prisma.equipmentItem.upsert({
+      where: { id: item.id },
+      update: {},
+      create: { ...item, organisationId: ORG_ID }
+    })
+  }
+
   console.warn(
     `Seeded ${ROLES.map((role) => `${role}@kigumi.test`).join(', ')} with the given password`
   )
