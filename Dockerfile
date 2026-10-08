@@ -1,5 +1,5 @@
 # Build stage
-FROM node:26.10.0-alpine3.24@sha256:0b36e8c136b94cd4fcf02188228e76c31ad5872eef3fec8cbd2eee500cfd9e80 AS builder
+FROM node:26.10.0-alpine3.24-dev@sha256:62b5dbaa16acf23a35f3801a40c2916f95fbf09806838a230907033d46c9944e AS builder
 WORKDIR /app
 
 # Install dependencies (the postinstall hook runs `prisma generate`, so it needs the schema)
@@ -17,7 +17,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # Runner stage
-FROM dhi.io/node:26.10.0-debian13@sha256:29d425d096403cca2750ee83fa31e4a6f25a73ea78089382578053d1682afaff AS runner
+FROM dhi.io/node:26.10.0-debian13@sha256:2ae29c7b39b5f87a97d4edf69f4930a7f15eb3eb2bfc5b4f56a65fbc4afb6eb6 AS runner
 WORKDIR /app
 
 # Set environment variables
