@@ -1,0 +1,9 @@
+node_modules
+dist
+.next
+coverage
+
+# Terraform (use terraform fmt instead)
+**/*.tf
+**/*.tfvars
+**/*.lock.hcl

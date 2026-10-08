@@ -1,0 +1,91 @@
+name: Build Docker Image
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: Deployment environment
+        required: true
+        type: string
+      version:
+        description: Application version
+        required: true
+        type: string
+      push:
+        description: Whether to push the image to the registry
+        required: false
+        type: boolean
+        default: true
+
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+    outputs:
+      image_uri:
+        description: The URI of the built Docker image
+        value: ${{ jobs.build_docker.outputs.image_uri }}
+
+jobs:
+  build_docker:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_uri: ${{ steps.image-info.outputs.image_uri }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Log in to Docker Hub (for hardened base images)
+        uses: docker/login-action@v4
+        with:
+          registry: dhi.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Prepare image tags
+        id: image-info
+        run: |
+          DOCKER_IMAGE="ghcr.io/${{ github.repository }}:${{ github.sha }}"
+          echo "image_uri=$DOCKER_IMAGE" >> $GITHUB_OUTPUT
+
+          if [[ "${{ inputs.environment }}" == "Production" ]]; then
+            TAGS="ghcr.io/${{ github.repository }}:${{ github.sha }},ghcr.io/${{ github.repository }}:latest,ghcr.io/${{ github.repository }}:v${{ inputs.version }}"
+          else
+            TAGS="ghcr.io/${{ github.repository }}:${{ github.sha }},ghcr.io/${{ github.repository }}:dev-latest"
+          fi
+
+          echo "tags=$TAGS" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: ${{ inputs.push }}
+          load: true
+          tags: ${{ steps.image-info.outputs.tags }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:${{ inputs.environment == 'Production' && 'latest' || 'dev-latest' }}
+          cache-to: type=inline
+
+      - name: Scan image with Grype
+        uses: anchore/scan-action@v7
+        with:
+          image: ${{ steps.image-info.outputs.image_uri }}
+          fail-build: false
+          severity-cutoff: high
+          output-format: table

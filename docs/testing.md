@@ -1,0 +1,30 @@
+# Testing coverage
+
+Current coverage by area. Add to this file when you add tests.
+
+## Unit (`src/lib/__tests__`, `src/types/__tests__`)
+
+- **Tenancy:** `tenant-scope` covers every operation type (where-merging for reads, updates, deletes, counts and aggregates; create/createMany data; upsert), the same-org explicit filter, rejection of another org, operator filters, relation connects, moving rows between orgs, a missing organisation, and pass-through for non-tenant models. `tenant-db` checks the extension wiring and that it throws before querying. `tenant-context` covers 401 without a session, 403 without an active org or membership, context building, and unknown role/tier downgrades. `requirePermission` is covered too.
+- **RBAC** (`rbac.test.ts`): the full permission matrix, `hasPermission` edge cases, `isMemberRole`, `assignableRoles`.
+- **Plans** (`plans.test.ts`): tier parsing, limits, `canAdd` including unlimited, `formatLimit`.
+- **Studios and rooms** (`studios.test.ts`): list, get (404), create (plan limit, viewer 403, validation before DB), update (404 when nothing matched, audit metadata), delete (404), room create (cross-org studio 404, org-wide room limit), room update/delete, usage.
+- **Audit** (`audit.test.ts`), **members** (`members.test.ts`), **seats and health** (`seats-and-health.test.ts`), **auth hooks** (`auth-hooks.test.ts`: default active org, seat-limit invitation rejection, unknown roles, every audit hook), **email** (`email.test.ts`: dev logging, production refusal, ACS send, HTML escaping), **validation**, **api/errors**, **client-api**, **slug**, **safe-redirect** (open-redirect rejection), **navigation**.
+
+## Integration (`src/app/api/__tests__`)
+
+Real route handlers plus real lib code, with the session (`getTenantContext`) and DB (`tenantDb`) mocked:
+
+- `studios-routes.test.ts`: `/api/studios` GET/POST (401, 400 with field paths, engineer 403, PLAN_LIMIT), `/api/studios/[id]` GET/PATCH/DELETE (cross-org 404, viewer 403, 204), `/api/studios/[id]/rooms` POST (cross-org 404, 400), `/api/rooms/[id]` PATCH/DELETE (cross-org 404, engineer 403).
+- `misc-routes.test.ts`: health (liveness makes no dependency calls) and health/deep (200/503), audit log (manager OK, junk limit, engineer 403).
+
+## E2E (`e2e/`, Playwright)
+
+Runs against a migrated and seeded database. Against a production build (`npm run start`), set `AUTH_RATE_LIMIT=off` or parallel sign-ins trip the auth rate limiter. Locally it reuses `npm run dev` (or starts it); in CI it runs against a built app (`.github/workflows/playwright.yml`).
+
+- `auth.setup.ts`: signs in the seeded owner and viewer and stores their sessions.
+- `sign-in.spec.ts`: unauthenticated redirect with `callbackUrl`, wrong password, return to the requested page.
+- `onboarding.spec.ts`: sign up → verify (DB) → sign in → onboarding creates the org and first studio → add a room in metres → Free-plan room limit blocks a second room.
+- `studios.spec.ts`: owner views the seeded studio, adds, edits and deletes a room, and sees the activity log.
+- `viewer.spec.ts`: viewer has no edit controls, the API returns 403 for a direct POST, and `/activity` redirects.
+
+Manually verified during Phase 0 against real Postgres (not automated): a second organisation's user gets 404 for every read, update, delete and create on the first organisation's studio and rooms.

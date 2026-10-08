@@ -1,0 +1,14 @@
+title = "Kigumi gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Well-known public development credentials"
+regexes = [
+  # Azurite's documented default account key (public, local emulator only).
+  '''Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==''',
+]
+paths = [
+  '''package-lock\.json''',
+]

@@ -1,0 +1,221 @@
+@import 'tailwindcss';
+
+@plugin 'tailwindcss-animate';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+  Design tokens.
+
+  Same semantic token system as Minato (Supabase Studio-style: near-black
+  canvas, hairline borders instead of shadows), with a warm timber brand
+  (OKLCH hue 65) reserved for primary actions, links, focus rings and active
+  navigation. Success stays green and warning sits at hue 95 so neither is
+  confused with the brand.
+  Values are expressed in OKLCH so that lightness steps are perceptually even
+  across both themes; translucent tokens (muted/accent/border) are foreground
+  overlays, so they composite correctly over whichever surface sits beneath.
+*/
+@theme {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  --color-brand: var(--brand);
+  --color-brand-tint: var(--brand-tint);
+  --color-brand-border: var(--brand-border);
+
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-field: var(--field);
+  --color-ring: var(--ring);
+  --color-scrim: var(--scrim);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-border: var(--sidebar-border);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 8px;
+
+  --font-sans:
+    var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, -apple-system,
+    'Segoe UI', sans-serif;
+  --font-mono:
+    var(--font-source-code-pro), 'Source Code Pro', ui-monospace, Menlo,
+    monospace;
+}
+
+@layer base {
+  /*
+    Dark is the default theme, so it lives on :root — an unclassed document
+    (before the anti-FOUC script in layout.tsx runs) still paints dark.
+  */
+  :root,
+  .dark {
+    color-scheme: dark;
+
+    --background: oklch(0.19 0.0025 65);
+    --foreground: oklch(0.95 0.0028 65);
+
+    --card: oklch(0.215 0.0025 65);
+    --card-foreground: oklch(0.95 0.0028 65);
+    --popover: oklch(0.2275 0.0025 65);
+    --popover-foreground: oklch(0.95 0.0028 65);
+
+    --primary: oklch(0.76 0.15 65);
+    --primary-foreground: oklch(0.19 0.001 65);
+
+    --secondary: oklch(0.95 0.0028 65 / 6.6%);
+    --secondary-foreground: oklch(0.95 0.0028 65);
+
+    --muted: oklch(0.95 0.0028 65 / 3.3%);
+    --muted-foreground: oklch(0.798 0.0028 65);
+    --accent: oklch(0.95 0.0028 65 / 4.9%);
+    --accent-foreground: oklch(0.95 0.0028 65);
+
+    --destructive: oklch(0.75 0.14 25);
+    --destructive-foreground: oklch(0.19 0.001 25);
+    --success: oklch(0.76 0.15 155);
+    --success-foreground: oklch(0.19 0.001 155);
+    --warning: oklch(0.8 0.14 95);
+    --warning-foreground: oklch(0.19 0.001 95);
+    --info: oklch(0.7 0.14 288);
+    --info-foreground: oklch(0.95 0.0028 288);
+
+    /*
+      The brand fill used by primary buttons is a deep green tint carrying
+      normal foreground text, not a bright green plate — bright --brand is for
+      links, focus rings, icons and active nav.
+    */
+    --brand: oklch(0.76 0.15 65);
+    --brand-tint: oklch(0.32 0.09 65);
+    --brand-border: oklch(0.76 0.15 65 / 30%);
+
+    --border: oklch(0.95 0.0028 65 / 7.5%);
+    --border-strong: oklch(0.95 0.0028 65 / 20%);
+    --input: oklch(0.95 0.0028 65 / 13.5%);
+    --field: oklch(0 0 0 / 12%);
+    --ring: oklch(0.76 0.15 65 / 55%);
+    --scrim: oklch(0 0 0 / 60%);
+
+    --sidebar: oklch(0.175 0.0025 65);
+    --sidebar-foreground: oklch(0.798 0.0028 65);
+    --sidebar-accent: oklch(0.95 0.0028 65 / 6.6%);
+    --sidebar-border: oklch(0.95 0.0028 65 / 7.5%);
+
+    --chart-1: oklch(0.76 0.15 65);
+    --chart-2: oklch(0.72 0.13 230);
+    --chart-3: oklch(0.8 0.14 155);
+    --chart-4: oklch(0.7 0.14 300);
+    --chart-5: oklch(0.72 0.14 25);
+
+    --radius: 6px;
+  }
+
+  .light {
+    color-scheme: light;
+
+    --background: oklch(0.97 0.006 240);
+    --foreground: oklch(0.15 0.006 240);
+
+    --card: oklch(0.995 0.003 240);
+    --card-foreground: oklch(0.15 0.006 240);
+    --popover: oklch(0.995 0.003 240);
+    --popover-foreground: oklch(0.15 0.006 240);
+
+    --primary: oklch(0.76 0.15 65);
+    --primary-foreground: oklch(0.1 0 34);
+
+    --secondary: oklch(0.1 0 34 / 6%);
+    --secondary-foreground: oklch(0.1 0 34);
+
+    --muted: oklch(0.1 0 34 / 3.3%);
+    --muted-foreground: oklch(0.413 0 34);
+    --accent: oklch(0.1 0 34 / 4.9%);
+    --accent-foreground: oklch(0.1 0 34);
+
+    --destructive: oklch(0.52 0.14 25);
+    --destructive-foreground: oklch(0.995 0 25);
+    --success: oklch(0.55 0.13 155);
+    --success-foreground: oklch(0.995 0 155);
+    --warning: oklch(0.68 0.14 95);
+    --warning-foreground: oklch(0.1 0 95);
+    --info: oklch(0.54 0.14 288);
+    --info-foreground: oklch(0.995 0 288);
+
+    --brand: oklch(0.6 0.14 65);
+    --brand-tint: oklch(0.94 0.05 65);
+    --brand-border: oklch(0.6 0.14 65 / 30%);
+
+    --border: oklch(0.1 0 34 / 8%);
+    --border-strong: oklch(0.1 0 34 / 16%);
+    --input: oklch(0.1 0 34 / 14%);
+    --field: oklch(0 0 0 / 1.5%);
+    --ring: oklch(0.6 0.14 65 / 55%);
+    --scrim: oklch(0 0 0 / 40%);
+
+    --sidebar: oklch(0.945 0.009 240);
+    --sidebar-foreground: oklch(0.42 0.006 240);
+    --sidebar-accent: oklch(0.15 0.006 240 / 6%);
+    --sidebar-border: oklch(0.15 0.006 240 / 8%);
+
+    --chart-1: oklch(0.6 0.14 65);
+    --chart-2: oklch(0.58 0.13 230);
+    --chart-3: oklch(0.68 0.14 155);
+    --chart-4: oklch(0.56 0.15 300);
+    --chart-5: oklch(0.58 0.16 25);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans text-sm antialiased;
+  }
+  button:not(:disabled),
+  a {
+    cursor: pointer;
+  }
+}

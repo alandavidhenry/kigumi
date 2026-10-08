@@ -1,0 +1,9 @@
+npm run checks
+
+# Secret scanning: enforced in CI (security-scan.yml); runs here too when
+# gitleaks is installed locally (https://github.com/gitleaks/gitleaks#installing).
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks git --staged --redact --config .gitleaks.toml
+else
+  echo "gitleaks not installed — skipping local secret scan (CI still runs it)"
+fi
