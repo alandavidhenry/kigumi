@@ -20,10 +20,12 @@ jobs:
     services:
       postgres:
         image: postgres:16
+        # Throwaway database reachable only from this job, so no password:
+        # trust auth keeps credentials out of the workflow entirely.
         env:
           POSTGRES_USER: kigumi
-          POSTGRES_PASSWORD: kigumi
           POSTGRES_DB: kigumi
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports:
           - 5433:5432
         options: >-
@@ -32,18 +34,35 @@ jobs:
           --health-timeout 5s
           --health-retries 10
 
+    # Non-secret settings only. Secrets (auth secret, storage key, cron secret,
+    # seed password) are generated fresh for each run in the first step.
     env:
-      AZURE_STORAGE_CONNECTION_STRING: DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10010/devstoreaccount1;
       AZURE_STORAGE_CONTAINER_NAME: kigumi
-      BETTER_AUTH_SECRET: playwright-ci-secret-at-least-32-characters
       BETTER_AUTH_URL: http://localhost:3000
-      DATABASE_URL: postgresql://kigumi:kigumi@localhost:5433/kigumi
-      CRON_SECRET: playwright-ci-cron-secret
-      E2E_SEED_PASSWORD: playwright-seed-password
+      DATABASE_URL: postgresql://kigumi@localhost:5433/kigumi
       # Parallel workers all sign in from 127.0.0.1; see rateLimit in src/lib/auth.ts.
       AUTH_RATE_LIMIT: off
 
     steps:
+      - name: Generate per-run secrets
+        # Random values that exist only for this run: masked in logs and
+        # exported to later steps via GITHUB_ENV.
+        run: |
+          AZURITE_KEY=$(openssl rand -base64 64 | tr -d '\r\n')
+          BETTER_AUTH_SECRET=$(openssl rand -base64 32 | tr -d '\r\n')
+          CRON_SECRET=$(openssl rand -hex 24)
+          E2E_SEED_PASSWORD=$(openssl rand -hex 16)
+          for value in "$AZURITE_KEY" "$BETTER_AUTH_SECRET" "$CRON_SECRET" "$E2E_SEED_PASSWORD"; do
+            echo "::add-mask::$value"
+          done
+          {
+            echo "AZURITE_KEY=$AZURITE_KEY"
+            echo "AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=$AZURITE_KEY;BlobEndpoint=http://127.0.0.1:10010/devstoreaccount1;"
+            echo "BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET"
+            echo "CRON_SECRET=$CRON_SECRET"
+            echo "E2E_SEED_PASSWORD=$E2E_SEED_PASSWORD"
+          } >> "$GITHUB_ENV"
+
       - name: Checkout code
         uses: actions/checkout@v7
 
@@ -64,8 +83,11 @@ jobs:
         # Run directly (rather than as a `services:` container) since that
         # API only forwards docker options, not a custom command — and
         # --skipApiVersionCheck is required (see docker-compose.yml).
+        # AZURITE_ACCOUNTS replaces the public well-known dev key with this
+        # run's generated one.
         run: |
           docker run -d --name azurite -p 10010:10000 \
+            -e "AZURITE_ACCOUNTS=devstoreaccount1:$AZURITE_KEY" \
             mcr.microsoft.com/azure-storage/azurite \
             azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck --silent
 
