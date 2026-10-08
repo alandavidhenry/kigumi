@@ -2,8 +2,9 @@
 FROM node:26.10.0-alpine3.24@sha256:0b36e8c136b94cd4fcf02188228e76c31ad5872eef3fec8cbd2eee500cfd9e80 AS builder
 WORKDIR /app
 
-# Install dependencies
-COPY package*.json .npmrc ./
+# Install dependencies (the postinstall hook runs `prisma generate`, so it needs the schema)
+COPY package*.json .npmrc prisma.config.ts ./
+COPY prisma ./prisma
 RUN npm ci
 
 # Copy source
