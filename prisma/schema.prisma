@@ -100,6 +100,7 @@ model Organization {
   auditLogs   AuditLog[]
   equipment   EquipmentItem[]
   attachments Attachment[]
+  micUnits    MicrophoneUnit[]
 
   @@map("organization")
 }
@@ -219,8 +220,9 @@ model EquipmentItem {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  organisation Organization @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  room         Room?        @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  organisation Organization    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  room         Room?           @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  micUnit      MicrophoneUnit?
 
   @@index([organisationId])
   @@index([organisationId, category])
@@ -244,4 +246,144 @@ model Attachment {
   organisation Organization @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 
   @@index([organisationId, entityType, entityId])
+}
+
+// ---------------------------------------------------------------------------
+// Microphone catalogue (Phase 2, ADR 0008). The catalogue is GLOBAL: no
+// organisationId and not in TENANT_MODELS. Tenants only read published rows;
+// platform admins write through src/lib/mics/admin.ts. Enumerated strings are
+// validated in src/lib/mics/types.ts.
+// ---------------------------------------------------------------------------
+
+model MicrophoneModel {
+  id                 String    @id @default(cuid())
+  slug               String    @unique
+  manufacturer       String
+  model              String
+  transducerType     String // MicTransducerType
+  polarPatterns      String[] // MicPolarPattern
+  freqRangeMinHz     Int?
+  freqRangeMaxHz     Int?
+  sensitivityMvPa    Float?
+  selfNoiseDbA       Float?
+  maxSplDb           Float?
+  impedanceOhm       Float?
+  powering           String // MicPowering
+  phantomSafe        Boolean? // false for passive ribbons: phantom can damage them
+  pads               Int[] // dB
+  filters            String[] // e.g. 'HPF 80 Hz'
+  weightG            Float?
+  dimensions         String?
+  connector          String?
+  discontinued       Boolean   @default(false)
+  statedApplications String[]
+  specSheetUrl       String?
+  wikidataId         String?
+  // Stated conditions beside scalar specs, e.g. { maxSplDb: '@ 1% THD' }.
+  specConditions     Json?
+  status             String    @default("draft") // MicStatus
+  reviewNotes        String?
+  reviewedById       String?
+  reviewedAt         DateTime?
+  publishedAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  frequencyResponses MicFrequencyResponse[]
+  polarData          MicPolarData[]
+  fieldProvenance    MicFieldProvenance[]
+  units              MicrophoneUnit[]
+
+  @@index([status])
+  @@index([manufacturer])
+}
+
+// Where a value came from (ADR 0008). We never keep the source document.
+model Provenance {
+  id             String    @id @default(cuid())
+  sourceUrl      String? // null only for unverified drafts awaiting transcription
+  documentTitle  String?
+  documentPage   String?
+  documentSha256 String?
+  retrievedAt    DateTime?
+  licenceNotes   String?
+  attribution    String? // required display text for CC BY sources
+  confidence     String    @default("low") // MicConfidence
+  extraction     String // MicExtraction
+  verifiedById   String?
+  verifiedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  fields MicFieldProvenance[]
+  freqs  MicFrequencyResponse[]
+  polars MicPolarData[]
+}
+
+model MicFieldProvenance {
+  id           String @id @default(cuid())
+  micModelId   String
+  field        String // a MicrophoneModel column name
+  provenanceId String
+
+  micModel   MicrophoneModel @relation(fields: [micModelId], references: [id], onDelete: Cascade)
+  provenance Provenance      @relation(fields: [provenanceId], references: [id], onDelete: Restrict)
+
+  @@unique([micModelId, field])
+  @@index([provenanceId])
+}
+
+model MicFrequencyResponse {
+  id            String   @id @default(cuid())
+  micModelId    String
+  pattern       String
+  filterSetting String? // e.g. 'HPF 80 Hz'
+  points        Json // [hz, db][] normalised to 0 dB at 1 kHz
+  method        String // MicCurveMethod
+  provenanceId  String?
+  createdAt     DateTime @default(now())
+
+  micModel   MicrophoneModel @relation(fields: [micModelId], references: [id], onDelete: Cascade)
+  provenance Provenance?     @relation(fields: [provenanceId], references: [id], onDelete: Restrict)
+
+  @@index([micModelId])
+}
+
+model MicPolarData {
+  id           String   @id @default(cuid())
+  micModelId   String
+  pattern      String
+  frequencyHz  Int
+  points       Json // [angleDeg, db relative to 0°][]
+  method       String // MicCurveMethod
+  mirrored     Boolean  @default(false) // half-plot mirrored by the digitiser
+  provenanceId String?
+  createdAt    DateTime @default(now())
+
+  micModel   MicrophoneModel @relation(fields: [micModelId], references: [id], onDelete: Cascade)
+  provenance Provenance?     @relation(fields: [provenanceId], references: [id], onDelete: Restrict)
+
+  @@index([micModelId])
+}
+
+// A studio's physical copy of a catalogue model (tenant-owned). Links the
+// inventory item to the global model.
+model MicrophoneUnit {
+  id               String   @id @default(cuid())
+  organisationId   String
+  micModelId       String
+  equipmentItemId  String   @unique
+  serial           String?
+  condition        String   @default("good") // MicCondition
+  matchedPairGroup String?
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organisation  Organization    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  micModel      MicrophoneModel @relation(fields: [micModelId], references: [id], onDelete: Restrict)
+  equipmentItem EquipmentItem   @relation(fields: [equipmentItemId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([organisationId, matchedPairGroup])
+  @@index([micModelId])
 }

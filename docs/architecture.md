@@ -40,12 +40,18 @@ src/app/
   (app)/dashboard           # usage vs plan, recent activity
   (app)/studios             # studio list; [studioId] detail with room CRUD
   (app)/inventory           # equipment list (URL filters), [equipmentId] detail (photos, QR label), valuation report
+  (app)/mics                # catalogue list (URL filters); [micSlug] detail: specs with per-field source, FR chart, polar plot, locker, sources
+  (app)/locker              # mic locker: matched groups, condition, availability, add/edit/remove
+  (app)/admin/mics          # platform admins only: review queue; [micId] review + edit + status actions
   (app)/settings/members    # members, invitations, role changes
   (app)/settings/organisation  # rename, plan + usage
   (app)/activity            # audit log (owner/manager)
   api/auth/[...all]         # Better Auth handler
   api/studios, api/studios/[studioId], api/studios/[studioId]/rooms, api/rooms/[roomId]
   api/equipment, api/equipment/[equipmentId], .../photos, /export, /import, /valuation, api/attachments/[attachmentId]
+  api/mics, api/mics/[micId]          # published catalogue
+  api/locker, api/locker/[unitId]    # tenant mic locker
+  api/admin/mics, .../[micId], .../[micId]/status  # platform admins (404 for everyone else)
   api/audit-log, api/health, api/health/deep
 src/lib/                    # all domain logic (tested); the only place that touches Prisma
 src/components/             # shell, providers, ui/ (Radix primitives copied from Minato), studios/, inventory/, auth/
@@ -62,5 +68,6 @@ Server components read data by calling lib functions directly with the tenant co
 - **Upgrade prompts:** `UpgradeNotice` (`src/components/upgrade-notice.tsx`) wherever a limit or paid feature stops the user, linking to the plan comparison (`PlanComparison` on `/settings/organisation#plans`, generated from `plans.ts`). `upgradeTierFor(tier, resource, count)` names the cheapest plan that lifts a limit. Paid pages stay in the nav and render the prompt instead of the content.
 - **Destructive actions:** `ConfirmDeleteButton` (an in-app dialog, never `window.confirm`).
 - **Inventory:** viewers read, engineers and above manage (`VIEW_INVENTORY` / `MANAGE_INVENTORY`). Filters are URL search params (`InventoryFilters`), so views are shareable and the CSV export reuses them. Photos upload as multipart to `/api/equipment/[id]/photos` and are served through `/api/attachments/[id]` (authenticated, `nosniff`), never by public blob URL. The asset label is a `qrcode.react` QR linking to the item page; printing uses the `.print-area` rule in `globals.css`. The valuation report is a Pro feature: the page shows an upgrade prompt and the API returns 403 on lower tiers; "PDF" is the browser's print-to-PDF of that page.
+- **Mic catalogue (ADR 0008, 0006, 0012):** the catalogue is global and read-only for tenants (`VIEW_MIC_CATALOGUE`, every role); the locker is `VIEW_INVENTORY` to read and `MANAGE_MIC_LOCKER` (engineer and up) to change, and is free on every plan. Platform admins come from `PLATFORM_ADMIN_EMAILS`, not an org role; the sidebar shows them a "Platform" group and `useTenant().isPlatformAdmin` carries the flag (affordance only, the routes re-check). Charts: `FrequencyResponseChart` (Recharts, log axis 20 Hz to 20 kHz) and `PolarPlot` (d3-scale + d3-shape). `PolarPlot` requires a `method` per series and always prints it, so an idealised pattern can't appear unlabelled ("Idealised — not measured", dashed line, formula note). Missing data shows an explicit "Not yet recorded" or "No frequency-response data yet", never a placeholder number. Ribbons whose `phantomSafe` isn't `true` show a phantom-power warning.
 - **Units:** forms collect metres; storage is millimetres (`metresToMm`, `formatDimensions` in `src/lib/validation.ts`).
 - Tablet-friendly: 36px+ touch rows on small screens, dialogs and lists that work at 768px.

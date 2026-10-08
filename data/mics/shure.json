@@ -1,0 +1,130 @@
+{
+  "maker": "Shure",
+  "entries": [
+    {
+      "manufacturer": "Shure",
+      "model": "SM57",
+      "transducerType": "dynamic",
+      "polarPatterns": [
+        "cardioid"
+      ],
+      "powering": "none",
+      "freqRangeMinHz": 40,
+      "freqRangeMaxHz": 15000,
+      "specSheetUrl": "https://www.shure.com/en-GB/products/microphones/sm57",
+      "provenance": [
+        {
+          "sourceUrl": "https://www.shure.com/en-GB/products/microphones/sm57",
+          "documentTitle": "Shure SM57 product page",
+          "retrievedAt": "2026-10-08",
+          "confidence": "medium",
+          "extraction": "llm_drafted",
+          "licenceNotes": "Values drafted from the product page by an LLM-assisted session (ADR 0008 L6); a reviewer must check them against the page before publishing.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "freqRangeMinHz",
+            "freqRangeMaxHz"
+          ]
+        },
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "Transcribe from the official spec sheet, record its URL, then review.",
+          "fields": [
+            "powering"
+          ]
+        }
+      ]
+    },
+    {
+      "manufacturer": "Shure",
+      "model": "SM58",
+      "transducerType": "dynamic",
+      "polarPatterns": [
+        "cardioid"
+      ],
+      "powering": "none",
+      "provenance": [
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "Transcribe from the official spec sheet, record its URL, then review.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "powering"
+          ]
+        }
+      ]
+    },
+    {
+      "manufacturer": "Shure",
+      "model": "SM7B",
+      "transducerType": "dynamic",
+      "polarPatterns": [
+        "cardioid"
+      ],
+      "powering": "none",
+      "provenance": [
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "Transcribe from the official spec sheet, record its URL, then review.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "powering"
+          ]
+        }
+      ]
+    },
+    {
+      "manufacturer": "Shure",
+      "model": "Beta 52A",
+      "transducerType": "dynamic",
+      "polarPatterns": [
+        "supercardioid"
+      ],
+      "powering": "none",
+      "provenance": [
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "Transcribe from the official spec sheet, record its URL, then review.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "powering"
+          ]
+        }
+      ]
+    },
+    {
+      "manufacturer": "Shure",
+      "model": "SM81",
+      "transducerType": "sdc",
+      "polarPatterns": [
+        "cardioid"
+      ],
+      "powering": "phantom",
+      "provenance": [
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "Transcribe from the official spec sheet, record its URL, then review.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "powering"
+          ]
+        }
+      ]
+    }
+  ]
+}

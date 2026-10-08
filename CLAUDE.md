@@ -18,7 +18,10 @@ npm run test:coverage  # Run tests with coverage report (src/lib)
 npm run test:e2e       # Playwright E2E (needs docker:up + migrated/seeded DB; starts dev server if none running)
 npm run docker:up      # Postgres (localhost:5433) + Azurite (localhost:10010)
 npm run db:migrate     # prisma migrate dev
-npm run db:seed        # Demo org + owner/manager/engineer/viewer@kigumi.test
+npm run db:seed         # Demo org + owner/manager/engineer/viewer@kigumi.test and the starter mics (published for dev only)
+npm run mics:ingest     # Load data/mics/*.json as draft rows for the review queue (--dry-run validates only)
+npm run mics:check-links  # HEAD-check spec-sheet URLs, respecting robots.txt
+npm run mics:derive     # Derive FR / polar points from open-dataset impulse responses
 ```
 
 `npm run checks` is the full quality gate. Husky runs it on pre-commit (plus gitleaks if installed). `npm run test:e2e` and `npm run build` are not part of `checks`; run them at the end of a phase or when UI/auth changed. See `README.md` for first-time setup.
@@ -60,6 +63,7 @@ AZURE_STORAGE_CONTAINER_NAME=kigumi
 AZURE_COMMUNICATION_CONNECTION_STRING=  # blank locally: emails are logged with console.warn
 ACS_SENDER_ADDRESS=
 CRON_SECRET=
+PLATFORM_ADMIN_EMAILS=         # verified emails allowed into /admin/mics (ADR 0012); blank = no admins
 ANTHROPIC_API_KEY=            # Phase 3+
 AI_MODEL_DEFAULT=claude-sonnet-5-5
 AI_MODEL_FAST=claude-haiku-5-5

@@ -15,3 +15,4 @@ One short file per decision: `NNNN-title.md` with **Status**, **Context**, **Dec
 | 0009 | [Background jobs](0009-background-jobs.md)         | Accepted |
 | 0010 | [Audit log](0010-audit-log.md)                     | Accepted |
 | 0011 | [Monetisation](0011-monetisation.md)               | Accepted |
+| 0012 | [Platform admins](0012-platform-admin.md)          | Accepted |

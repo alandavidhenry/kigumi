@@ -16,11 +16,13 @@ cp .env.example .env.local              # then set BETTER_AUTH_SECRET (openssl r
 npm run docker:up                       # Postgres on :5433, Azurite on :10010
 npx prisma migrate dev                  # apply migrations
 node scripts/create-storage-container.js
-npm run db:seed                         # demo org + users (password: kigumi-dev-password)
+npm run db:seed                         # demo org + users (password: kigumi-dev-password) and the starter mics
 npm run dev                             # http://localhost:3000
 ```
 
 Sign in as `owner@kigumi.test`, `manager@kigumi.test`, `engineer@kigumi.test` or `viewer@kigumi.test`.
+
+To use the mic review queue (`/admin/mics`), set `PLATFORM_ADMIN_EMAILS=owner@kigumi.test` in `.env.local` (the E2E workflow sets it too). See ADR 0012.
 
 Email isn't sent locally unless ACS is configured. Verification, reset and invitation emails are printed to the dev server log, so you can follow the links from there.
 
@@ -34,6 +36,9 @@ Email isn't sent locally unless ACS is configured. Verification, reset and invit
 | `npm run test:e2e`                  | Playwright (needs the DB up, migrated and seeded)                           |
 | `npm run docker:up` / `docker:down` | Local Postgres + Azurite                                                    |
 | `npm run db:migrate` / `db:seed`    | Prisma migrate dev / seed demo data                                         |
+| `npm run mics:ingest`               | Load `data/mics/*.json` as drafts for the admin review queue                |
+| `npm run mics:check-links`          | HEAD-check catalogue spec-sheet URLs (respects robots.txt)                  |
+| `npm run mics:derive`               | Derive FR / polar points from open-dataset impulse responses                |
 
 ## End-to-end tests
 
@@ -46,10 +51,10 @@ Set `E2E_SEED_PASSWORD` if you seeded with a non-default password. CI runs the s
 
 ## Testing
 
-| Layer       | Where                                      | Covers                                                                                |
-| ----------- | ------------------------------------------ | ------------------------------------------------------------------------------------- |
-| Unit        | `src/lib/__tests__`, `src/types/__tests__` | Tenancy rules, RBAC, plans, studios/rooms and inventory logic, CSV, photo upload rules, auth hooks, email, validation        |
-| Integration | `src/app/api/__tests__`                    | Route handlers + lib with mocked session/DB: auth, roles, cross-org 404s, plan limits |
-| E2E         | `e2e/`                                     | Sign-in, onboarding, studio/room CRUD, viewer restrictions                            |
+| Layer       | Where                                      | Covers                                                                                                                |
+| ----------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| Unit        | `src/lib/__tests__`, `src/types/__tests__` | Tenancy rules, RBAC, plans, studios/rooms and inventory logic, CSV, photo upload rules, auth hooks, email, validation |
+| Integration | `src/app/api/__tests__`                    | Route handlers + lib with mocked session/DB: auth, roles, cross-org 404s, plan limits                                 |
+| E2E         | `e2e/`                                     | Sign-in, onboarding, studio/room CRUD, viewer restrictions                                                            |
 
 Details: [`docs/testing.md`](docs/testing.md).

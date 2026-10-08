@@ -1,0 +1,51 @@
+{
+  "maker": "Audio-Technica",
+  "entries": [
+    {
+      "manufacturer": "Audio-Technica",
+      "model": "AT2020",
+      "transducerType": "ldc",
+      "polarPatterns": [
+        "cardioid"
+      ],
+      "powering": "phantom",
+      "provenance": [
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "Transcribe from the official spec sheet, record its URL, then review.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "powering"
+          ]
+        }
+      ]
+    },
+    {
+      "manufacturer": "Audio-Technica",
+      "model": "AT4050",
+      "transducerType": "ldc",
+      "polarPatterns": [
+        "omni",
+        "cardioid",
+        "figure8"
+      ],
+      "powering": "phantom",
+      "provenance": [
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "Transcribe from the official spec sheet, record its URL, then review.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "powering"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,16 @@
 'use client'
 
-import { Boxes, Building2, Gauge, History, Settings, Users } from 'lucide-react'
+import {
+  AudioLines,
+  Boxes,
+  Building2,
+  Gauge,
+  History,
+  Mic,
+  Settings,
+  ShieldCheck,
+  Users
+} from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ComponentType } from 'react'
@@ -19,6 +29,9 @@ const ICONS: Record<NavIconName, ComponentType<{ className?: string }>> = {
   dashboard: Gauge,
   studios: Building2,
   inventory: Boxes,
+  mics: AudioLines,
+  locker: Mic,
+  admin: ShieldCheck,
   members: Users,
   activity: History,
   settings: Settings
@@ -29,8 +42,8 @@ export function navIcon(name: NavIconName) {
 }
 
 export function useNavGroups() {
-  const { can } = useTenant()
-  return buildNavGroups(can)
+  const { can, isPlatformAdmin } = useTenant()
+  return buildNavGroups(can, { platformAdmin: isPlatformAdmin })
 }
 
 interface SidebarNavProps {

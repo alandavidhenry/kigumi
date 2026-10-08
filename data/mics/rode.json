@@ -1,0 +1,49 @@
+{
+  "maker": "RØDE",
+  "entries": [
+    {
+      "manufacturer": "RØDE",
+      "model": "NT1 (5th gen)",
+      "transducerType": "ldc",
+      "polarPatterns": [
+        "cardioid"
+      ],
+      "powering": "phantom",
+      "provenance": [
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "Transcribe from the official spec sheet, record its URL, then review.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "powering"
+          ]
+        }
+      ]
+    },
+    {
+      "manufacturer": "RØDE",
+      "model": "NT5",
+      "transducerType": "sdc",
+      "polarPatterns": [
+        "cardioid"
+      ],
+      "powering": "phantom",
+      "provenance": [
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "Transcribe from the official spec sheet, record its URL, then review.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "powering"
+          ]
+        }
+      ]
+    }
+  ]
+}
