@@ -1,0 +1,6 @@
+# Reviewed gitleaks false positives (one fingerprint per line: commit:file:rule:line).
+# Add an entry only after confirming the match is not a real secret.
+
+# Empty `CRON_SECRET=` placeholder in CLAUDE.md's env var list; generic-api-key
+# reads across the line break into the next variable name.
+4d6a21ca8f6749a5168edec06237fe438bf57344:CLAUDE.md:generic-api-key:62
