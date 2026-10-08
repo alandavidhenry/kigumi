@@ -1,0 +1,139 @@
+name: Playwright E2E
+
+on:
+  workflow_call:
+    inputs:
+      fail_on_error:
+        description: Whether to fail the workflow if tests fail
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: End-to-end tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        # Throwaway database reachable only from this job, so no password:
+        # trust auth keeps credentials out of the workflow entirely.
+        env:
+          POSTGRES_USER: kigumi
+          POSTGRES_DB: kigumi
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U kigumi -d kigumi"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # Non-secret settings only. Secrets (auth secret, storage key, cron secret,
+    # seed password) are generated fresh for each run in the first step.
+    env:
+      AZURE_STORAGE_CONTAINER_NAME: kigumi
+      BETTER_AUTH_URL: http://localhost:3000
+      DATABASE_URL: postgresql://kigumi@localhost:5433/kigumi
+      # Parallel workers all sign in from 127.0.0.1; see rateLimit in src/lib/auth.ts.
+      AUTH_RATE_LIMIT: off
+
+    steps:
+      - name: Generate per-run secrets
+        # Random values that exist only for this run: masked in logs and
+        # exported to later steps via GITHUB_ENV.
+        run: |
+          AZURITE_KEY=$(openssl rand -base64 64 | tr -d '\r\n')
+          BETTER_AUTH_SECRET=$(openssl rand -base64 32 | tr -d '\r\n')
+          CRON_SECRET=$(openssl rand -hex 24)
+          E2E_SEED_PASSWORD=$(openssl rand -hex 16)
+          for value in "$AZURITE_KEY" "$BETTER_AUTH_SECRET" "$CRON_SECRET" "$E2E_SEED_PASSWORD"; do
+            echo "::add-mask::$value"
+          done
+          {
+            echo "AZURITE_KEY=$AZURITE_KEY"
+            echo "AZURE_STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=$AZURITE_KEY;BlobEndpoint=http://127.0.0.1:10010/devstoreaccount1;"
+            echo "BETTER_AUTH_SECRET=$BETTER_AUTH_SECRET"
+            echo "CRON_SECRET=$CRON_SECRET"
+            echo "E2E_SEED_PASSWORD=$E2E_SEED_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Start Azurite
+        # Run directly (rather than as a `services:` container) since that
+        # API only forwards docker options, not a custom command — and
+        # --skipApiVersionCheck is required (see docker-compose.yml).
+        # AZURITE_ACCOUNTS replaces the public well-known dev key with this
+        # run's generated one.
+        run: |
+          docker run -d --name azurite -p 10010:10000 \
+            -e "AZURITE_ACCOUNTS=devstoreaccount1:$AZURITE_KEY" \
+            mcr.microsoft.com/azure-storage/azurite \
+            azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck --silent
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Run database migrations
+        run: npx prisma migrate deploy
+
+      - name: Create the storage container
+        run: node scripts/create-storage-container.js
+
+      - name: Seed demo organisation and users
+        run: npm run db:seed -- "$E2E_SEED_PASSWORD"
+
+      - name: Build the app
+        run: npm run build
+
+      - name: Start the app
+        run: nohup npm run start > app.log 2>&1 &
+
+      - name: Wait for the app to be ready
+        run: |
+          for i in $(seq 1 20); do
+            if curl -sf http://localhost:3000/api/health > /dev/null; then
+              echo "App is up after $i attempt(s)"
+              exit 0
+            fi
+            echo "Attempt $i: not ready yet — retrying in 3s..."
+            sleep 3
+          done
+          echo "App did not become ready in time"
+          exit 1
+
+      - name: Run Playwright tests
+        run: npm run test:e2e
+        continue-on-error: ${{ !inputs.fail_on_error }}
+
+      - name: Show app logs on failure
+        if: failure()
+        run: cat app.log
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14

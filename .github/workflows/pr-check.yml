@@ -1,0 +1,36 @@
+name: PR Check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+  actions: read
+
+jobs:
+  lint_and_test:
+    name: Lint and Test
+    uses: ./.github/workflows/lint-format.yml
+
+  security_scan:
+    name: Security Scan
+    uses: ./.github/workflows/security-scan.yml
+
+  e2e:
+    name: Playwright E2E
+    uses: ./.github/workflows/playwright.yml
+
+  build:
+    name: Build Docker Image
+    needs: [lint_and_test, security_scan, e2e]
+    uses: ./.github/workflows/docker-build.yml
+    with:
+      environment: dev
+      version: pr
+      push: false
+    secrets: inherit

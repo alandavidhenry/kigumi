@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: kigumi-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kigumi
+      POSTGRES_PASSWORD: kigumi
+      POSTGRES_DB: kigumi
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U kigumi -d kigumi']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: kigumi-azurite
+    restart: unless-stopped
+    # --skipApiVersionCheck: the @azure SDK versions this project pins send an
+    # x-ms-version newer than this Azurite image recognizes; without the flag
+    # every request 400s with "API version not supported".
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --location /data --skipApiVersionCheck --silent
+    ports:
+      - '10010:10000'
+    volumes:
+      - azurite-data:/data
+
+volumes:
+  postgres-data:
+  azurite-data:
