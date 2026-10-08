@@ -22,26 +22,27 @@ Later it grows into full studio management (booking, CRM, invoicing, payments).
 
 ### 2.1 Stack (mirrors Minato unless noted)
 
-| Concern | Choice | ADR |
-| --- | --- | --- |
-| Framework | Next.js 16 App Router, React 19, TypeScript strict, `src/proxy.ts` | — |
-| Database / ORM | Neon PostgreSQL + Prisma 7 (`@prisma/adapter-pg`), client in `src/generated/prisma` | [0001](decisions/0001-database-and-orm.md) |
-| Auth | Better Auth + `organization` plugin, Prisma adapter, cookie cache | [0002](decisions/0002-auth.md) |
-| Tenancy | `organisationId` on every tenant row; enforced by `tenantDb()` in `src/lib/tenant.ts` | [0003](decisions/0003-tenancy-enforcement.md) |
-| File storage | Azure Blob Storage (Azurite locally), SAS URLs, MIME sniffing, size caps | [0004](decisions/0004-file-storage.md) |
-| 2D canvas | react-konva | [0005](decisions/0005-canvas-library.md) |
-| Charts | Recharts (log-frequency response) + custom SVG polar plots (d3-scale / d3-shape) | [0006](decisions/0006-chart-library.md) |
-| LLM | Anthropic API (`@anthropic-ai/sdk`) behind `src/lib/ai/` | [0007](decisions/0007-llm-provider.md) |
-| Mic data | Research spike in Phase 2 | [0008](decisions/0008-mic-data-sourcing.md) |
-| Background jobs | GitHub Actions cron → `/api/cron/*` protected by `CRON_SECRET` | [0009](decisions/0009-background-jobs.md) |
-| Audit log | Postgres `AuditLog` table | [0010](decisions/0010-audit-log.md) |
-| Monetisation | Free / Pro / Studio / Facility subscriptions, feature entitlements | [0011](decisions/0011-monetisation.md) |
-| Email | Azure Communication Services (`src/lib/email.ts`) | — |
-| UI | Tailwind v4 semantic tokens, Radix primitives (shadcn new-york), lucide, cmdk | — |
-| Tests | Vitest (unit + integration), Playwright (E2E) | — |
-| Hosting | Docker → GHCR → Azure App Service. Terraform and deploy workflows deferred to a later phase | — |
+| Concern         | Choice                                                                                      | ADR                                           |
+| --------------- | ------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| Framework       | Next.js 16 App Router, React 19, TypeScript strict, `src/proxy.ts`                          | —                                             |
+| Database / ORM  | Neon PostgreSQL + Prisma 7 (`@prisma/adapter-pg`), client in `src/generated/prisma`         | [0001](decisions/0001-database-and-orm.md)    |
+| Auth            | Better Auth + `organization` plugin, Prisma adapter, cookie cache                           | [0002](decisions/0002-auth.md)                |
+| Tenancy         | `organisationId` on every tenant row; enforced by `tenantDb()` in `src/lib/tenant.ts`       | [0003](decisions/0003-tenancy-enforcement.md) |
+| File storage    | Azure Blob Storage (Azurite locally), SAS URLs, MIME sniffing, size caps                    | [0004](decisions/0004-file-storage.md)        |
+| 2D canvas       | react-konva                                                                                 | [0005](decisions/0005-canvas-library.md)      |
+| Charts          | Recharts (log-frequency response) + custom SVG polar plots (d3-scale / d3-shape)            | [0006](decisions/0006-chart-library.md)       |
+| LLM             | Anthropic API (`@anthropic-ai/sdk`) behind `src/lib/ai/`                                    | [0007](decisions/0007-llm-provider.md)        |
+| Mic data        | Manual transcription from manufacturer spec sheets + open datasets; no scraping             | [0008](decisions/0008-mic-data-sourcing.md)   |
+| Background jobs | GitHub Actions cron → `/api/cron/*` protected by `CRON_SECRET`                              | [0009](decisions/0009-background-jobs.md)     |
+| Audit log       | Postgres `AuditLog` table                                                                   | [0010](decisions/0010-audit-log.md)           |
+| Monetisation    | Free / Pro / Studio / Facility subscriptions, feature entitlements                          | [0011](decisions/0011-monetisation.md)        |
+| Email           | Azure Communication Services (`src/lib/email.ts`)                                           | —                                             |
+| UI              | Tailwind v4 semantic tokens, Radix primitives (shadcn new-york), lucide, cmdk               | —                                             |
+| Tests           | Vitest (unit + integration), Playwright (E2E)                                               | —                                             |
+| Hosting         | Docker → GHCR → Azure App Service. Terraform and deploy workflows deferred to a later phase | —                                             |
 
 ### 2.2 Cross-cutting rules
+
 - **Tenancy:** Organisation → Studio(s) → Rooms. Users belong to organisations through `Member` with role Owner / Manager / Engineer / Viewer. All tenant data access goes through `tenantDb(ctx)`; routes and components never query tenant models with the raw client.
 - **Authorisation:** `requirePermission(ctx, Permission.X)` using the role → permission matrix in `src/types/rbac.ts`.
 - **Plans:** `src/lib/plans.ts` (see §6). Limits checked on create with `canAdd`; paid features gated with `requireFeature(ctx, Feature.X)` and shown as upgrade prompts in the UI.
@@ -50,6 +51,7 @@ Later it grows into full studio management (booking, CRM, invoicing, payments).
 - **Accessibility & responsive:** usable on a tablet at the console.
 
 ### 2.3 Departures from Minato
+
 1. Better Auth instead of NextAuth v4 (orgs, invites, verification built in).
 2. Anthropic SDK instead of Azure AI Foundry over raw fetch.
 3. `docs/decisions/` ADR folder instead of a single root `adr.md`.
@@ -66,6 +68,7 @@ Later it grows into full studio management (booking, CRM, invoicing, payments).
 Shapes below are the target. Each phase adds only the models it needs. Tenant-owned models carry `organisationId String` (non-null, indexed). IDs are `cuid()`. Lengths are millimetres, angles are degrees and times are UTC.
 
 ### Phase 0 (foundations)
+
 - **Better Auth core:** `User`, `Session` (`activeOrganizationId`), `Account`, `Verification`
 - **Better Auth organization plugin:** `Organization` (+ `planTier`), `Member` (`role`: owner / manager / engineer / viewer), `Invitation`
 - `Studio` — organisationId, name, address?, timezone, notes
@@ -73,6 +76,7 @@ Shapes below are the target. Each phase adds only the models it needs. Tenant-ow
 - `AuditLog` — organisationId, actorUserId, action, entityType, entityId, summary, metadata (JSON), createdAt
 
 ### Later phases
+
 - `EquipmentItem` (P1) — category, make, model, serial, quantity (for cables and accessories), roomId?, status (in_service / repair / retired / on_loan), purchaseDate, purchasePrice, supplier, tags[], customFields (JSON), photos via `Attachment`
 - `Attachment` (P1/P7) — organisationId, entityType, entityId, blobPath, fileName, mimeType, sizeBytes, kind (photo / receipt / invoice / manual / other)
 - `MicrophoneModel` (P2, **global**, no organisationId) — manufacturer, model, transducerType (dynamic / ldc / sdc / ribbon / boundary / other), polarPatterns[], freqRangeHz (min/max), sensitivityMvPa, selfNoiseDbA, maxSplDb, impedanceOhm, powering (none / phantom / battery / psu), phantomSafe (ribbon warning), pads[], filters[], weightG, dimensions, connector, discontinued, statedApplications[], specSheetUrl, status (draft / in_review / published)
@@ -95,10 +99,12 @@ Shapes below are the target. Each phase adds only the models it needs. Tenant-ow
 ## 4. MVP feature modules
 
 ### 4.1 Organisations, studios and rooms (Phase 0)
+
 - Sign up (email + password, email verification), create organisation and studio during onboarding, invite users with roles, switch organisation.
 - Rooms with dimensions (for layout scale) and notes.
 
 ### 4.2 Equipment inventory (Phase 1)
+
 - CRUD with categories (mics, preamps, interfaces, consoles, outboard, monitors, headphones, instruments, amps, stands, cables, DI boxes, accessories).
 - Photos, tags, custom fields, location, status, search/filter.
 - **CSV import/export** (exceljs, as in Minato).
@@ -107,14 +113,16 @@ Shapes below are the target. Each phase adds only the models it needs. Tenant-ow
 - Cables and accessories can be tracked as a quantity rather than one row per item.
 
 ### 4.3 Microphone catalogue and mic locker (Phase 2)
+
 **Data sourcing: research spike first, then ADR 0008, before building ingestion.**
+
 1. Look for existing **public microphone datasets or APIs** with a clear licence. Prefer these.
 2. Otherwise prefer **manufacturer spec-sheet PDFs** over scraping marketing pages. Consider asking manufacturers for data or permission later.
 3. Any scraping must respect `robots.txt` and site terms, rate limit, identify its user agent, and cache. UK/EU **database right** applies on top of copyright, so bulk extraction of a manufacturer's whole database is riskier than recording individual factual specs. **Anything legally unclear is escalated, not decided.**
 4. **Never rehost manufacturer images, graphs or PDFs.** Store factual values, render our own graphs and link to the official spec sheet.
 5. Frequency response and polar data: store digitised numeric points where available. Where only the pattern type is known, render an **idealised** polar plot from the first-order formula `r(θ) = A + (1 − A)·cos θ` (omni A=1, sub-cardioid A≈0.7, cardioid A=0.5, supercardioid A≈0.37, hypercardioid A=0.25, figure-8 A=0) and **label it as idealised, not measured**.
 6. Every value keeps provenance. An **admin review queue** (platform-admin role) checks ingested data before it is published. Manual entry and edits are supported.
-7. Ingestion runs as scripts/jobs, never on user requests. Seed a starter set of about 75 common studio mics (list proposed in the spike for approval) before attempting breadth.
+7. Ingestion runs as scripts/jobs, never on user requests. Seed a starter set of about 75 common studio mics (list approved in ADR 0008) before attempting breadth.
 
 **Mic detail page:** spec table; frequency response chart (log scale, 20 Hz–20 kHz); polar plot switchable by frequency and pattern; spec-sheet link; provenance; an **AI summary** clearly labelled as AI-generated (the prompt forbids inventing numbers, which come only from the database; cached by input hash; regenerated when specs or prompt version change); and an "In your locker" section.
 
@@ -123,6 +131,7 @@ Shapes below are the target. Each phase adds only the models it needs. Tenant-ow
 **Mic locker:** the studio's `MicrophoneUnit`s, matched pairs, condition, and availability on a given session date.
 
 ### 4.4 AI microphone recommendations (Phase 4)
+
 - **Inputs:** a session's (or ad-hoc) source list, optional free-text intent, room, available channels/preamps.
 - **Pipeline:**
   1. **Deterministic rules first** (unit tested): mics owned and available on the date; quantity limits; SPL suitability; phantom requirements and **ribbon + phantom warnings**; channel/preamp count; matched pairs for stereo techniques.
@@ -136,26 +145,33 @@ Shapes below are the target. Each phase adds only the models it needs. Tenant-ow
 - Free-text Q&A ("Which of my mics would suit a breathy female vocal?") uses the same pipeline.
 
 ### 4.5 Studio layouts, 2D top-down (Phase 5)
+
 Room drawn to scale with grid and snapping; drag in instruments, amps, mics (linked to locker units), stands, gobos, booths, monitors and furniture; rotate, resize and label. Mics show a direction arrow and an optional pickup-pattern overlay. Height (z) is editable now so 3D can follow. Layouts can be saved as templates. Export to PNG/PDF.
 
 ### 4.6 Sessions and input lists (Phase 5)
+
 A session links a date, room, layout, input list, recall sheet and notes. The input list **builds itself from layout mic placements** and stays in sync. Warnings for phantom on ribbons, a unit used twice, more inputs than channels, and double-booked mics. Printable PDF session sheet plus a **read-only share link**. DAW track-name export (CSV/text).
 
 ### 4.7 Mixing desk tracking / recall sheet (Phase 6)
+
 Console definitions with channel-strip templates (generic analogue desk shipped, user-defined supported). A recall sheet per session, pre-filled from the input list. Outboard recall entries and desk photos. Duplicate a previous recall. Print/PDF.
 
 ### 4.8 Maintenance schedules and reminders (Phase 7)
+
 Plans per item or category by time and/or usage hours; **UK PAT testing** tracking; due/overdue task list; completion log with notes, cost and attachments; in-app and email reminders with configurable lead time.
 
 ### 4.9 Warranty and receipts (Phase 7)
+
 Purchase info, warranty dates/provider/terms, attachments, expiry reminders, and warranty status on the item page. Later: LLM receipt extraction with user confirmation.
 
 ### 4.10 Cross-cutting
+
 Dashboard (upcoming sessions, overdue maintenance, expiring warranties); global search (command palette); audit log; plan limits.
 
 ---
 
 ## 5. Future features (not MVP; keep the design open for them)
+
 3D layouts; booking calendar with conflict detection; CRM; quotes/invoicing/payments (Stripe) and client portal; SaaS billing; hire/loan check-in/out with QR scanning; patchbay mapping; trained recommendation model from feedback; community mic notes and ratings; public studio profile; room acoustics helpers; native DAW session templates; live stage plots and riders; mobile/offline; multi-studio reporting.
 
 ---
@@ -164,15 +180,15 @@ Dashboard (upcoming sessions, overdue maintenance, expiring warranties); global 
 
 Four subscription tiers; no billing yet. Limits and entitlements are enforced now so Stripe can be added without new checks. Prices are hypotheses to validate.
 
-| | Free | Pro | Studio | Facility |
-| --- | --- | --- | --- | --- |
-| For | Home / bedroom studios | Solo pros, project studios | Commercial studios with staff | Multi-site, education |
-| Price (GBP) | £0 | £10/mo or £96/yr | £35/mo or £336/yr | From £90/mo |
-| Studios / rooms | 1 / 2 | 1 / 4 | 2 / 15 | Unlimited |
-| Seats | 1 | 3 | 15 | 50 (custom) |
-| Inventory items | 250 | Unlimited | Unlimited | Unlimited |
-| AI requests / month | 25 | 400 | 2,500 | 10,000 (custom) |
-| Storage | 250 MB | 5 GB | 50 GB | 200 GB (custom) |
+|                     | Free                   | Pro                        | Studio                        | Facility              |
+| ------------------- | ---------------------- | -------------------------- | ----------------------------- | --------------------- |
+| For                 | Home / bedroom studios | Solo pros, project studios | Commercial studios with staff | Multi-site, education |
+| Price (GBP)         | £0                     | £10/mo or £96/yr           | £35/mo or £336/yr             | From £90/mo           |
+| Studios / rooms     | 1 / 2                  | 1 / 4                      | 2 / 15                        | Unlimited             |
+| Seats               | 1                      | 3                          | 15                            | 50 (custom)           |
+| Inventory items     | 250                    | Unlimited                  | Unlimited                     | Unlimited             |
+| AI requests / month | 25                     | 400                        | 2,500                         | 10,000 (custom)       |
+| Storage             | 250 MB                 | 5 GB                       | 50 GB                         | 200 GB (custom)       |
 
 - **Free keeps the core workflow:** inventory, mic catalogue and comparisons, mic locker, layouts, sessions, input lists, recall sheets, safety warnings, CSV import/export, QR labels, branded share links.
 - **Pro adds** (upgrade hooks for one-person studios): insurance and valuation report, email reminders, unbranded PDFs and share links, templates, AI receipt scanning.

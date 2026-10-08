@@ -24,6 +24,14 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Bulk edit and soft-delete/restore** for inventory.
 - **`Feature.BULK_IMPORT`** (Studio) is unused; CSV import is currently available on every tier per `plans.ts`.
 
+## Mic data sourcing (ADR 0008, Phase 2a spike)
+
+- **Manufacturer outreach:** permission/data requests to the top ~10 makers (Neumann, Sennheiser, Shure and RØDE first). Permission lifts the per-maker cap (L2).
+- **Surrey dataset model list:** extract the 25-mic table from the open-access JAES paper and match it against the starter list.
+- **Licence enquiries (L7, deferred):** ask Odratek (Micpedia) or Icecat about a commercial licence when breadth beyond the starter list matters.
+- **LLM-assisted spec drafting** (allowed by L6): build the offline admin script after manual transcription of the first batch is working.
+- **IP opinion:** consider a short paid opinion before public launch.
+
 ## Monetisation (ADR 0011)
 
 - **Stripe billing:** checkout, customer portal, webhooks setting `Organization.planTier`; replace "Contact us" on the plans comparison.
