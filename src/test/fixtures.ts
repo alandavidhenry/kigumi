@@ -26,6 +26,7 @@ const MODEL_METHODS = [
   'findMany',
   'count',
   'create',
+  'createMany',
   'updateMany',
   'deleteMany'
 ] as const
@@ -46,6 +47,8 @@ export function makeFakeDb() {
   return {
     studio: fakeModel(),
     room: fakeModel(),
+    equipmentItem: fakeModel(),
+    attachment: fakeModel(),
     auditLog: fakeModel()
   }
 }

@@ -35,6 +35,10 @@ export enum Permission {
   VIEW_STUDIOS = 'view:studios',
   MANAGE_STUDIOS = 'manage:studios',
 
+  // Equipment inventory
+  VIEW_INVENTORY = 'view:inventory',
+  MANAGE_INVENTORY = 'manage:inventory',
+
   // Audit
   VIEW_AUDIT_LOG = 'view:audit-log'
 }
@@ -50,17 +54,22 @@ export const ROLE_PERMISSIONS: Readonly<
     Permission.MANAGE_MEMBERS,
     Permission.VIEW_STUDIOS,
     Permission.MANAGE_STUDIOS,
+    Permission.VIEW_INVENTORY,
+    Permission.MANAGE_INVENTORY,
     Permission.VIEW_AUDIT_LOG
   ],
   [MemberRole.ENGINEER]: [
     Permission.VIEW_ORGANISATION,
     Permission.VIEW_MEMBERS,
-    Permission.VIEW_STUDIOS
+    Permission.VIEW_STUDIOS,
+    Permission.VIEW_INVENTORY,
+    Permission.MANAGE_INVENTORY
   ],
   [MemberRole.VIEWER]: [
     Permission.VIEW_ORGANISATION,
     Permission.VIEW_MEMBERS,
-    Permission.VIEW_STUDIOS
+    Permission.VIEW_STUDIOS,
+    Permission.VIEW_INVENTORY
   ]
 }
 

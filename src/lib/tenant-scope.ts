@@ -8,6 +8,8 @@ import { AppError } from '@/lib/errors'
 export const TENANT_MODELS: ReadonlySet<string> = new Set([
   'Studio',
   'Room',
+  'EquipmentItem',
+  'Attachment',
   'AuditLog'
 ])
 

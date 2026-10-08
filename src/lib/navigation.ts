@@ -6,7 +6,7 @@ import { Permission } from '@/types/rbac'
 // as their phases land.
 
 export type NavIconName =
-  'dashboard' | 'studios' | 'members' | 'activity' | 'settings'
+  'dashboard' | 'studios' | 'inventory' | 'members' | 'activity' | 'settings'
 
 export interface NavItem {
   name: string
@@ -23,6 +23,17 @@ export interface NavGroup {
 export function buildNavGroups(
   can: (permission: Permission) => boolean
 ): NavGroup[] {
+  const studioItems: NavItem[] = [
+    { name: 'Studios & rooms', href: '/studios', icon: 'studios' }
+  ]
+  if (can(Permission.VIEW_INVENTORY)) {
+    studioItems.push({
+      name: 'Inventory',
+      href: '/inventory',
+      icon: 'inventory'
+    })
+  }
+
   const organisationItems: NavItem[] = [
     { name: 'Members', href: '/settings/members', icon: 'members' }
   ]
@@ -48,7 +59,7 @@ export function buildNavGroups(
     {
       id: 'studio',
       label: 'Studio',
-      items: [{ name: 'Studios & rooms', href: '/studios', icon: 'studios' }]
+      items: studioItems
     },
     { id: 'organisation', label: 'Organisation', items: organisationItems }
   ]

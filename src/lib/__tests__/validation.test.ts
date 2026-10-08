@@ -1,9 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  equipmentInputSchema,
+  equipmentUpdateSchema,
   formatDimensions,
+  formatMoney,
   isValidTimeZone,
+  majorToMinor,
   metresToMm,
+  minorToMajor,
   mmToMetres,
   roomInputSchema,
   roomUpdateSchema,
@@ -110,5 +115,72 @@ describe('units', () => {
   it('validates time zones', () => {
     expect(isValidTimeZone('Europe/London')).toBe(true)
     expect(isValidTimeZone('Nowhere/Land')).toBe(false)
+  })
+})
+
+describe('equipmentInputSchema', () => {
+  const base = { category: 'microphone', make: 'Neumann', model: 'U 87' }
+
+  it('applies defaults', () => {
+    expect(equipmentInputSchema.parse(base)).toMatchObject({
+      quantity: 1,
+      status: 'in_service',
+      tags: [],
+      serial: null,
+      purchaseDate: null,
+      purchasePriceMinor: null,
+      customFields: null
+    })
+  })
+
+  it('rejects unknown categories and bad quantities', () => {
+    expect(() =>
+      equipmentInputSchema.parse({ ...base, category: 'toaster' })
+    ).toThrow()
+    expect(() => equipmentInputSchema.parse({ ...base, quantity: 0 })).toThrow()
+    expect(() =>
+      equipmentInputSchema.parse({ ...base, quantity: 1.5 })
+    ).toThrow()
+  })
+
+  it('validates dates and prices', () => {
+    expect(() =>
+      equipmentInputSchema.parse({ ...base, purchaseDate: '12/03/2024' })
+    ).toThrow()
+    expect(() =>
+      equipmentInputSchema.parse({ ...base, purchasePriceMinor: -1 })
+    ).toThrow()
+    expect(
+      equipmentInputSchema.parse({ ...base, purchaseDate: '2024-03-12' })
+        .purchaseDate
+    ).toBe('2024-03-12')
+  })
+
+  it('de-duplicates tags and drops empty custom fields', () => {
+    const parsed = equipmentInputSchema.parse({
+      ...base,
+      tags: ['vocal', 'vocal'],
+      customFields: {}
+    })
+    expect(parsed.tags).toEqual(['vocal'])
+    expect(parsed.customFields).toBeNull()
+  })
+
+  it('does not apply defaults on partial updates', () => {
+    expect(equipmentUpdateSchema.parse({ make: 'AKG' })).toEqual({
+      make: 'AKG'
+    })
+  })
+})
+
+describe('money helpers', () => {
+  it('converts between major and minor units', () => {
+    expect(majorToMinor(1299.99)).toBe(129999)
+    expect(minorToMajor(129999)).toBe(1299.99)
+  })
+
+  it('formats pounds and missing values', () => {
+    expect(formatMoney(129999)).toBe('£1,299.99')
+    expect(formatMoney(null)).toBe('—')
   })
 })

@@ -19,6 +19,7 @@ describe('buildNavGroups', () => {
     expect(hrefsFor(MemberRole.VIEWER)).toEqual([
       '/dashboard',
       '/studios',
+      '/inventory',
       '/settings/members',
       '/settings/organisation'
     ])

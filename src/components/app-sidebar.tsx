@@ -1,6 +1,6 @@
 'use client'
 
-import { Building2, Gauge, History, Settings, Users } from 'lucide-react'
+import { Boxes, Building2, Gauge, History, Settings, Users } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { ComponentType } from 'react'
@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 const ICONS: Record<NavIconName, ComponentType<{ className?: string }>> = {
   dashboard: Gauge,
   studios: Building2,
+  inventory: Boxes,
   members: Users,
   activity: History,
   settings: Settings
