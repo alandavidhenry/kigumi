@@ -2,6 +2,7 @@ import { OrganisationForm } from '@/app/(app)/settings/organisation/organisation
 import { PageHeader } from '@/components/page-header'
 import { PlanComparison } from '@/components/plan-comparison'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { getAiUsage } from '@/lib/ai/usage'
 import { countMembers } from '@/lib/members'
 import {
   PLAN_LABELS,
@@ -17,13 +18,14 @@ export const metadata = { title: 'Organisation' }
 
 export default async function OrganisationSettingsPage() {
   const ctx = await getTenantContext()
-  const [usage, members] = await Promise.all([
+  const [usage, members, ai] = await Promise.all([
     getOrganisationUsage(ctx),
-    countMembers(ctx)
+    countMembers(ctx),
+    getAiUsage(ctx)
   ])
   const limits = getPlanLimits(ctx.planTier)
 
-  // Inventory, AI and storage usage are counted once those phases land.
+  // Inventory and storage usage are counted once those phases land.
   const rows = [
     {
       label: 'Studios',
@@ -38,8 +40,8 @@ export default async function OrganisationSettingsPage() {
       limit: formatLimit(limits.inventoryItems)
     },
     {
-      label: 'AI requests / month',
-      used: null,
+      label: 'AI requests this month',
+      used: ai.requests,
       limit: formatLimit(limits.aiRequestsPerMonth)
     },
     {

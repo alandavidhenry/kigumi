@@ -4,11 +4,13 @@ import { z } from 'zod'
 import { readJson, toErrorResponse } from '@/lib/api'
 import {
   AppError,
+  aiUnavailable,
   badRequest,
   forbidden,
   isAppError,
   notFound,
   planLimit,
+  rateLimited,
   unauthorized
 } from '@/lib/errors'
 
@@ -21,6 +23,8 @@ describe('error helpers', () => {
     expect(badRequest('Nope').status).toBe(400)
     expect(new AppError('CROSS_TENANT', 'x').status).toBe(404)
     expect(new AppError('NO_ACTIVE_ORGANISATION', 'x').status).toBe(403)
+    expect(rateLimited(5).status).toBe(429)
+    expect(aiUnavailable('down').status).toBe(503)
   })
 
   it('describes plan limits', () => {
@@ -45,6 +49,13 @@ describe('toErrorResponse', () => {
       code: 'PLAN_LIMIT',
       details: { resource: 'studios', limit: 1 }
     })
+  })
+
+  it('sends Retry-After with rate-limit responses', async () => {
+    const response = toErrorResponse(rateLimited(12))
+    expect(response.status).toBe(429)
+    expect(response.headers.get('Retry-After')).toBe('12')
+    expect((await response.json()).details).toEqual({ retryAfterSeconds: 12 })
   })
 
   it('turns Zod errors into 400s with field paths', async () => {

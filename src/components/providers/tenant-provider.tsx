@@ -19,6 +19,7 @@ export interface ClientTenant {
   organisationName: string
   role: MemberRole
   planTier: PlanTier
+  isPlatformAdmin: boolean
   organisations: OrganisationOption[]
 }
 

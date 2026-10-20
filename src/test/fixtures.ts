@@ -1,5 +1,6 @@
 import { vi } from 'vitest'
 
+import type { MicDetail } from '@/lib/mics/catalogue'
 import { PlanTier } from '@/lib/plans'
 import type { TenantContext } from '@/lib/tenant-context'
 import { MemberRole } from '@/types/rbac'
@@ -28,7 +29,8 @@ const MODEL_METHODS = [
   'create',
   'createMany',
   'updateMany',
-  'deleteMany'
+  'deleteMany',
+  'upsert'
 ] as const
 
 type FakeModel = Record<
@@ -49,8 +51,48 @@ export function makeFakeDb() {
     room: fakeModel(),
     equipmentItem: fakeModel(),
     attachment: fakeModel(),
+    microphoneUnit: fakeModel(),
+    aiUsage: fakeModel(),
     auditLog: fakeModel()
   }
 }
 
 export type FakeDb = ReturnType<typeof makeFakeDb>
+
+// A published catalogue microphone with sensible defaults (Shure SM57-like).
+export function makeMic(overrides: Partial<MicDetail> = {}): MicDetail {
+  return {
+    id: 'mic_1',
+    slug: 'shure-sm57',
+    manufacturer: 'Shure',
+    model: 'SM57',
+    transducerType: 'dynamic',
+    polarPatterns: ['cardioid'],
+    powering: 'none',
+    phantomSafe: null,
+    discontinued: false,
+    status: 'published',
+    freqRangeMinHz: 40,
+    freqRangeMaxHz: 15000,
+    sensitivityMvPa: 1.6,
+    selfNoiseDbA: null,
+    maxSplDb: null,
+    impedanceOhm: 310,
+    pads: [],
+    filters: [],
+    weightG: null,
+    dimensions: null,
+    connector: null,
+    statedApplications: ['snare', 'guitar amp'],
+    specSheetUrl: null,
+    wikidataId: null,
+    specConditions: {},
+    reviewNotes: null,
+    reviewedAt: null,
+    publishedAt: null,
+    frequencyResponses: [],
+    polarData: [],
+    provenance: [],
+    ...overrides
+  }
+}
