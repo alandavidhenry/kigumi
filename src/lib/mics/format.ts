@@ -118,3 +118,47 @@ export function phantomWarning(
     ? 'Passive ribbon: phantom power can damage this microphone. Switch phantom off before connecting.'
     : 'Ribbon microphone: phantom-power tolerance is not recorded. Treat it as unsafe and switch phantom off unless the manufacturer says otherwise.'
 }
+
+export interface ComparisonCell {
+  micId: string
+  value: string
+  conditions: string | null
+  recorded: boolean
+}
+
+export interface ComparisonRow {
+  field: MicSpecField
+  label: string
+  cells: ComparisonCell[]
+  // True when the mics do not all show the same value. A recorded value next
+  // to a missing one counts as a difference.
+  differs: boolean
+}
+
+// Side-by-side spec rows for 2 to 4 mics. A row appears when at least one mic
+// has a value for it (or it is one of the always-shown specs).
+export function comparisonRows(mics: readonly MicDetail[]): ComparisonRow[] {
+  const rows: ComparisonRow[] = []
+  for (const field of MIC_SPEC_FIELDS) {
+    const values = mics.map((mic) => valueFor(mic, field))
+    if (
+      values.every((value) => value === null) &&
+      !ALWAYS_SHOWN.includes(field)
+    ) {
+      continue
+    }
+    const cells = mics.map((mic, index) => ({
+      micId: mic.id,
+      value: values[index] ?? NOT_RECORDED,
+      conditions: mic.specConditions[field] ?? null,
+      recorded: values[index] !== null
+    }))
+    rows.push({
+      field,
+      label: MIC_SPEC_LABELS[field],
+      cells,
+      differs: new Set(cells.map((cell) => cell.value)).size > 1
+    })
+  }
+  return rows
+}

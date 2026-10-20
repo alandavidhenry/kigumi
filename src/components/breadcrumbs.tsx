@@ -16,6 +16,7 @@ const ROUTE_LABELS: Record<string, string> = {
   '/studios': 'Studios & rooms',
   '/activity': 'Activity',
   '/mics': 'Mic catalogue',
+  '/mics/compare': 'Compare',
   '/locker': 'Mic locker',
   '/admin': 'Platform',
   '/admin/mics': 'Mic review queue',

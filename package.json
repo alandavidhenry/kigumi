@@ -28,6 +28,7 @@
     "docker:logs": "docker compose logs -f"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.132.1",
     "@azure/communication-email": "^1.1.0",
     "@azure/storage-blob": "^12.34.0",
     "@prisma/adapter-pg": "^7.10.0",

@@ -51,10 +51,23 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Reverse trial:** 14 days of Pro for new signups, then Free (needs a `trialEndsAt` on Organization).
 - **Downgrades:** make data over the limits read-only (not deleted) when a plan drops; currently limits only block new creates.
 - **Per-organisation overrides** for Facility (custom seats, AI and storage).
-- **Usage metering:** AI requests (Phase 3), and a usage display for inventory count and storage against `PLAN_LIMITS`.
+- **Usage metering:** AI requests are metered and shown on the organisation page (Phase 3); still to do is a usage display for inventory count and storage against `PLAN_LIMITS`.
 - **Launch options:** capped founders' deal, AI credit packs, price lock for early subscribers. No general lifetime licence.
 - **Validate prices** with studio-owner interviews before launch.
 
+## Deferred from Phase 3
+
+- **Burst limit across instances:** the per-organisation AI rate limit (`src/lib/ai/rate-limit.ts`) is in memory. Move it to Postgres or a shared store before running more than one instance. The monthly allowance already lives in Postgres.
+- **Local model not exercised:** the local provider is unit tested against a mocked HTTP server only. Try it once with Ollama (`ollama pull qwen2.5:7b`) and confirm the server honours `response_format` JSON-schema output; if a server ignores it, replies will rely on the prompt alone.
+- **Real-model check:** nothing here has been run against the live Anthropic API (the tests use a fake provider). Before relying on it, generate a summary and a comparison with a real key and a published mic that has most specs filled in, and watch for the grounding check rejecting good text. Loosen `src/lib/ai/grounding.ts` if it does. Also confirm the structured-output schema (array limits) is accepted by the API.
+- **Sparse data:** summaries are only as good as the catalogue. Most seeded mics have structural facts only (ADR 0008), so early output will be thin and say "not recorded" a lot.
+- **Refusal fallback:** a provider refusal fails closed. Add Anthropic's server-side fallback if refusals ever appear.
+- **Usage display:** the organisation page shows requests this month; token totals are stored in `AiUsage` but not shown. Add a cost view when billing lands.
+- **Cost control:** summaries use the default model at low effort. If volume grows, move them to `AI_MODEL_FAST` (a one-line change in the prompt's `tier`, plus a version bump).
+- **Regenerate / feedback:** there is no way to regenerate a summary for unchanged specs or to flag a bad one. Add feedback capture with Phase 4's.
+- **Platform-wide AI spend:** done in ADR 0014 (daily request cap and kill switch). Still to do: a token or cost ceiling rather than a request count, an alert when the cap is hit, and a monthly platform cap.
+- **Tenant-aware AI:** the global cache must never hold tenant data (ADR 0013). Phase 4's recommendations need their own tenant-owned storage.
+
 ## Later phases (summary)
 
-Equipment inventory (P1), mic catalogue + data-sourcing spike (P2), AI layer (P3), recommendations (P4), layouts and sessions (P5), recall sheets (P6), maintenance and warranty (P7), hardening (P8). See `docs/PLAN.md`.
+Recommendations (P4), layouts and sessions (P5), recall sheets (P6), maintenance and warranty (P7), hardening (P8). See `docs/PLAN.md`.

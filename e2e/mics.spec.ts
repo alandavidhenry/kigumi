@@ -25,7 +25,9 @@ test.describe('owner', () => {
     await expect(
       page.getByRole('heading', { name: 'Shure SM57' })
     ).toBeVisible()
-    await expect(page.getByText('Specifications')).toBeVisible()
+    await expect(
+      page.getByText('Specifications', { exact: true })
+    ).toBeVisible()
     // The seeded SM57 has a sourced frequency range but no curve data.
     await expect(page.getByText('40 Hz')).toBeVisible()
     await expect(page.getByText('No frequency-response data yet')).toBeVisible()

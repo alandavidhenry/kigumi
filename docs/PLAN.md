@@ -84,7 +84,7 @@ Shapes below are the target. Each phase adds only the models it needs. Tenant-ow
 - `MicPolarData` (P2) — micModelId, pattern, frequencyHz, points JSON `[angleDeg, db][]`, measured boolean, provenanceId
 - `Provenance` (P2) — sourceUrl, documentTitle, retrievedAt, licenceNotes, confidence; linked per field via `MicFieldProvenance(micModelId, field, provenanceId)`
 - `MicrophoneUnit` (P2) — organisationId, micModelId, equipmentItemId, serial, condition, matchedPairGroup?, notes
-- `AiSummary` (P3) — kind (mic / comparison), subjectKey, inputHash, promptVersion, model, content JSON, createdAt; unique (kind, inputHash, promptVersion)
+- `AiSummary` (P3, **global**: catalogue-derived input only) — kind (mic / comparison), subjectKey, inputHash, promptVersion, model, content JSON, token counts, createdAt; unique (kind, inputHash, promptVersion)
 - `AiUsage` (P3) — organisationId, month, inputTokens, outputTokens, requests
 - `RecommendationRequest` / `RecommendationResult` / `RecommendationFeedback` (P4) — full request context (sources, intent, room, candidate list, rules output), result JSON, promptVersion, model; feedback (accepted / swapped(toUnitId) / rejected, rating, comment)
 - `Layout` / `LayoutItem` (P5) — roomId, scaleMmPerPx, grid, isTemplate, name; items: type, x, y, z, rotationDeg, widthMm, depthMm, heightMm, label, equipmentItemId?, micUnitId?, showPattern
@@ -214,7 +214,7 @@ Limits live in `src/lib/plans.ts`; `Organization.planTier` defaults to `free`.
 - **Phase 0 — Foundations:** scaffold mirroring Minato, CLAUDE.md, ADRs, CI, Better Auth with organisations, studios and rooms, tenancy enforcement, audit log, plan limits, app shell and navigation.
 - **Phase 1 — Equipment inventory (done):** CRUD, photos, CSV import/export, QR labels, valuation report, search.
 - **Phase 2 — Mic catalogue (built, awaiting approval):** data-sourcing spike + ADR 0008, schema, starter seed, admin review queue, mic detail page with charts (measured or idealised), mic locker. The AI summary on the mic page and the comparison view arrive with Phase 3.
-- **Phase 3 — AI layer:** AI service, mic summaries, comparison, caching, budgets/rate limits.
+- **Phase 3 — AI layer (done):** AI service, mic summaries, comparison, caching, budgets/rate limits. See ADR [0013](decisions/0013-ai-service-layer.md).
 - **Phase 4 — Recommendations:** rules engine (tests first), LLM ranking with validated structured output, feedback capture, evaluation set.
 - **Phase 5 — Layouts and sessions:** 2D layout editor, templates, sessions, auto input list, warnings, PDF/share link, apply recommendation.
 - **Phase 6 — Recall sheets:** console templates, per-session recall sheet, outboard recall.

@@ -101,6 +101,7 @@ model Organization {
   equipment   EquipmentItem[]
   attachments Attachment[]
   micUnits    MicrophoneUnit[]
+  aiUsage     AiUsage[]
 
   @@map("organization")
 }
@@ -386,4 +387,52 @@ model MicrophoneUnit {
   @@index([organisationId])
   @@index([organisationId, matchedPairGroup])
   @@index([micModelId])
+}
+
+// ---------------------------------------------------------------------------
+// AI layer (Phase 3, ADR 0007 and 0013). AiSummary is a GLOBAL cache: its
+// inputs are catalogue data only (never tenant data), so one generation
+// serves every organisation. AiUsage is tenant-owned and drives the monthly
+// budget from PLAN_LIMITS.aiRequestsPerMonth.
+// ---------------------------------------------------------------------------
+
+model AiSummary {
+  id            String   @id @default(cuid())
+  kind          String // AiSummaryKind: 'mic' | 'comparison'
+  subjectKey    String // mic slug, or the sorted slugs joined by '+'
+  inputHash     String // sha256 of the canonical grounding input
+  promptVersion String
+  model         String
+  content       Json // validated against the prompt's Zod schema
+  inputTokens   Int      @default(0)
+  outputTokens  Int      @default(0)
+  createdAt     DateTime @default(now())
+
+  @@unique([kind, inputHash, promptVersion])
+  @@index([kind, subjectKey])
+}
+
+model AiUsage {
+  id             String   @id @default(cuid())
+  organisationId String
+  month          String // 'YYYY-MM' (UTC)
+  requests       Int      @default(0)
+  inputTokens    Int      @default(0)
+  outputTokens   Int      @default(0)
+  updatedAt      DateTime @updatedAt
+
+  organisation Organization @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, month])
+}
+
+// Platform-wide daily AI counter (ADR 0014): a spend ceiling across all
+// organisations, so a bug or a busy day can't run up an unbounded bill.
+// Global like AiSummary: no organisationId, not in TENANT_MODELS.
+model AiPlatformUsage {
+  day          String   @id // 'YYYY-MM-DD' (UTC)
+  requests     Int      @default(0)
+  inputTokens  Int      @default(0)
+  outputTokens Int      @default(0)
+  updatedAt    DateTime @updatedAt
 }

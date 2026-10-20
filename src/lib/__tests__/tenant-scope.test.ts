@@ -21,6 +21,7 @@ function expectCrossTenant(fn: () => unknown) {
 describe('TENANT_MODELS', () => {
   it('lists every tenant-owned model', () => {
     expect([...TENANT_MODELS].sort()).toEqual([
+      'AiUsage',
       'Attachment',
       'AuditLog',
       'EquipmentItem',

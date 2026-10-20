@@ -1,15 +1,22 @@
-import { AlertTriangle, ExternalLink, Plus } from 'lucide-react'
+import {
+  AlertTriangle,
+  ExternalLink,
+  GitCompareArrows,
+  Plus
+} from 'lucide-react'
 import Link from 'next/link'
 
 import { BreadcrumbLabel } from '@/components/mics/breadcrumb-label'
 import { FrequencyResponseChart } from '@/components/mics/frequency-response-chart'
 import { LockerAddDialog } from '@/components/mics/locker-add-dialog'
+import { MicAiSummary } from '@/components/mics/mic-ai-summary'
 import { PolarSection } from '@/components/mics/polar-section'
 import { PageHeader } from '@/components/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { RoomOption } from '@/lib/equipment'
+import type { MicSummaryResult } from '@/lib/mics/ai'
 import type { MicDetail } from '@/lib/mics/catalogue'
 import { phantomWarning, specRows } from '@/lib/mics/format'
 import type { LockerUnit, UnlinkedMicrophone } from '@/lib/mics/locker'
@@ -39,6 +46,7 @@ export function MicDetailView({
   canManageLocker,
   unlinked,
   rooms,
+  ai,
   backHref = '/mics',
   backLabel = 'Mic catalogue'
 }: {
@@ -47,6 +55,12 @@ export function MicDetailView({
   readonly canManageLocker: boolean
   readonly unlinked: UnlinkedMicrophone[]
   readonly rooms: RoomOption[]
+  // Only passed for published catalogue pages; the admin review view omits it.
+  readonly ai?: {
+    summary: MicSummaryResult | null
+    canGenerate: boolean
+    allowance: { remaining: number; limit: number } | null
+  }
   readonly backHref?: string
   readonly backLabel?: string
 }) {
@@ -80,6 +94,14 @@ export function MicDetailView({
             {mic.discontinued && (
               <Badge variant='secondary'>Discontinued</Badge>
             )}
+            {ai && (
+              <Button asChild variant='surface'>
+                <Link href={`/mics/compare?mics=${mic.slug}`}>
+                  <GitCompareArrows />
+                  Compare
+                </Link>
+              </Button>
+            )}
             {mic.specSheetUrl && (
               <Button asChild variant='surface'>
                 <a
@@ -112,6 +134,15 @@ export function MicDetailView({
           source. Check the manufacturer&rsquo;s spec sheet before relying on
           them.
         </div>
+      )}
+
+      {ai && (
+        <MicAiSummary
+          slug={mic.slug}
+          initial={ai.summary}
+          canGenerate={ai.canGenerate}
+          allowance={ai.allowance}
+        />
       )}
 
       <div className='grid gap-6 lg:grid-cols-2'>

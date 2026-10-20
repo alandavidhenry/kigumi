@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useId, useMemo, useState } from 'react'
 
 import { PolarPlot } from '@/components/mics/polar-plot'
 import { Label } from '@/components/ui/label'
@@ -29,6 +29,8 @@ export function PolarSection({
   readonly patterns: MicPolarPattern[]
   readonly polarData: PolarDataView[]
 }) {
+  // Comparison pages render one section per mic, so ids must be unique.
+  const id = useId()
   const [pattern, setPattern] = useState<MicPolarPattern>(patterns[0])
   const available = useMemo(
     () =>
@@ -71,9 +73,9 @@ export function PolarSection({
     <div className='space-y-4'>
       <div className='grid gap-3 sm:grid-cols-2'>
         <div className='space-y-1'>
-          <Label htmlFor='polar-pattern'>Pattern</Label>
+          <Label htmlFor={`${id}-pattern`}>Pattern</Label>
           <NativeSelect
-            id='polar-pattern'
+            id={`${id}-pattern`}
             value={pattern}
             onChange={(event) =>
               onPattern(event.target.value as MicPolarPattern)
@@ -87,9 +89,9 @@ export function PolarSection({
           </NativeSelect>
         </div>
         <div className='space-y-1'>
-          <Label htmlFor='polar-frequency'>Frequency</Label>
+          <Label htmlFor={`${id}-frequency`}>Frequency</Label>
           <NativeSelect
-            id='polar-frequency'
+            id={`${id}-frequency`}
             value={choice}
             onChange={(event) => setChoice(event.target.value)}
           >

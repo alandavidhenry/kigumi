@@ -1,10 +1,11 @@
-import { AudioLines, ChevronRight } from 'lucide-react'
+import { AudioLines, ChevronRight, GitCompareArrows } from 'lucide-react'
 import Link from 'next/link'
 
 import { EmptyState } from '@/components/empty-state'
 import { MicFilters } from '@/components/mics/mic-filters'
 import { PageHeader } from '@/components/page-header'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { listMics } from '@/lib/mics/catalogue'
 import {
@@ -42,6 +43,14 @@ export default async function MicCataloguePage({
       <PageHeader
         title='Mic catalogue'
         description='Reviewed specifications for common studio microphones, with the source of every value.'
+        actions={
+          <Button asChild variant='surface'>
+            <Link href='/mics/compare'>
+              <GitCompareArrows />
+              Compare microphones
+            </Link>
+          </Button>
+        }
       />
       <MicFilters />
       {mics.length === 0 ? (
