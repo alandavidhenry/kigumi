@@ -18,7 +18,10 @@ npm run test:coverage  # Run tests with coverage report (src/lib)
 npm run test:e2e       # Playwright E2E (needs docker:up + migrated/seeded DB; starts dev server if none running)
 npm run docker:up      # Postgres (localhost:5433) + Azurite (localhost:10010)
 npm run db:migrate     # prisma migrate dev
-npm run db:seed        # Demo org + owner/manager/engineer/viewer@kigumi.test
+npm run db:seed         # Demo org + owner/manager/engineer/viewer@kigumi.test and the starter mics (published for dev only)
+npm run mics:ingest     # Load data/mics/*.json as draft rows for the review queue (--dry-run validates only)
+npm run mics:check-links  # HEAD-check spec-sheet URLs, respecting robots.txt
+npm run mics:derive     # Derive FR / polar points from open-dataset impulse responses
 ```
 
 `npm run checks` is the full quality gate. Husky runs it on pre-commit (plus gitleaks if installed). `npm run test:e2e` and `npm run build` are not part of `checks`; run them at the end of a phase or when UI/auth changed. See `README.md` for first-time setup.
@@ -27,7 +30,7 @@ npm run db:seed        # Demo org + owner/manager/engineer/viewer@kigumi.test
 
 Multi-tenant recording-studio planning SaaS on **Next.js 16 App Router**, mirroring `../minato`'s stack and conventions. The product plan lives in `docs/PLAN.md` and the decisions in `docs/decisions/` (ADRs).
 
-Stack summary: Neon PostgreSQL via Prisma 7 (client in `src/generated/prisma/`, singleton `src/lib/prisma.ts`), Better Auth with the organization plugin (`src/lib/auth.ts`, hooks in `src/lib/auth-hooks.ts`), Azure Blob Storage (Azurite locally), Azure Communication Services email (`src/lib/email.ts`), Anthropic API behind `src/lib/ai/` (Phase 3+).
+Stack summary: Neon PostgreSQL via Prisma 7 (client in `src/generated/prisma/`, singleton `src/lib/prisma.ts`), Better Auth with the organization plugin (`src/lib/auth.ts`, hooks in `src/lib/auth-hooks.ts`), Azure Blob Storage (Azurite locally), Azure Communication Services email (`src/lib/email.ts`), Anthropic API behind `src/lib/ai/`.
 
 Detail lives in `docs/`. **Read the relevant file before working in that area** rather than guessing:
 
@@ -44,6 +47,7 @@ Always-relevant patterns:
 - Better Auth tables use US spelling (`Organization`, `organizationId`); Kigumi's own models use `organisationId`.
 - Path alias `@/*` → `src/*`. Tailwind v4 with semantic tokens from `src/app/globals.css` (no hardcoded palette classes). Radix UI primitives (shadcn new-york).
 - `src/proxy.ts` is the Next.js 16 proxy (not `middleware`). It only does an optimistic session-cookie redirect; real checks happen server-side.
+- **AI (ADR 0007, 0013):** only `src/lib/ai/service.ts` (`generateCached`) calls a model. Prompts are versioned modules in `src/lib/ai/prompts/` (bump `version` when they change); output is Zod-validated and any number not in the supplied data is rejected. The `AiSummary` cache is global, so its input must be catalogue data only, never tenant data. Paid calls also count against a platform-wide daily cap (ADR 0014). Generating needs `Permission.USE_AI` and spends the monthly allowance; AI output is always labelled AI-generated.
 - Prisma nullable JSON: use `toJsonValue` from `src/lib/prisma-json.ts`.
 - Lengths in millimetres, angles in degrees, times in UTC.
 
@@ -60,7 +64,10 @@ AZURE_STORAGE_CONTAINER_NAME=kigumi
 AZURE_COMMUNICATION_CONNECTION_STRING=  # blank locally: emails are logged with console.warn
 ACS_SENDER_ADDRESS=
 CRON_SECRET=
-ANTHROPIC_API_KEY=            # Phase 3+
+PLATFORM_ADMIN_EMAILS=         # verified emails allowed into /admin/mics (ADR 0012); blank = no admins
+ANTHROPIC_API_KEY=            # AI features; cached output works without it
+AI_DAILY_REQUEST_CAP=         # platform-wide daily ceiling (default 100 dev / 1000 prod); AI_ENABLED=false is the kill switch
+AI_PROVIDER=                  # "local" = Ollama/LM Studio for free dev testing (needs AI_LOCAL_MODEL; refused in production)
 AI_MODEL_DEFAULT=claude-sonnet-5-5
 AI_MODEL_FAST=claude-haiku-5-5
 ```

@@ -39,6 +39,16 @@ export enum Permission {
   VIEW_INVENTORY = 'view:inventory',
   MANAGE_INVENTORY = 'manage:inventory',
 
+  // Microphone catalogue (global, read-only for tenants) and the studio's own
+  // mic locker. Catalogue administration is platform-level, not a role.
+  VIEW_MIC_CATALOGUE = 'view:mic-catalogue',
+  MANAGE_MIC_LOCKER = 'manage:mic-locker',
+
+  // AI features spend the organisation's monthly AI allowance, so reading
+  // cached output is open to everyone who can see the catalogue but
+  // generating new output is not.
+  USE_AI = 'use:ai',
+
   // Audit
   VIEW_AUDIT_LOG = 'view:audit-log'
 }
@@ -56,6 +66,9 @@ export const ROLE_PERMISSIONS: Readonly<
     Permission.MANAGE_STUDIOS,
     Permission.VIEW_INVENTORY,
     Permission.MANAGE_INVENTORY,
+    Permission.VIEW_MIC_CATALOGUE,
+    Permission.MANAGE_MIC_LOCKER,
+    Permission.USE_AI,
     Permission.VIEW_AUDIT_LOG
   ],
   [MemberRole.ENGINEER]: [
@@ -63,13 +76,17 @@ export const ROLE_PERMISSIONS: Readonly<
     Permission.VIEW_MEMBERS,
     Permission.VIEW_STUDIOS,
     Permission.VIEW_INVENTORY,
-    Permission.MANAGE_INVENTORY
+    Permission.MANAGE_INVENTORY,
+    Permission.VIEW_MIC_CATALOGUE,
+    Permission.MANAGE_MIC_LOCKER,
+    Permission.USE_AI
   ],
   [MemberRole.VIEWER]: [
     Permission.VIEW_ORGANISATION,
     Permission.VIEW_MEMBERS,
     Permission.VIEW_STUDIOS,
-    Permission.VIEW_INVENTORY
+    Permission.VIEW_INVENTORY,
+    Permission.VIEW_MIC_CATALOGUE
   ]
 }
 

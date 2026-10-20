@@ -11,6 +11,8 @@ export type AppErrorCode =
   | 'FEATURE_NOT_IN_PLAN'
   | 'BAD_REQUEST'
   | 'CROSS_TENANT'
+  | 'RATE_LIMITED'
+  | 'AI_UNAVAILABLE'
 
 const STATUS_BY_CODE: Readonly<Record<AppErrorCode, number>> = {
   UNAUTHORIZED: 401,
@@ -20,7 +22,9 @@ const STATUS_BY_CODE: Readonly<Record<AppErrorCode, number>> = {
   PLAN_LIMIT: 403,
   FEATURE_NOT_IN_PLAN: 403,
   BAD_REQUEST: 400,
-  CROSS_TENANT: 404
+  CROSS_TENANT: 404,
+  RATE_LIMITED: 429,
+  AI_UNAVAILABLE: 503
 }
 
 export class AppError extends Error {
@@ -66,3 +70,14 @@ export const featureNotInPlan = (featureLabel: string, planLabel: string) =>
 
 export const badRequest = (message: string, details?: unknown) =>
   new AppError('BAD_REQUEST', message, details)
+
+export const rateLimited = (retryAfterSeconds: number) =>
+  new AppError(
+    'RATE_LIMITED',
+    `You are sending AI requests too quickly. Try again in ${retryAfterSeconds} seconds.`,
+    { retryAfterSeconds }
+  )
+
+// The AI provider is unconfigured, down, or returned output we refuse to show.
+export const aiUnavailable = (message: string) =>
+  new AppError('AI_UNAVAILABLE', message)

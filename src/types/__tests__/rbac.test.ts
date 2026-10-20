@@ -39,6 +39,33 @@ describe('ROLE_PERMISSIONS', () => {
     }
   )
 
+  it('lets every role browse the mic catalogue but only engineers and up manage the locker', () => {
+    for (const role of MEMBER_ROLES) {
+      expect(hasPermission(role, Permission.VIEW_MIC_CATALOGUE)).toBe(true)
+    }
+    expect(hasPermission(MemberRole.VIEWER, Permission.MANAGE_MIC_LOCKER)).toBe(
+      false
+    )
+    for (const role of [
+      MemberRole.OWNER,
+      MemberRole.MANAGER,
+      MemberRole.ENGINEER
+    ]) {
+      expect(hasPermission(role, Permission.MANAGE_MIC_LOCKER)).toBe(true)
+    }
+  })
+
+  it('lets viewers read AI output but only engineers and up spend the AI allowance', () => {
+    expect(hasPermission(MemberRole.VIEWER, Permission.USE_AI)).toBe(false)
+    for (const role of [
+      MemberRole.OWNER,
+      MemberRole.MANAGER,
+      MemberRole.ENGINEER
+    ]) {
+      expect(hasPermission(role, Permission.USE_AI)).toBe(true)
+    }
+  })
+
   it('defines permissions for every role', () => {
     for (const role of MEMBER_ROLES) {
       expect(ROLE_PERMISSIONS[role].length).toBeGreaterThan(0)

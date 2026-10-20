@@ -10,6 +10,8 @@ export const TENANT_MODELS: ReadonlySet<string> = new Set([
   'Room',
   'EquipmentItem',
   'Attachment',
+  'MicrophoneUnit',
+  'AiUsage',
   'AuditLog'
 ])
 

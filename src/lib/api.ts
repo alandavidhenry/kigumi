@@ -6,9 +6,17 @@ import { isAppError } from '@/lib/errors'
 // Maps errors thrown by src/lib into JSON responses for route handlers.
 export function toErrorResponse(error: unknown): NextResponse {
   if (isAppError(error)) {
+    const retryAfter =
+      error.code === 'RATE_LIMITED'
+        ? (error.details as { retryAfterSeconds?: number } | undefined)
+            ?.retryAfterSeconds
+        : undefined
     return NextResponse.json(
       { error: error.message, code: error.code, details: error.details },
-      { status: error.status }
+      {
+        status: error.status,
+        headers: retryAfter ? { 'Retry-After': String(retryAfter) } : undefined
+      }
     )
   }
 

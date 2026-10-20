@@ -1,0 +1,79 @@
+{
+  "maker": "AKG",
+  "entries": [
+    {
+      "manufacturer": "AKG",
+      "model": "D112 MkII",
+      "transducerType": "dynamic",
+      "polarPatterns": [
+        "cardioid"
+      ],
+      "powering": "none",
+      "provenance": [
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "Transcribe from the official spec sheet, record its URL, then review.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "powering"
+          ]
+        }
+      ]
+    },
+    {
+      "manufacturer": "AKG",
+      "model": "C414 XLS",
+      "transducerType": "ldc",
+      "polarPatterns": [
+        "omni",
+        "subcardioid",
+        "cardioid",
+        "hypercardioid",
+        "figure8"
+      ],
+      "powering": "phantom",
+      "provenance": [
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "The mic offers nine patterns; the catalogue vocabulary holds the five nearest first-order patterns. Transcribe the full list from the spec sheet.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "powering"
+          ]
+        }
+      ]
+    },
+    {
+      "manufacturer": "AKG",
+      "model": "C414 XLII",
+      "transducerType": "ldc",
+      "polarPatterns": [
+        "omni",
+        "subcardioid",
+        "cardioid",
+        "hypercardioid",
+        "figure8"
+      ],
+      "powering": "phantom",
+      "provenance": [
+        {
+          "extraction": "drafted_unverified",
+          "confidence": "low",
+          "documentTitle": "Starter-list entry (ADR 0008): structural facts not yet checked against a spec sheet",
+          "licenceNotes": "The mic offers nine patterns; the catalogue vocabulary holds the five nearest first-order patterns. Transcribe the full list from the spec sheet.",
+          "fields": [
+            "transducerType",
+            "polarPatterns",
+            "powering"
+          ]
+        }
+      ]
+    }
+  ]
+}
