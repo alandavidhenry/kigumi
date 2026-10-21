@@ -1,0 +1,44 @@
+{
+  "id": "033-scarce-source-first",
+  "title": "The source with the fewest workable mics is planned first, so it is not left with nothing",
+  "tags": ["shortage", "spl", "fixture"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:shure-sm58"
+    },
+    {
+      "unit": "b",
+      "mic": "fixture:fixture-ldc-low-spl"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Voice-over"
+      },
+      {
+        "label": "Kick in"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "kinds": {
+        "s1": "spoken_word",
+        "s2": "kick_in"
+      },
+      "plan": {
+        "s2": ["a"],
+        "s1": ["b"]
+      },
+      "excluded": [
+        {
+          "unit": "b",
+          "reason": "spl_below",
+          "source": "s2"
+        }
+      ]
+    }
+  }
+}

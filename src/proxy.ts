@@ -22,6 +22,7 @@ export const config = {
     '/activity/:path*',
     '/mics/:path*',
     '/locker/:path*',
+    '/recommendations/:path*',
     '/admin/:path*',
     '/onboarding/:path*'
   ]

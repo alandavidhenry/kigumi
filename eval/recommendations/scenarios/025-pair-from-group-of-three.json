@@ -1,0 +1,41 @@
+{
+  "id": "025-pair-from-group-of-three",
+  "title": "A group of three gives a pair of the best two and leaves one free",
+  "tags": ["stereo", "pairs"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:neumann-km-184",
+      "group": "A",
+      "condition": "fair"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:neumann-km-184",
+      "group": "A"
+    },
+    {
+      "unit": "c",
+      "mic": "seed:neumann-km-184",
+      "group": "A"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Drum overheads"
+      },
+      {
+        "label": "Hi-hat"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["b", "c"],
+        "s2": ["a"]
+      }
+    }
+  }
+}

@@ -23,6 +23,7 @@
     "mics:ingest": "tsx scripts/mics/ingest.ts",
     "mics:check-links": "tsx scripts/mics/check-links.ts",
     "mics:derive": "tsx scripts/mics/derive-ir.ts",
+    "recs:eval": "tsx scripts/recs-eval.ts",
     "docker:up": "docker compose up -d --wait",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f"

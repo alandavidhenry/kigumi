@@ -1,0 +1,43 @@
+{
+  "id": "018-di-sources",
+  "title": "Line sources take a channel but no microphone and never go to the model",
+  "tags": ["channels", "di"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:neumann-u-87-ai"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Bass DI"
+      },
+      {
+        "label": "Keys DI"
+      },
+      {
+        "label": "Lead vocal"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "kinds": {
+        "s1": "di",
+        "s2": "di",
+        "s3": "vocal_lead"
+      },
+      "plan": {
+        "s1": null,
+        "s2": null,
+        "s3": ["a"]
+      },
+      "channels": {
+        "required": 3,
+        "overflow": 0
+      },
+      "modelSources": ["s3"]
+    }
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "id": "014-global-phantom-conflict",
+  "title": "With one phantom switch for everything, a condenser and a ribbon conflict",
+  "tags": ["safety", "ribbon", "phantom"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:neumann-u-87-ai"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:royer-r-121"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Lead vocal"
+      },
+      {
+        "label": "Acoustic guitar"
+      }
+    ],
+    "phantomMode": "global"
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["a"],
+        "s2": ["b"]
+      },
+      "sessionWarnings": ["global_phantom_conflict"]
+    }
+  }
+}

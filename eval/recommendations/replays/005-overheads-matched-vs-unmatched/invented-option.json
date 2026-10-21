@@ -1,0 +1,27 @@
+{
+  "description": "The model returns an option id that was never offered",
+  "reply": {
+    "answerable": true,
+    "sources": [
+      {
+        "sourceId": "s1",
+        "primary": {
+          "option": "c99",
+          "reasoning": "Fits this source.",
+          "placement": {
+            "position": "Centred above the kit",
+            "distanceMm": 1400,
+            "angleDeg": 20,
+            "spacingMm": null,
+            "includedAngleDeg": 100
+          }
+        },
+        "alternatives": []
+      }
+    ],
+    "summary": null
+  },
+  "expect": {
+    "problems": ["\"c99\" is not one of its options"]
+  }
+}

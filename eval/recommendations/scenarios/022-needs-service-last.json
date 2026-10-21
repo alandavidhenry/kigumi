@@ -1,0 +1,46 @@
+{
+  "id": "022-needs-service-last",
+  "title": "A mic that needs service is ranked last and warned; one in fair condition ranks just below good",
+  "tags": ["availability", "condition"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:shure-sm57",
+      "condition": "needs_service"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:shure-sm58"
+    },
+    {
+      "unit": "c",
+      "mic": "seed:electro-voice-re20",
+      "condition": "fair"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Snare"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["b"]
+      },
+      "candidateOrder": {
+        "s1": ["b", "c", "a"]
+      },
+      "candidateWarnings": {
+        "s1": {
+          "a": ["needs_service"]
+        }
+      },
+      "planNoWarnings": {
+        "s1": ["needs_service"]
+      }
+    }
+  }
+}

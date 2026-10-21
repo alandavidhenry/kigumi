@@ -1,0 +1,50 @@
+{
+  "id": "029-c414-pattern-settings",
+  "title": "A multi-pattern mic is set to the right pattern for each job",
+  "tags": ["patterns"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:akg-c414-xls"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:akg-c414-xls"
+    },
+    {
+      "unit": "c",
+      "mic": "seed:akg-c414-xls"
+    },
+    {
+      "unit": "d",
+      "mic": "seed:akg-c414-xls"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Lead vocal"
+      },
+      {
+        "label": "Drum room"
+      },
+      {
+        "label": "Drum overheads"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s3": ["a", "b"],
+        "s1": ["c"],
+        "s2": ["d"]
+      },
+      "patternSettings": {
+        "s1": ["cardioid"],
+        "s2": ["omni"],
+        "s3": ["cardioid", "cardioid"]
+      }
+    }
+  }
+}

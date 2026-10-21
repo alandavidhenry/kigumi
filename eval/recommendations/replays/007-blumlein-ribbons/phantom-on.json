@@ -1,0 +1,27 @@
+{
+  "description": "A ribbon pair is told to use phantom power",
+  "reply": {
+    "answerable": true,
+    "sources": [
+      {
+        "sourceId": "s1",
+        "primary": {
+          "option": "s1-1",
+          "reasoning": "Switch phantom power on for extra gain.",
+          "placement": {
+            "position": "Centred above the kit",
+            "distanceMm": 1400,
+            "angleDeg": 20,
+            "spacingMm": null,
+            "includedAngleDeg": 90
+          }
+        },
+        "alternatives": []
+      }
+    ],
+    "summary": null
+  },
+  "expect": {
+    "problems": ["must not have phantom power"]
+  }
+}

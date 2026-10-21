@@ -1,0 +1,27 @@
+{
+  "description": "The model suggests a catalogue mic that the studio does not own",
+  "reply": {
+    "answerable": true,
+    "sources": [
+      {
+        "sourceId": "s1",
+        "primary": {
+          "option": "s1-1",
+          "reasoning": "A Shure SM7B would be smoother here.",
+          "placement": {
+            "position": "Aimed at the source",
+            "distanceMm": 200,
+            "angleDeg": 10,
+            "spacingMm": null,
+            "includedAngleDeg": null
+          }
+        },
+        "alternatives": []
+      }
+    ],
+    "summary": null
+  },
+  "expect": {
+    "problems": ["does not own"]
+  }
+}

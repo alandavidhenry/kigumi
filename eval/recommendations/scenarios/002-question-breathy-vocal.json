@@ -1,0 +1,46 @@
+{
+  "id": "002-question-breathy-vocal",
+  "title": "A free-text question is classified and answered through the same pipeline",
+  "tags": ["question", "vocal"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:neumann-u-87-ai"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:shure-sm58"
+    },
+    {
+      "unit": "c",
+      "mic": "seed:shure-sm57"
+    },
+    {
+      "unit": "d",
+      "mic": "seed:royer-r-121"
+    },
+    {
+      "unit": "e",
+      "mic": "seed:electro-voice-re20"
+    }
+  ],
+  "request": {
+    "question": "Which of my mics would suit a breathy female vocal?"
+  },
+  "expect": {
+    "rules": {
+      "kinds": {
+        "s1": "vocal_lead"
+      },
+      "plan": {
+        "s1": ["a"]
+      },
+      "modelSources": ["s1"]
+    },
+    "ai": {
+      "primaryOneOf": {
+        "s1": [["a"]]
+      }
+    }
+  }
+}

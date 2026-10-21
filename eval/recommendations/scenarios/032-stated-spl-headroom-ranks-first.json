@@ -1,0 +1,32 @@
+{
+  "id": "032-stated-spl-headroom-ranks-first",
+  "title": "A mic whose stated max SPL covers a very loud source outranks an otherwise equal one with none recorded",
+  "tags": ["spl", "fixture"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:akg-d112-mkii"
+    },
+    {
+      "unit": "b",
+      "mic": "fixture:fixture-dynamic-high-spl"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Kick in"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "candidateOrder": {
+        "s1": ["b", "a"]
+      },
+      "plan": {
+        "s1": ["b"]
+      }
+    }
+  }
+}

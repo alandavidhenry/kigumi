@@ -1,0 +1,62 @@
+{
+  "id": "001-solo-vocal-mixed-locker",
+  "title": "One lead vocal from a mixed locker: the large-diaphragm condenser leads; the ribbon is last and warned",
+  "tags": ["vocal", "basic"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:neumann-u-87-ai"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:shure-sm58"
+    },
+    {
+      "unit": "c",
+      "mic": "seed:shure-sm57"
+    },
+    {
+      "unit": "d",
+      "mic": "seed:royer-r-121"
+    },
+    {
+      "unit": "e",
+      "mic": "seed:electro-voice-re20"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Lead vocal"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "kinds": {
+        "s1": "vocal_lead"
+      },
+      "plan": {
+        "s1": ["a"]
+      },
+      "candidateOrder": {
+        "s1": ["a", "e", "c", "b", "d"]
+      },
+      "planWarnings": {
+        "s1": ["phantom_required"]
+      },
+      "candidateWarnings": {
+        "s1": {
+          "d": ["phantom_off"]
+        }
+      },
+      "modelSources": ["s1"]
+    },
+    "ai": {
+      "primaryOneOf": {
+        "s1": [["a"]]
+      },
+      "maxAdjustments": 0
+    }
+  }
+}

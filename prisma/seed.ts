@@ -11,8 +11,23 @@ import { hashPassword } from 'better-auth/crypto'
 import { config } from 'dotenv'
 
 import { PrismaClient } from '../src/generated/prisma/client'
+import { RECOMMENDATION_PROMPT_VERSION } from '../src/lib/ai/prompts/mic-recommendation'
 import { micSlug } from '../src/lib/mics/schemas'
 import { ingestEntries, seedFileSchema } from '../src/lib/mics/seed'
+import { finalise } from '../src/lib/recommendations/finalise'
+import {
+  buildRecommendationInput,
+  hashRecommendationInput
+} from '../src/lib/recommendations/llm-input'
+import { runRules } from '../src/lib/recommendations/rules'
+import {
+  normaliseRequest,
+  recommendationRequestSchema
+} from '../src/lib/recommendations/schemas'
+import { buildSnapshot } from '../src/lib/recommendations/snapshot-build'
+
+import type { Prisma } from '../src/generated/prisma/client'
+import type { RecommendationContent } from '../src/lib/recommendations/reply'
 
 config({ path: '.env.local', override: true })
 config()
@@ -117,6 +132,115 @@ async function seedMicCatalogue() {
       }
     })
   }
+}
+
+// A stored recommendation for the demo organisation, so the recommendation
+// screens can be exercised (and tested end to end) without spending any AI. It
+// is built with the real rules and finalise code from the seeded locker; only
+// the "model" text is written by hand, and its model name says so. Dev only.
+async function seedRecommendation() {
+  const rows = await prisma.microphoneUnit.findMany({
+    where: { organisationId: ORG_ID },
+    select: {
+      id: true,
+      micModelId: true,
+      condition: true,
+      matchedPairGroup: true,
+      equipmentItem: {
+        select: {
+          status: true,
+          quantity: true,
+          roomId: true,
+          room: { select: { studioId: true } }
+        }
+      }
+    }
+  })
+  const models = await prisma.microphoneModel.findMany({
+    where: { id: { in: rows.map((row) => row.micModelId) } }
+  })
+  const snapshot = buildSnapshot(rows, models)
+
+  const request = normaliseRequest(
+    recommendationRequestSchema.parse({
+      sources: [{ label: 'Lead vocal' }, { label: 'Snare' }]
+    })
+  )
+  const rules = runRules(request, snapshot)
+  const { input, aliases } = buildRecommendationInput({
+    request,
+    rules,
+    snapshot,
+    room: null,
+    unownedNames: []
+  })
+  if (input.data.sources.length === 0) return
+
+  const content: RecommendationContent = {
+    answerable: true,
+    sources: input.data.sources.map((source) => ({
+      sourceId: source.id,
+      primary: {
+        option: source.rulesPick ?? source.options[0].id,
+        reasoning:
+          source.id === 's1'
+            ? 'A large-diaphragm condenser suits a close lead vocal. (Dev seed text, not written by a model.)'
+            : 'A rugged dynamic is the usual choice for a loud snare. (Dev seed text, not written by a model.)',
+        placement: {
+          position:
+            source.id === 's1'
+              ? 'In front of the singer, just above mouth height'
+              : 'Just over the rim, aimed at the centre of the head',
+          distanceMm: source.placement.distanceMm[0],
+          angleDeg: source.placement.angleDeg[0],
+          spacingMm: null,
+          includedAngleDeg: null
+        }
+      },
+      alternatives: []
+    })),
+    summary: null
+  }
+  const { view, adjustments } = finalise({
+    request,
+    rules,
+    snapshot,
+    aliases,
+    content
+  })
+  const json = (value: unknown) => value as Prisma.InputJsonValue
+
+  await prisma.recommendationRequest.upsert({
+    where: { id: 'seed-rec-request' },
+    update: {},
+    create: {
+      id: 'seed-rec-request',
+      organisationId: ORG_ID,
+      createdById: 'seed-user-owner',
+      kind: request.kind,
+      input: json(request),
+      rules: json(rules),
+      locker: json(snapshot),
+      aliases: json(aliases),
+      rulesVersion: rules.rulesVersion,
+      profilesVersion: rules.profilesVersion,
+      inputHash: hashRecommendationInput(input, aliases)
+    }
+  })
+  await prisma.recommendationResult.upsert({
+    where: { id: 'seed-rec-result' },
+    update: {},
+    create: {
+      id: 'seed-rec-result',
+      organisationId: ORG_ID,
+      requestId: 'seed-rec-request',
+      promptVersion: RECOMMENDATION_PROMPT_VERSION,
+      model: 'dev-seed (not a real model)',
+      content: json(content),
+      final: json(view),
+      adjustments: json(adjustments)
+    }
+  })
 }
 
 async function main() {
@@ -230,6 +354,7 @@ async function main() {
   }
 
   await seedMicCatalogue()
+  await seedRecommendation()
 
   console.warn(
     `Seeded ${ROLES.map((role) => `${role}@kigumi.test`).join(', ')} with the given password`

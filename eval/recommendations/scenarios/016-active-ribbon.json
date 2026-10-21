@@ -1,0 +1,31 @@
+{
+  "id": "016-active-ribbon",
+  "title": "An active ribbon needs phantom and is never told to switch it off",
+  "tags": ["ribbon", "safety", "fixture"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "fixture:fixture-active-ribbon"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Acoustic guitar"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["a"]
+      },
+      "planWarnings": {
+        "s1": ["phantom_required"]
+      },
+      "planNoWarnings": {
+        "s1": ["phantom_off"]
+      }
+    }
+  }
+}

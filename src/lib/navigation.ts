@@ -11,6 +11,7 @@ export type NavIconName =
   | 'inventory'
   | 'mics'
   | 'locker'
+  | 'recommendations'
   | 'admin'
   | 'members'
   | 'activity'
@@ -53,6 +54,11 @@ export function buildNavGroups(
   }
   if (can(Permission.VIEW_INVENTORY)) {
     studioItems.push({ name: 'Mic locker', href: '/locker', icon: 'locker' })
+    studioItems.push({
+      name: 'Recommendations',
+      href: '/recommendations',
+      icon: 'recommendations'
+    })
   }
 
   const organisationItems: NavItem[] = [

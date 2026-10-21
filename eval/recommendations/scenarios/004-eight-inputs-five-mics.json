@@ -1,0 +1,78 @@
+{
+  "id": "004-eight-inputs-five-mics",
+  "title": "Eight inputs, five mics: the pair is kept together and the toms go unfilled",
+  "tags": ["drums", "shortage", "channels"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:shure-sm57"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:shure-sm57"
+    },
+    {
+      "unit": "c",
+      "mic": "seed:akg-d112-mkii"
+    },
+    {
+      "unit": "d",
+      "mic": "seed:neumann-km-184",
+      "group": "P"
+    },
+    {
+      "unit": "e",
+      "mic": "seed:neumann-km-184",
+      "group": "P"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Kick in"
+      },
+      {
+        "label": "Snare top"
+      },
+      {
+        "label": "Hi-hat"
+      },
+      {
+        "label": "Tom 1"
+      },
+      {
+        "label": "Tom 2"
+      },
+      {
+        "label": "Tom 3"
+      },
+      {
+        "label": "Drum overheads"
+      }
+    ],
+    "channels": 8
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s7": ["d", "e"],
+        "s1": ["c"],
+        "s2": ["a"],
+        "s3": ["b"],
+        "s4": null,
+        "s5": null,
+        "s6": null
+      },
+      "unfillable": {
+        "s4": "all_in_use",
+        "s5": "all_in_use",
+        "s6": "all_in_use"
+      },
+      "channels": {
+        "required": 8,
+        "available": 8,
+        "overflow": 0
+      }
+    }
+  }
+}

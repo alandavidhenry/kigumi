@@ -1,0 +1,96 @@
+{
+  "id": "017-ten-sources-eight-channels",
+  "title": "Ten mono sources on eight channels still get mics, with an overflow warning",
+  "tags": ["channels"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:shure-sm57"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:shure-sm57"
+    },
+    {
+      "unit": "c",
+      "mic": "seed:shure-sm57"
+    },
+    {
+      "unit": "d",
+      "mic": "seed:shure-sm57"
+    },
+    {
+      "unit": "e",
+      "mic": "seed:shure-sm57"
+    },
+    {
+      "unit": "f",
+      "mic": "seed:shure-sm57"
+    },
+    {
+      "unit": "g",
+      "mic": "seed:shure-sm57"
+    },
+    {
+      "unit": "h",
+      "mic": "seed:shure-sm57"
+    },
+    {
+      "unit": "i",
+      "mic": "seed:shure-sm57"
+    },
+    {
+      "unit": "j",
+      "mic": "seed:shure-sm57"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Tom 1"
+      },
+      {
+        "label": "Tom 2"
+      },
+      {
+        "label": "Tom 3"
+      },
+      {
+        "label": "Tom 4"
+      },
+      {
+        "label": "Tom 5"
+      },
+      {
+        "label": "Tom 6"
+      },
+      {
+        "label": "Tom 7"
+      },
+      {
+        "label": "Tom 8"
+      },
+      {
+        "label": "Tom 9"
+      },
+      {
+        "label": "Tom 10"
+      }
+    ],
+    "channels": 8
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["a"],
+        "s10": ["j"]
+      },
+      "channels": {
+        "required": 10,
+        "available": 8,
+        "overflow": 2
+      },
+      "sessionWarnings": ["channel_overflow"]
+    }
+  }
+}

@@ -141,7 +141,7 @@ Shapes below are the target. Each phase adds only the models it needs. Tenant-ow
 - Output is validated against the candidate list and anything not owned is dropped.
 - One click **applies** a recommendation to a session's input list and layout (once Phase 5 lands).
 - **Feedback** on every recommendation, stored with the full request context.
-- **Evaluation set:** versioned golden scenarios, run in CI against the rules layer and manually against the LLM layer when prompts change.
+- **Evaluation set:** versioned golden scenarios (`eval/recommendations/`), run in CI against the rules layer and replayed model replies, and manually against the LLM layer with `npm run recs:eval` when prompts change.
 - Free-text Q&A ("Which of my mics would suit a breathy female vocal?") uses the same pipeline.
 
 ### 4.5 Studio layouts, 2D top-down (Phase 5)
@@ -199,14 +199,6 @@ Four subscription tiers; no billing yet. Limits and entitlements are enforced no
 
 Source of truth: `src/lib/plans.ts` (`PLAN_LIMITS`, `FEATURE_MINIMUM_TIER`, `PLAN_INFO`). `Organization.planTier` defaults to `free`.
 
---- | --- | --- | --- | --- |
-| Free | 1 | 1 | 2 | 50 |
-| Pro | 1 | 5 | 5 | 1,000 |
-| Studio | 3 | unlimited | 15 | 5,000 |
-| Education | custom | custom | custom | custom |
-
-Limits live in `src/lib/plans.ts`; `Organization.planTier` defaults to `free`.
-
 ---
 
 ## 7. Delivery phases
@@ -215,7 +207,7 @@ Limits live in `src/lib/plans.ts`; `Organization.planTier` defaults to `free`.
 - **Phase 1 — Equipment inventory (done):** CRUD, photos, CSV import/export, QR labels, valuation report, search.
 - **Phase 2 — Mic catalogue (built, awaiting approval):** data-sourcing spike + ADR 0008, schema, starter seed, admin review queue, mic detail page with charts (measured or idealised), mic locker. The AI summary on the mic page and the comparison view arrive with Phase 3.
 - **Phase 3 — AI layer (done):** AI service, mic summaries, comparison, caching, budgets/rate limits. See ADR [0013](decisions/0013-ai-service-layer.md).
-- **Phase 4 — Recommendations:** rules engine (tests first), LLM ranking with validated structured output, feedback capture, evaluation set.
+- **Phase 4 — Recommendations (built, awaiting approval):** rules engine (tests first), LLM ranking with validated structured output, feedback capture, free-text questions and the golden evaluation set. "If you were buying" suggestions are deferred. See ADR [0015](decisions/0015-recommendation-pipeline.md).
 - **Phase 5 — Layouts and sessions:** 2D layout editor, templates, sessions, auto input list, warnings, PDF/share link, apply recommendation.
 - **Phase 6 — Recall sheets:** console templates, per-session recall sheet, outboard recall.
 - **Phase 7 — Maintenance and warranty:** schedules, PAT testing, reminders, attachments, notifications, dashboard.

@@ -1,0 +1,39 @@
+{
+  "id": "024-unpublished-model",
+  "title": "A model that has been unpublished from the catalogue is not offered",
+  "tags": ["availability", "catalogue"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:neumann-u-87-ai",
+      "unpublished": true
+    },
+    {
+      "unit": "b",
+      "mic": "seed:shure-sm58"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Lead vocal"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["b"]
+      },
+      "candidatesExclude": {
+        "s1": ["a"]
+      },
+      "excluded": [
+        {
+          "unit": "a",
+          "reason": "catalogue_unpublished"
+        }
+      ]
+    }
+  }
+}

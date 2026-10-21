@@ -64,10 +64,25 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Refusal fallback:** a provider refusal fails closed. Add Anthropic's server-side fallback if refusals ever appear.
 - **Usage display:** the organisation page shows requests this month; token totals are stored in `AiUsage` but not shown. Add a cost view when billing lands.
 - **Cost control:** summaries use the default model at low effort. If volume grows, move them to `AI_MODEL_FAST` (a one-line change in the prompt's `tier`, plus a version bump).
-- **Regenerate / feedback:** there is no way to regenerate a summary for unchanged specs or to flag a bad one. Add feedback capture with Phase 4's.
+- **Regenerate / feedback for summaries:** recommendations have regenerate and feedback (Phase 4); catalogue summaries and comparisons still have neither.
 - **Platform-wide AI spend:** done in ADR 0014 (daily request cap and kill switch). Still to do: a token or cost ceiling rather than a request count, an alert when the cap is hit, and a monthly platform cap.
-- **Tenant-aware AI:** the global cache must never hold tenant data (ADR 0013). Phase 4's recommendations need their own tenant-owned storage.
+- **Tenant-aware AI:** done in Phase 4. Recommendations use tenant-owned tables and `generateForTenant`; the global cache refuses tenant prompts (ADR 0015).
+
+## Deferred from Phase 4
+
+- **Judge a real model:** nothing has been scored against the live Anthropic API. One `qwen2.5:7b` pass over the scenarios exercised the plumbing and showed the validators rejecting real mistakes, but a 7B local model says nothing about quality. Run `npm run recs:eval` with a key and commit `eval/recommendations/reports/v1.md` (the committed v1 report is offline only and says so). Watch first-attempt validity, retries and fail-closed counts, and whether grounding or the not-owned-name check rejects good text; loosen `validate.ts` rather than dropping a check.
+- **Review the profile tables as content:** `profiles.ts` and `techniques.ts` (source priors, SPL bands of 115 / 125 / 135 dB SPL, placement ranges, stereo geometry) are Kigumi heuristics from common practice, not checked against a reference or an engineer. Bump `PROFILES_VERSION` and re-run the evaluation after any change.
+- **Sparse catalogue:** with no stated SPL, pads or applications on the seeded mics, scoring leans on the profiles and many results carry "max SPL not recorded" warnings. Transcribing real specs (Phase 2 follow-up) is what improves these.
+- **Greedy allocation:** stereo sources first, then fewest options, then input order. It can leave a source empty that an optimal assignment would fill (for example when the only mic able to do a kick is one half of the best pair). Consider an assignment solver if scenarios show it matters.
+- **Availability by session date:** `runRules` takes an `isBooked` hook that is a no-op until sessions exist (Phase 5); availability is today's equipment status. "Apply to session input list and layout" also waits for Phase 5.
+- **"If you were buying" suggestions:** deferred. They would need their own aliases, a separate labelled section and no prices; the pipeline leaves room.
+- **Channel and preamp data:** channels come from the request. Console and preamp inventory (Phase 6) could supply channel counts and preamp inputs.
+- **Feedback use:** feedback is stored with full context but nothing reads it yet. A summary view for the owner, and using accepted/swapped patterns to tune the profile weights, are open.
+- **Quantity rows:** a mic inventory row with quantity above one is counted as a single microphone and warned about; per-unit tracking would need one locker unit per physical mic.
+- **Cost:** recommendations use the default model at low effort with up to 16 sources per request. If volume grows, consider the fast tier after re-running the evaluation.
+- **Free-text classifier:** a keyword table, not a model. Unusual instruments fall back to a general profile; the user can correct the type.
+- **Evaluation spend:** `recs:eval` draws on the platform's daily request cap for paid providers but has no other spend limit beyond `--max-calls`.
 
 ## Later phases (summary)
 
-Recommendations (P4), layouts and sessions (P5), recall sheets (P6), maintenance and warranty (P7), hardening (P8). See `docs/PLAN.md`.
+Recommendations (P4, built), layouts and sessions (P5), recall sheets (P6), maintenance and warranty (P7), hardening (P8). See `docs/PLAN.md`.

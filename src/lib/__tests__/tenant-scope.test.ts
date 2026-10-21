@@ -26,6 +26,9 @@ describe('TENANT_MODELS', () => {
       'AuditLog',
       'EquipmentItem',
       'MicrophoneUnit',
+      'RecommendationFeedback',
+      'RecommendationRequest',
+      'RecommendationResult',
       'Room',
       'Studio'
     ])

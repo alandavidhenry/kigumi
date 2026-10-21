@@ -22,6 +22,7 @@ npm run db:seed         # Demo org + owner/manager/engineer/viewer@kigumi.test a
 npm run mics:ingest     # Load data/mics/*.json as draft rows for the review queue (--dry-run validates only)
 npm run mics:check-links  # HEAD-check spec-sheet URLs, respecting robots.txt
 npm run mics:derive     # Derive FR / polar points from open-dataset impulse responses
+npm run recs:eval       # Golden recommendation scenarios; add --offline for no model. Run and commit the report when the prompt changes
 ```
 
 `npm run checks` is the full quality gate. Husky runs it on pre-commit (plus gitleaks if installed). `npm run test:e2e` and `npm run build` are not part of `checks`; run them at the end of a phase or when UI/auth changed. See `README.md` for first-time setup.
@@ -48,6 +49,7 @@ Always-relevant patterns:
 - Path alias `@/*` → `src/*`. Tailwind v4 with semantic tokens from `src/app/globals.css` (no hardcoded palette classes). Radix UI primitives (shadcn new-york).
 - `src/proxy.ts` is the Next.js 16 proxy (not `middleware`). It only does an optimistic session-cookie redirect; real checks happen server-side.
 - **AI (ADR 0007, 0013):** only `src/lib/ai/service.ts` (`generateCached`) calls a model. Prompts are versioned modules in `src/lib/ai/prompts/` (bump `version` when they change); output is Zod-validated and any number not in the supplied data is rejected. The `AiSummary` cache is global, so its input must be catalogue data only, never tenant data. Paid calls also count against a platform-wide daily cap (ADR 0014). Generating needs `Permission.USE_AI` and spends the monthly allowance; AI output is always labelled AI-generated.
+- **Recommendations (ADR 0015):** `src/lib/recommendations/`. Rules first (`runRules`, pure, golden-tested in `eval/recommendations/`), then the model ranks only the candidates through `generateForTenant` (a `TenantPrompt`, never `generateCached`). Profile tables and weights are heuristics: bump `PROFILES_VERSION` / `RULES_VERSION` / the prompt version and re-run `recs:eval` when they change.
 - Prisma nullable JSON: use `toJsonValue` from `src/lib/prisma-json.ts`.
 - Lengths in millimetres, angles in degrees, times in UTC.
 

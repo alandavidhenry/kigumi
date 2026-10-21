@@ -39,7 +39,35 @@ export interface MicFacts {
 
 const round2 = (value: number) => Math.round(value * 100) / 100
 
-export function buildMicFacts(mic: MicDetail): MicFacts {
+// The catalogue fields facts are built from. A MicDetail satisfies it, and so
+// does the locker snapshot's copy of a model (recommendations), so both paths
+// show the model exactly the same record.
+export type MicFactsSource = Pick<
+  MicDetail,
+  | 'slug'
+  | 'manufacturer'
+  | 'model'
+  | 'transducerType'
+  | 'polarPatterns'
+  | 'freqRangeMinHz'
+  | 'freqRangeMaxHz'
+  | 'sensitivityMvPa'
+  | 'selfNoiseDbA'
+  | 'maxSplDb'
+  | 'impedanceOhm'
+  | 'powering'
+  | 'phantomSafe'
+  | 'pads'
+  | 'filters'
+  | 'weightG'
+  | 'dimensions'
+  | 'connector'
+  | 'discontinued'
+  | 'statedApplications'
+  | 'specConditions'
+>
+
+export function buildMicFacts(mic: MicFactsSource): MicFacts {
   return {
     slug: mic.slug,
     name: `${mic.manufacturer} ${mic.model}`,

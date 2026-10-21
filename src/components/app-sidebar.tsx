@@ -9,6 +9,7 @@ import {
   Mic,
   Settings,
   ShieldCheck,
+  Sparkles,
   Users
 } from 'lucide-react'
 import Link from 'next/link'
@@ -31,6 +32,7 @@ const ICONS: Record<NavIconName, ComponentType<{ className?: string }>> = {
   inventory: Boxes,
   mics: AudioLines,
   locker: Mic,
+  recommendations: Sparkles,
   admin: ShieldCheck,
   members: Users,
   activity: History,

@@ -30,10 +30,16 @@ const round = (n: number, places: number) => {
 
 // Every number in the input, plus the harmless restatements an engineer would
 // write: rounded values, and Hz written as kHz.
-export function allowedNumbers(input: unknown): Set<number> {
+export function allowedNumbers(
+  input: unknown,
+  extra: Iterable<number> = []
+): Set<number> {
   const raw: number[] = []
   collect(input, raw)
-  const allowed = new Set<number>()
+  // `extra` are values the caller has already validated as legitimate (for
+  // example a placement distance the model chose from a supplied range).
+  // They are allowed exactly as given; the caller adds any restatements.
+  const allowed = new Set<number>(extra)
   for (const n of raw) {
     allowed.add(n)
     allowed.add(round(n, 0))
@@ -58,9 +64,10 @@ export function collectStrings(value: unknown, into: string[] = []): string[] {
 // Returns the numbers in `output` that do not appear in `input`.
 export function findUngroundedNumbers(
   output: unknown,
-  input: unknown
+  input: unknown,
+  extra: Iterable<number> = []
 ): number[] {
-  const allowed = allowedNumbers(input)
+  const allowed = allowedNumbers(input, extra)
   const found = new Set<number>()
   for (const text of collectStrings(output)) {
     for (const n of numbersIn(text)) if (!allowed.has(n)) found.add(n)
@@ -68,8 +75,12 @@ export function findUngroundedNumbers(
   return [...found]
 }
 
-export function groundingProblems(output: unknown, input: unknown): string[] {
-  return findUngroundedNumbers(output, input).map(
+export function groundingProblems(
+  output: unknown,
+  input: unknown,
+  extra: Iterable<number> = []
+): string[] {
+  return findUngroundedNumbers(output, input, extra).map(
     (n) =>
       `The text contains the number ${n}, which is not in the supplied data. Remove it or describe it in words.`
   )

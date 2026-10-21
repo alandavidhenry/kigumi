@@ -1,0 +1,42 @@
+{
+  "id": "013-ribbon-on-guitar-cab",
+  "title": "A ribbon in front of a guitar amp is warned about air blast and phantom, and ranks below a dynamic",
+  "tags": ["ribbon", "safety"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:royer-r-121"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:shure-sm57"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Guitar amp"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["b"]
+      },
+      "candidateOrder": {
+        "s1": ["b", "a"]
+      },
+      "candidateWarnings": {
+        "s1": {
+          "a": ["ribbon_air_blast", "phantom_off"]
+        }
+      }
+    },
+    "ai": {
+      "mustNotPick": {
+        "s1": ["a"]
+      }
+    }
+  }
+}

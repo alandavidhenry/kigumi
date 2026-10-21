@@ -18,3 +18,4 @@ One short file per decision: `NNNN-title.md` with **Status**, **Context**, **Dec
 | 0012 | [Platform admins](0012-platform-admin.md)                                        | Accepted |
 | 0013 | [AI service layer](0013-ai-service-layer.md)                                     | Accepted |
 | 0014 | [AI spend guards and local provider](0014-ai-spend-guards-and-local-provider.md) | Accepted |
+| 0015 | [Recommendation pipeline](0015-recommendation-pipeline.md)                       | Accepted |

@@ -1,0 +1,89 @@
+{
+  "description": "Two sources choose the same unit; the second falls back to its alternative",
+  "reply": {
+    "answerable": true,
+    "sources": [
+      {
+        "sourceId": "s1",
+        "primary": {
+          "option": "s1-1",
+          "reasoning": "Fits this source.",
+          "placement": {
+            "position": "Close to the drum",
+            "distanceMm": 100,
+            "angleDeg": 20,
+            "spacingMm": null,
+            "includedAngleDeg": null
+          }
+        },
+        "alternatives": []
+      },
+      {
+        "sourceId": "s2",
+        "primary": {
+          "option": "s2-1",
+          "reasoning": "Fits this source.",
+          "placement": {
+            "position": "Close to the drum",
+            "distanceMm": 200,
+            "angleDeg": 10,
+            "spacingMm": null,
+            "includedAngleDeg": null
+          }
+        },
+        "alternatives": [
+          {
+            "option": "s2-2",
+            "reason": "A second dynamic that suits the kick."
+          }
+        ]
+      },
+      {
+        "sourceId": "s3",
+        "primary": {
+          "option": "s3-3",
+          "reasoning": "Fits this source.",
+          "placement": {
+            "position": "Close to the drum",
+            "distanceMm": 50,
+            "angleDeg": 30,
+            "spacingMm": null,
+            "includedAngleDeg": null
+          }
+        },
+        "alternatives": []
+      },
+      {
+        "sourceId": "s4",
+        "primary": {
+          "option": "s4-4",
+          "reasoning": "Fits this source.",
+          "placement": {
+            "position": "Close to the drum",
+            "distanceMm": 50,
+            "angleDeg": 20,
+            "spacingMm": null,
+            "includedAngleDeg": null
+          }
+        },
+        "alternatives": []
+      }
+    ],
+    "summary": null
+  },
+  "expect": {
+    "valid": true,
+    "finalise": {
+      "primary": {
+        "s1": ["a"],
+        "s2": ["e"],
+        "s3": ["c"],
+        "s4": ["d"]
+      },
+      "adjusted": ["s2"],
+      "origin": {
+        "s2": "ai_alternative"
+      }
+    }
+  }
+}

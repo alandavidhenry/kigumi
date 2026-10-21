@@ -1,0 +1,36 @@
+{
+  "id": "012-decca-two-mics-unfillable",
+  "title": "A Decca tree needs three",
+  "tags": ["stereo", "decca"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:neumann-u-87-ai",
+      "group": "T"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:neumann-u-87-ai",
+      "group": "T"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Orchestra",
+        "kind": "ensemble",
+        "technique": "decca"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": null
+      },
+      "unfillable": {
+        "s1": "no_suitable_mic"
+      }
+    }
+  }
+}

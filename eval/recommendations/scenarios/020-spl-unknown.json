@@ -1,0 +1,37 @@
+{
+  "id": "020-spl-unknown",
+  "title": "An unrecorded max SPL is a warning on a condenser for a loud source, not on a dynamic",
+  "tags": ["spl"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:neumann-km-184"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:shure-sm57"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Snare"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["b"]
+      },
+      "candidateWarnings": {
+        "s1": {
+          "a": ["spl_not_recorded"]
+        }
+      },
+      "planNoWarnings": {
+        "s1": ["spl_not_recorded"]
+      }
+    }
+  }
+}

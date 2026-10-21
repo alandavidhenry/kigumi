@@ -1,0 +1,25 @@
+{
+  "id": "023-empty-locker",
+  "title": "An empty locker gives a clear \"nothing suitable\" and no model call",
+  "tags": ["availability", "edge"],
+  "locker": [],
+  "request": {
+    "sources": [
+      {
+        "label": "Lead vocal"
+      },
+      {
+        "label": "Snare"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "unfillable": {
+        "s1": "no_suitable_mic",
+        "s2": "no_suitable_mic"
+      },
+      "modelSources": []
+    }
+  }
+}

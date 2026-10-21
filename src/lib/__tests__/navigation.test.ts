@@ -24,15 +24,16 @@ describe('buildNavGroups', () => {
       '/inventory',
       '/mics',
       '/locker',
+      '/recommendations',
       '/settings/members',
       '/settings/organisation'
     ])
   })
 
-  it('shows the mic catalogue and locker to every role', () => {
+  it('shows the mic catalogue, locker and recommendations to every role', () => {
     for (const role of Object.values(MemberRole)) {
       expect(hrefsFor(role)).toEqual(
-        expect.arrayContaining(['/mics', '/locker'])
+        expect.arrayContaining(['/mics', '/locker', '/recommendations'])
       )
     }
   })

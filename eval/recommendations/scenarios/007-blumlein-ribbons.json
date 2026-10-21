@@ -1,0 +1,41 @@
+{
+  "id": "007-blumlein-ribbons",
+  "title": "Two figure-of-eight ribbons make a Blumlein pair, with phantom kept off",
+  "tags": ["stereo", "ribbon", "pairs"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:coles-4038"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:coles-4038"
+    },
+    {
+      "unit": "c",
+      "mic": "seed:royer-r-121"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Drum overheads",
+        "kind": "overheads",
+        "technique": "blumlein"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["a", "b"]
+      },
+      "planWarnings": {
+        "s1": ["not_matched", "phantom_off"]
+      },
+      "patternSettings": {
+        "s1": ["figure8", "figure8"]
+      }
+    }
+  }
+}

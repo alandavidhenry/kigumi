@@ -1,0 +1,60 @@
+{
+  "id": "019-spl-and-pads",
+  "title": "Stated max SPL: below the band is excluded unless a pad actually covers the gap",
+  "tags": ["spl", "fixture"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "fixture:fixture-ldc-low-spl"
+    },
+    {
+      "unit": "b",
+      "mic": "fixture:fixture-ldc-padded"
+    },
+    {
+      "unit": "c",
+      "mic": "fixture:fixture-ldc-high-spl"
+    },
+    {
+      "unit": "d",
+      "mic": "fixture:fixture-ldc-small-pad"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Snare"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["c"]
+      },
+      "candidateOrder": {
+        "s1": ["c", "b"]
+      },
+      "candidatesExclude": {
+        "s1": ["a", "d"]
+      },
+      "excluded": [
+        {
+          "unit": "a",
+          "reason": "spl_below",
+          "source": "s1"
+        },
+        {
+          "unit": "d",
+          "reason": "spl_below",
+          "source": "s1"
+        }
+      ],
+      "candidateWarnings": {
+        "s1": {
+          "b": ["use_pad"]
+        }
+      }
+    }
+  }
+}
