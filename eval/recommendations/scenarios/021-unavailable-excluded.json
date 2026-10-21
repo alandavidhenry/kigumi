@@ -1,0 +1,57 @@
+{
+  "id": "021-unavailable-excluded",
+  "title": "Items in repair, on loan or retired are never offered",
+  "tags": ["availability"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:shure-sm57",
+      "status": "repair"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:shure-sm58",
+      "status": "on_loan"
+    },
+    {
+      "unit": "c",
+      "mic": "seed:shure-sm7b",
+      "status": "retired"
+    },
+    {
+      "unit": "d",
+      "mic": "seed:electro-voice-re20"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Snare"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["d"]
+      },
+      "candidatesExclude": {
+        "s1": ["a", "b", "c"]
+      },
+      "excluded": [
+        {
+          "unit": "a",
+          "reason": "status_repair"
+        },
+        {
+          "unit": "b",
+          "reason": "status_on_loan"
+        },
+        {
+          "unit": "c",
+          "reason": "status_retired"
+        }
+      ]
+    }
+  }
+}

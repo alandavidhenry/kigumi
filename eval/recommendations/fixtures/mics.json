@@ -1,0 +1,86 @@
+{
+  "note": "Fictional microphones for scenarios that depend on numbers (max SPL, pads, stated applications, active ribbons). They are not real products and carry no real specs. Real models are used elsewhere only with the structural facts seeded in data/mics.",
+  "mics": [
+    {
+      "slug": "fixture-ldc-low-spl",
+      "manufacturer": "Fixture",
+      "model": "LDC Low SPL",
+      "transducerType": "ldc",
+      "polarPatterns": ["cardioid"],
+      "powering": "phantom",
+      "maxSplDb": 120
+    },
+    {
+      "slug": "fixture-ldc-padded",
+      "manufacturer": "Fixture",
+      "model": "LDC Padded",
+      "transducerType": "ldc",
+      "polarPatterns": ["cardioid"],
+      "powering": "phantom",
+      "maxSplDb": 125,
+      "pads": [10, 20]
+    },
+    {
+      "slug": "fixture-ldc-high-spl",
+      "manufacturer": "Fixture",
+      "model": "LDC High SPL",
+      "transducerType": "ldc",
+      "polarPatterns": ["cardioid"],
+      "powering": "phantom",
+      "maxSplDb": 150
+    },
+    {
+      "slug": "fixture-active-ribbon",
+      "manufacturer": "Fixture",
+      "model": "Active Ribbon",
+      "transducerType": "ribbon",
+      "polarPatterns": ["figure8"],
+      "powering": "phantom"
+    },
+    {
+      "slug": "fixture-safe-ribbon",
+      "manufacturer": "Fixture",
+      "model": "Phantom-Safe Ribbon",
+      "transducerType": "ribbon",
+      "polarPatterns": ["figure8"],
+      "powering": "none",
+      "phantomSafe": true
+    },
+    {
+      "slug": "fixture-snare-specialist",
+      "manufacturer": "Fixture",
+      "model": "Snare Specialist",
+      "transducerType": "dynamic",
+      "polarPatterns": ["cardioid"],
+      "powering": "none",
+      "statedApplications": ["Snare drum", "Toms"]
+    },
+    {
+      "slug": "fixture-omni-dynamic",
+      "manufacturer": "Fixture",
+      "model": "Omni Dynamic",
+      "transducerType": "dynamic",
+      "polarPatterns": ["omni"],
+      "powering": "none"
+    },
+    {
+      "slug": "fixture-ldc-small-pad",
+      "manufacturer": "Fixture",
+      "model": "LDC Small Pad",
+      "transducerType": "ldc",
+      "polarPatterns": ["cardioid"],
+      "powering": "phantom",
+      "maxSplDb": 120,
+      "pads": [10]
+    },
+    {
+      "slug": "fixture-dynamic-high-spl",
+      "manufacturer": "Fixture",
+      "model": "Dynamic High SPL",
+      "transducerType": "dynamic",
+      "polarPatterns": ["cardioid"],
+      "powering": "none",
+      "maxSplDb": 150
+    }
+  ]
+}

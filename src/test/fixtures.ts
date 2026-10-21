@@ -53,7 +53,10 @@ export function makeFakeDb() {
     attachment: fakeModel(),
     microphoneUnit: fakeModel(),
     aiUsage: fakeModel(),
-    auditLog: fakeModel()
+    auditLog: fakeModel(),
+    recommendationRequest: fakeModel(),
+    recommendationResult: fakeModel(),
+    recommendationFeedback: fakeModel()
   }
 }
 

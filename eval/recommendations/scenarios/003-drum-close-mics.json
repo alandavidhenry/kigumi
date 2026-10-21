@@ -1,0 +1,94 @@
+{
+  "id": "003-drum-close-mics",
+  "title": "Four close drum mics: no ribbon on a kick, dynamics for the drums, no mic used twice",
+  "tags": ["drums", "ribbon"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:akg-d112-mkii"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:shure-beta-52a"
+    },
+    {
+      "unit": "c",
+      "mic": "seed:shure-sm57"
+    },
+    {
+      "unit": "d",
+      "mic": "seed:shure-sm57"
+    },
+    {
+      "unit": "e",
+      "mic": "seed:sennheiser-md-421-ii"
+    },
+    {
+      "unit": "f",
+      "mic": "seed:shure-sm81"
+    },
+    {
+      "unit": "g",
+      "mic": "seed:royer-r-121"
+    },
+    {
+      "unit": "h",
+      "mic": "seed:neumann-u-87-ai"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Kick in"
+      },
+      {
+        "label": "Kick out"
+      },
+      {
+        "label": "Snare top"
+      },
+      {
+        "label": "Snare bottom"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "kinds": {
+        "s1": "kick_in",
+        "s2": "kick_out",
+        "s3": "snare_top",
+        "s4": "snare_bottom"
+      },
+      "planOneOf": {
+        "s1": [["a"], ["b"], ["e"]],
+        "s2": [["a"], ["b"], ["e"]],
+        "s3": [["c"], ["d"], ["e"], ["a"]],
+        "s4": [["c"], ["d"], ["e"], ["a"]]
+      },
+      "candidatesExclude": {
+        "s1": ["g"],
+        "s2": ["g"]
+      },
+      "excluded": [
+        {
+          "unit": "g",
+          "reason": "transducer_unsuitable",
+          "source": "s1"
+        },
+        {
+          "unit": "g",
+          "reason": "transducer_unsuitable",
+          "source": "s2"
+        }
+      ]
+    },
+    "ai": {
+      "mustNotPick": {
+        "s1": ["g", "h", "f"],
+        "s2": ["g", "h", "f"]
+      },
+      "maxAdjustments": 1
+    }
+  }
+}

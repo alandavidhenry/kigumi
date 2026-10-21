@@ -108,12 +108,16 @@ export function specRows(mic: MicDetail): SpecRow[] {
   return rows
 }
 
-// Ribbons are the phantom-power hazard: unless the spec sheet says it is
-// safe, warn.
+// Passive ribbons are the phantom-power hazard: unless the spec sheet says it
+// is safe, warn. An active ribbon (phantom, battery or external power) is
+// built to be powered, so the warning does not apply. `powering` is optional
+// for callers that only know the transducer; absent means passive.
 export function phantomWarning(
-  mic: Pick<MicDetail, 'transducerType' | 'phantomSafe'>
+  mic: Pick<MicDetail, 'transducerType' | 'phantomSafe'> &
+    Partial<Pick<MicDetail, 'powering'>>
 ): string | null {
   if (mic.transducerType !== 'ribbon' || mic.phantomSafe === true) return null
+  if (mic.powering && mic.powering !== 'none') return null
   return mic.phantomSafe === false
     ? 'Passive ribbon: phantom power can damage this microphone. Switch phantom off before connecting.'
     : 'Ribbon microphone: phantom-power tolerance is not recorded. Treat it as unsafe and switch phantom off unless the manufacturer says otherwise.'

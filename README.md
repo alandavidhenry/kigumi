@@ -104,6 +104,7 @@ Remove `AI_PROVIDER` (or set it to `anthropic`), set `ANTHROPIC_API_KEY`, and re
 | `npm run mics:ingest`               | Load `data/mics/*.json` as drafts for the admin review queue                |
 | `npm run mics:check-links`          | HEAD-check catalogue spec-sheet URLs (respects robots.txt)                  |
 | `npm run mics:derive`               | Derive FR / polar points from open-dataset impulse responses                |
+| `npm run recs:eval`                 | Run the golden recommendation scenarios (`-- --offline` for no model)       |
 
 ## End-to-end tests
 
@@ -118,8 +119,8 @@ Set `E2E_SEED_PASSWORD` if you seeded with a non-default password. CI runs the s
 
 | Layer       | Where                                      | Covers                                                                                                                                                           |
 | ----------- | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit        | `src/lib/__tests__`, `src/types/__tests__` | Tenancy rules, RBAC, plans, studios/rooms and inventory logic, mic catalogue, AI service (fake provider), CSV, photo upload rules, auth hooks, email, validation |
+| Unit        | `src/lib/__tests__`, `src/types/__tests__` | Tenancy rules, RBAC, plans, studios/rooms and inventory logic, mic catalogue, AI service (fake provider), recommendation rules and golden scenarios, CSV, photo upload rules, auth hooks, email, validation |
 | Integration | `src/app/api/__tests__`                    | Route handlers + lib with mocked session/DB: auth, roles, cross-org 404s, plan limits                                                                            |
-| E2E         | `e2e/`                                     | Sign-in, onboarding, studio/room CRUD, inventory, mic catalogue, AI summary and comparison pages, viewer restrictions                                            |
+| E2E         | `e2e/`                                     | Sign-in, onboarding, studio/room CRUD, inventory, mic catalogue, AI summary and comparison pages, mic recommendations, viewer restrictions                        |
 
 Details: [`docs/testing.md`](docs/testing.md).

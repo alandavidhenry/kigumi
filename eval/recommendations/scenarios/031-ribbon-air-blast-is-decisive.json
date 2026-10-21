@@ -1,0 +1,42 @@
+{
+  "id": "031-ribbon-air-blast-is-decisive",
+  "title": "The air-blast penalty, not just the tie-break, keeps a ribbon off a guitar amp",
+  "tags": ["ribbon", "safety", "fixture"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:royer-r-121"
+    },
+    {
+      "unit": "b",
+      "mic": "fixture:fixture-omni-dynamic"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Guitar amp"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["b"]
+      },
+      "candidateOrder": {
+        "s1": ["b", "a"]
+      },
+      "candidateWarnings": {
+        "s1": {
+          "a": ["ribbon_air_blast"]
+        }
+      }
+    },
+    "ai": {
+      "mustNotPick": {
+        "s1": ["a"]
+      }
+    }
+  }
+}

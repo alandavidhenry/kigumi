@@ -7,9 +7,8 @@ import type { ZodType } from 'zod'
 
 export type AiSummaryKind = 'mic' | 'comparison'
 
-export interface Prompt<Input, Output> {
+interface PromptBase<Input, Output> {
   id: string
-  kind: AiSummaryKind
   version: string
   tier: AiModelTier
   system: string
@@ -20,4 +19,26 @@ export interface Prompt<Input, Output> {
   // Extra checks the schema cannot express (numbers that are not in the
   // input, unknown ids). Returns human-readable problems; none means valid.
   validate?(output: Output, input: Input): string[]
+}
+
+// A prompt whose input is catalogue data only, so its output may be cached
+// globally in AiSummary and shared by every organisation (ADR 0013).
+export interface Prompt<Input, Output> extends PromptBase<Input, Output> {
+  kind: AiSummaryKind
+  tenant?: never
+}
+
+// A prompt whose input includes tenant data (a studio's locker, its requests).
+// It can never use the global cache: generateCached and findCachedAi refuse it
+// at runtime as well as in the types, and its results live in tenant-scoped
+// tables behind generateForTenant (ADR 0015).
+export interface TenantPrompt<Input, Output> extends PromptBase<Input, Output> {
+  tenant: true
+  kind?: never
+}
+
+export function isTenantPrompt(prompt: {
+  tenant?: unknown
+}): prompt is { tenant: true } {
+  return prompt.tenant === true
 }

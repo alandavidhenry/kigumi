@@ -18,6 +18,7 @@ const ROUTE_LABELS: Record<string, string> = {
   '/mics': 'Mic catalogue',
   '/mics/compare': 'Compare',
   '/locker': 'Mic locker',
+  '/recommendations': 'Recommendations',
   '/admin': 'Platform',
   '/admin/mics': 'Mic review queue',
   '/settings/members': 'Members',

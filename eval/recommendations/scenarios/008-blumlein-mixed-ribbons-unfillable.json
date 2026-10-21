@@ -1,0 +1,34 @@
+{
+  "id": "008-blumlein-mixed-ribbons-unfillable",
+  "title": "Two different ribbons cannot be a Blumlein pair",
+  "tags": ["stereo", "ribbon", "pairs"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:coles-4038"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:royer-r-121"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Drum overheads",
+        "kind": "overheads",
+        "technique": "blumlein"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": null
+      },
+      "unfillable": {
+        "s1": "no_suitable_mic"
+      }
+    }
+  }
+}

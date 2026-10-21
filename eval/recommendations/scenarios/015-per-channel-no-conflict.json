@@ -1,0 +1,34 @@
+{
+  "id": "015-per-channel-no-conflict",
+  "title": "With per-channel phantom the same pair is fine",
+  "tags": ["safety", "ribbon", "phantom"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:neumann-u-87-ai"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:royer-r-121"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Lead vocal"
+      },
+      {
+        "label": "Acoustic guitar"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["a"],
+        "s2": ["b"]
+      },
+      "noSessionWarnings": ["global_phantom_conflict"]
+    }
+  }
+}

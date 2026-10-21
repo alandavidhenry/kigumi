@@ -1,0 +1,32 @@
+{
+  "id": "027-unknown-source-general",
+  "title": "An unrecognised source gets the general profile",
+  "tags": ["classification"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:neumann-u-87-ai"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:shure-sm57"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Didgeridoo"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "kinds": {
+        "s1": "general"
+      },
+      "planOneOf": {
+        "s1": [["a"], ["b"]]
+      }
+    }
+  }
+}

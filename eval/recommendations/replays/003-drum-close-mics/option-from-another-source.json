@@ -1,0 +1,72 @@
+{
+  "description": "A source is given an option that belongs to a different source",
+  "reply": {
+    "answerable": true,
+    "sources": [
+      {
+        "sourceId": "s1",
+        "primary": {
+          "option": "s2-1",
+          "reasoning": "Fits this source.",
+          "placement": {
+            "position": "Close to the drum",
+            "distanceMm": 100,
+            "angleDeg": 20,
+            "spacingMm": null,
+            "includedAngleDeg": null
+          }
+        },
+        "alternatives": []
+      },
+      {
+        "sourceId": "s2",
+        "primary": {
+          "option": "s2-1",
+          "reasoning": "Fits this source.",
+          "placement": {
+            "position": "Close to the drum",
+            "distanceMm": 200,
+            "angleDeg": 10,
+            "spacingMm": null,
+            "includedAngleDeg": null
+          }
+        },
+        "alternatives": []
+      },
+      {
+        "sourceId": "s3",
+        "primary": {
+          "option": "s3-3",
+          "reasoning": "Fits this source.",
+          "placement": {
+            "position": "Close to the drum",
+            "distanceMm": 50,
+            "angleDeg": 30,
+            "spacingMm": null,
+            "includedAngleDeg": null
+          }
+        },
+        "alternatives": []
+      },
+      {
+        "sourceId": "s4",
+        "primary": {
+          "option": "s4-4",
+          "reasoning": "Fits this source.",
+          "placement": {
+            "position": "Close to the drum",
+            "distanceMm": 50,
+            "angleDeg": 20,
+            "spacingMm": null,
+            "includedAngleDeg": null
+          }
+        },
+        "alternatives": []
+      }
+    ],
+    "summary": null
+  },
+  "expect": {
+    "problems": ["is not one of its options"]
+  }
+}

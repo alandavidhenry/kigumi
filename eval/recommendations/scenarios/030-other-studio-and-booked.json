@@ -1,0 +1,41 @@
+{
+  "id": "030-other-studio-and-booked",
+  "title": "A mic kept in another studio is warned about, and a booked one is not offered",
+  "tags": ["availability", "studio"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:shure-sm57",
+      "studio": "st2"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:shure-sm58"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Snare"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["a"]
+      },
+      "planWarnings": {
+        "s1": ["other_studio"]
+      },
+      "excluded": [
+        {
+          "unit": "b",
+          "reason": "booked"
+        }
+      ]
+    }
+  },
+  "room": true,
+  "booked": ["b"]
+}

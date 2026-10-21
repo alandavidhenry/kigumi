@@ -192,4 +192,28 @@ describe('phantomWarning', () => {
       phantomWarning({ transducerType: 'ldc', phantomSafe: null })
     ).toBeNull()
   })
+
+  it('does not tell an active ribbon to switch phantom off', () => {
+    // An active ribbon is built around phantom power; the warning is for
+    // passive ribbons only.
+    for (const powering of ['phantom', 'psu', 'battery'] as const) {
+      expect(
+        phantomWarning({
+          transducerType: 'ribbon',
+          phantomSafe: null,
+          powering
+        })
+      ).toBeNull()
+    }
+  })
+
+  it('still warns for a passive ribbon when powering is stated', () => {
+    expect(
+      phantomWarning({
+        transducerType: 'ribbon',
+        phantomSafe: null,
+        powering: 'none'
+      })
+    ).toMatch(/not recorded/)
+  })
 })

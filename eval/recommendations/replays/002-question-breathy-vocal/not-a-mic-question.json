@@ -1,0 +1,11 @@
+{
+  "description": "An unrelated question is declined, with no sources",
+  "reply": {
+    "answerable": false,
+    "sources": [],
+    "summary": null
+  },
+  "expect": {
+    "valid": true
+  }
+}

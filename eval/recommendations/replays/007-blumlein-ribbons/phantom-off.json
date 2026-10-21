@@ -1,0 +1,27 @@
+{
+  "description": "The same pair, with the right advice",
+  "reply": {
+    "answerable": true,
+    "sources": [
+      {
+        "sourceId": "s1",
+        "primary": {
+          "option": "s1-1",
+          "reasoning": "Keep phantom off and check the manufacturer guidance first.",
+          "placement": {
+            "position": "Centred above the kit",
+            "distanceMm": 1400,
+            "angleDeg": 20,
+            "spacingMm": null,
+            "includedAngleDeg": 90
+          }
+        },
+        "alternatives": []
+      }
+    ],
+    "summary": null
+  },
+  "expect": {
+    "valid": true
+  }
+}

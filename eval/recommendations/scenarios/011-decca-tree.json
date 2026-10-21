@@ -1,0 +1,47 @@
+{
+  "id": "011-decca-tree",
+  "title": "A Decca tree from a matched group of three omni-capable mics",
+  "tags": ["stereo", "decca", "pairs"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:neumann-u-87-ai",
+      "group": "T"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:neumann-u-87-ai",
+      "group": "T"
+    },
+    {
+      "unit": "c",
+      "mic": "seed:neumann-u-87-ai",
+      "group": "T"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Orchestra",
+        "kind": "ensemble",
+        "technique": "decca"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["a", "b", "c"]
+      },
+      "roles": {
+        "s1": ["left", "centre", "right"]
+      },
+      "patternSettings": {
+        "s1": ["omni", "omni", "omni"]
+      },
+      "planNoWarnings": {
+        "s1": ["not_matched"]
+      }
+    }
+  }
+}

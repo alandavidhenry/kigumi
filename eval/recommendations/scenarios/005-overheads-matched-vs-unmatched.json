@@ -1,0 +1,61 @@
+{
+  "id": "005-overheads-matched-vs-unmatched",
+  "title": "A matched pair beats an unmatched pair, even when the unmatched pair would win a tie",
+  "tags": ["stereo", "pairs"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:shure-sm81",
+      "group": "A"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:shure-sm81",
+      "group": "A"
+    },
+    {
+      "unit": "c",
+      "mic": "seed:neumann-km-184"
+    },
+    {
+      "unit": "d",
+      "mic": "seed:neumann-km-184"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Drum overheads"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["a", "b"]
+      },
+      "candidateOrder": {
+        "s1": ["a", "c"]
+      },
+      "planNoWarnings": {
+        "s1": ["not_matched"]
+      },
+      "candidateWarnings": {
+        "s1": {
+          "c": ["not_matched"]
+        }
+      },
+      "patternSettings": {
+        "s1": ["cardioid", "cardioid"]
+      },
+      "roles": {
+        "s1": ["left", "right"]
+      }
+    },
+    "ai": {
+      "primaryOneOf": {
+        "s1": [["a", "b"]]
+      }
+    }
+  }
+}

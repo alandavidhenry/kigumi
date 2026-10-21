@@ -25,11 +25,13 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  sessions    Session[]
-  accounts    Account[]
-  members     Member[]
-  invitations Invitation[]
-  auditLogs   AuditLog[]
+  sessions               Session[]
+  accounts               Account[]
+  members                Member[]
+  invitations            Invitation[]
+  auditLogs              AuditLog[]
+  recommendationRequests RecommendationRequest[]
+  recommendationFeedback RecommendationFeedback[]
 
   @@map("user")
 }
@@ -93,15 +95,18 @@ model Organization {
   metadata  String?
   planTier  String   @default("free") // PlanTier in src/lib/plans.ts
 
-  members     Member[]
-  invitations Invitation[]
-  studios     Studio[]
-  rooms       Room[]
-  auditLogs   AuditLog[]
-  equipment   EquipmentItem[]
-  attachments Attachment[]
-  micUnits    MicrophoneUnit[]
-  aiUsage     AiUsage[]
+  members                Member[]
+  invitations            Invitation[]
+  studios                Studio[]
+  rooms                  Room[]
+  auditLogs              AuditLog[]
+  equipment              EquipmentItem[]
+  attachments            Attachment[]
+  micUnits               MicrophoneUnit[]
+  aiUsage                AiUsage[]
+  recommendationRequests RecommendationRequest[]
+  recommendationResults  RecommendationResult[]
+  recommendationFeedback RecommendationFeedback[]
 
   @@map("organization")
 }
@@ -173,9 +178,10 @@ model Room {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organisation Organization    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  studio       Studio          @relation(fields: [studioId], references: [id], onDelete: Cascade)
-  equipment    EquipmentItem[]
+  organisation           Organization            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  studio                 Studio                  @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  equipment              EquipmentItem[]
+  recommendationRequests RecommendationRequest[]
 
   @@index([organisationId])
   @@index([studioId])
@@ -435,4 +441,82 @@ model AiPlatformUsage {
   inputTokens  Int      @default(0)
   outputTokens Int      @default(0)
   updatedAt    DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Microphone recommendations (Phase 4, ADR 0015). Unlike AiSummary these hold
+// tenant data (the studio's locker and requests), so every row carries
+// organisationId and sits behind tenantDb(). Nothing here is ever shared
+// across organisations or written to the global AI cache.
+// ---------------------------------------------------------------------------
+
+model RecommendationRequest {
+  id              String   @id @default(cuid())
+  organisationId  String
+  createdById     String?
+  kind            String // 'sources' | 'question'
+  roomId          String?
+  sessionId       String? // Phase 5; no foreign key until sessions exist
+  forDate         String? // YYYY-MM-DD
+  input           Json // the normalised request
+  rules           Json // RulesOutput the model was asked to rank
+  locker          Json // LockerSnapshot the rules saw
+  aliases         Json // alias -> real id, so aliased replies can be resolved
+  rulesVersion    String
+  profilesVersion String
+  inputHash       String // sha256 of the model input + aliases (org-scoped cache key)
+  createdAt       DateTime @default(now())
+
+  organisation Organization           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  createdBy    User?                  @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  room         Room?                  @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  results      RecommendationResult[]
+
+  @@index([organisationId, createdAt])
+  @@index([organisationId, inputHash])
+}
+
+model RecommendationResult {
+  id             String   @id @default(cuid())
+  organisationId String
+  requestId      String
+  promptVersion  String
+  model          String
+  content        Json // the validated model reply, still aliased
+  final          Json // the finalised view shown to the user (stable if finalise() changes)
+  adjustments    Json? // what finalise() repaired
+  inputTokens    Int      @default(0)
+  outputTokens   Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  organisation Organization             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  request      RecommendationRequest    @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  feedback     RecommendationFeedback[]
+
+  @@index([organisationId, createdAt])
+  @@index([requestId])
+}
+
+model RecommendationFeedback {
+  id                  String   @id @default(cuid())
+  organisationId      String
+  resultId            String
+  userId              String?
+  sourceKey           String // 's3', or '*' for the whole recommendation
+  verdict             String // 'accepted' | 'swapped' | 'rejected'
+  swappedToUnitIds    String[]
+  swappedToModelSlugs String[] // snapshot, survives the unit being deleted
+  swappedToCandidate  Boolean? // was the swap one of the offered candidates?
+  rating              Int?
+  reasons             String[]
+  comment             String? // untrusted text; never sent to a model
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  organisation Organization         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  result       RecommendationResult @relation(fields: [resultId], references: [id], onDelete: Cascade)
+  user         User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([resultId, sourceKey, userId])
+  @@index([organisationId, createdAt])
 }

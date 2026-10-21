@@ -1,0 +1,34 @@
+{
+  "id": "010-ms-no-figure-8",
+  "title": "Mid-side needs a figure-of-eight side",
+  "tags": ["stereo", "ms"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:neumann-km-184"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:neumann-km-184"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Drum overheads",
+        "kind": "overheads",
+        "technique": "ms"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": null
+      },
+      "unfillable": {
+        "s1": "no_suitable_mic"
+      }
+    }
+  }
+}

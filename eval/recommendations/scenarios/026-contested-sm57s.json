@@ -1,0 +1,40 @@
+{
+  "id": "026-contested-sm57s",
+  "title": "Three sources, two identical mics: the third is told they are all in use",
+  "tags": ["shortage"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:shure-sm57"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:shure-sm57"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Snare"
+      },
+      {
+        "label": "Tom 1"
+      },
+      {
+        "label": "Tom 2"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": ["a"],
+        "s2": ["b"],
+        "s3": null
+      },
+      "unfillable": {
+        "s3": "all_in_use"
+      }
+    }
+  }
+}

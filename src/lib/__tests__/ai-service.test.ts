@@ -6,7 +6,7 @@ import {
   releasePlatformRequest,
   reservePlatformRequest
 } from '@/lib/ai/platform-cap'
-import type { Prompt } from '@/lib/ai/prompts/types'
+import type { Prompt, TenantPrompt } from '@/lib/ai/prompts/types'
 import {
   AiOutputError,
   AiProviderError,
@@ -16,7 +16,11 @@ import {
 } from '@/lib/ai/provider'
 import { aiRateLimiter } from '@/lib/ai/rate-limit'
 import { getAiProvider, setAiProvider } from '@/lib/ai/registry'
-import { findCachedAi, generateCached } from '@/lib/ai/service'
+import {
+  findCachedAi,
+  generateCached,
+  generateForTenant
+} from '@/lib/ai/service'
 import {
   recordAiTokens,
   releaseAiRequest,
@@ -493,5 +497,189 @@ describe('getAiProvider', () => {
   it('builds the Anthropic provider when a key is set', () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test')
     expect(getAiProvider().name).toBe('anthropic')
+  })
+})
+
+// A prompt whose input holds tenant data. It must never reach the global
+// AiSummary cache (ADR 0013 section 1, ADR 0015).
+const tenantPrompt: TenantPrompt<{ topic: string }, Answer> = {
+  id: 'tenant-test',
+  tenant: true,
+  version: '3',
+  tier: 'default',
+  system: 'tenant system',
+  schema: z.object({ answer: z.string().min(1) }),
+  build: (value) => `about ${value.topic}`,
+  validate: (output) => (output.answer === 'bad' ? ['answer is bad'] : [])
+}
+
+describe('generateCached and tenant prompts', () => {
+  it('refuses a prompt that holds tenant data, before touching anything', async () => {
+    const { provider, calls } = fakeProvider(ok('x'))
+    setAiProvider(provider)
+    await expect(
+      generateCached(ctx, tenantPrompt as never, input, 's')
+    ).rejects.toThrow(/tenant/i)
+    expect(db.aiSummary.findUnique).not.toHaveBeenCalled()
+    expect(db.aiSummary.upsert).not.toHaveBeenCalled()
+    expect(calls).toHaveLength(0)
+  })
+
+  it('does not let findCachedAi read the global cache for one either', async () => {
+    await expect(findCachedAi(tenantPrompt as never, input)).rejects.toThrow(
+      /tenant/i
+    )
+    expect(db.aiSummary.findUnique).not.toHaveBeenCalled()
+  })
+})
+
+describe('generateForTenant', () => {
+  const stored = { id: 'r1', text: 'stored' }
+  const save = vi.fn()
+  const find = vi.fn()
+
+  beforeEach(() => {
+    save.mockReset()
+    find.mockReset()
+    find.mockResolvedValue(null)
+    save.mockImplementation(async (g: { content: Answer }) => ({
+      id: 'r2',
+      text: g.content.answer
+    }))
+  })
+
+  it('serves a hit for free, with no provider, allowance or cap', async () => {
+    find.mockResolvedValue(stored)
+    const { provider, calls } = fakeProvider(ok('fresh'))
+    setAiProvider(provider)
+
+    const result = await generateForTenant(ctx, tenantPrompt, input, {
+      find,
+      save
+    })
+
+    expect(result).toEqual({ stored, cached: true })
+    expect(calls).toHaveLength(0)
+    expect(save).not.toHaveBeenCalled()
+    expect(reserveAiRequest).not.toHaveBeenCalled()
+    expect(reservePlatformRequest).not.toHaveBeenCalled()
+  })
+
+  it('skips the lookup when asked to regenerate', async () => {
+    find.mockResolvedValue(stored)
+    const { provider } = fakeProvider(ok('again'))
+    setAiProvider(provider)
+
+    const result = await generateForTenant(ctx, tenantPrompt, input, {
+      find,
+      save,
+      force: true
+    })
+
+    expect(find).not.toHaveBeenCalled()
+    expect(result.cached).toBe(false)
+    expect(result.stored).toEqual({ id: 'r2', text: 'again' })
+  })
+
+  it('on a miss validates, saves what the model said and records usage', async () => {
+    const { provider, calls } = fakeProvider(ok('hello'))
+    setAiProvider(provider)
+
+    const result = await generateForTenant(ctx, tenantPrompt, input, {
+      find,
+      save
+    })
+
+    expect(result).toEqual({
+      stored: { id: 'r2', text: 'hello' },
+      cached: false
+    })
+    expect(calls[0].system).toBe('tenant system')
+    expect(save).toHaveBeenCalledWith({
+      content: { answer: 'hello' },
+      model: 'fake-model',
+      inputTokens: 10,
+      outputTokens: 5
+    })
+    expect(reserveAiRequest).toHaveBeenCalledTimes(1)
+    expect(recordAiTokens).toHaveBeenCalledWith(ctx, '2026-10', {
+      inputTokens: 10,
+      outputTokens: 5
+    })
+  })
+
+  it('never reads or writes the global AI cache', async () => {
+    setAiProvider(fakeProvider(ok('hello')).provider)
+    await generateForTenant(ctx, tenantPrompt, input, { find, save })
+    expect(db.aiSummary.findUnique).not.toHaveBeenCalled()
+    expect(db.aiSummary.upsert).not.toHaveBeenCalled()
+  })
+
+  it('retries once on a rejected reply, then fails closed and saves nothing', async () => {
+    const { provider, calls } = fakeProvider(ok('bad'), ok('bad'))
+    setAiProvider(provider)
+
+    await expect(
+      generateForTenant(ctx, tenantPrompt, input, { find, save })
+    ).rejects.toMatchObject({ code: 'AI_UNAVAILABLE' })
+
+    expect(calls).toHaveLength(2)
+    expect(save).not.toHaveBeenCalled()
+    expect(releaseAiRequest).toHaveBeenCalledTimes(1)
+    expect(releasePlatformRequest).toHaveBeenCalledTimes(1)
+    expect(recordAiTokens).toHaveBeenCalledWith(ctx, '2026-10', {
+      inputTokens: 20,
+      outputTokens: 10
+    })
+  })
+
+  it('hands the request back when saving fails, and surfaces the error', async () => {
+    setAiProvider(fakeProvider(ok('hello')).provider)
+    save.mockRejectedValue(new Error('db down'))
+
+    await expect(
+      generateForTenant(ctx, tenantPrompt, input, { find, save })
+    ).rejects.toThrow('db down')
+
+    expect(releaseAiRequest).toHaveBeenCalledTimes(1)
+    expect(releasePlatformRequest).toHaveBeenCalledTimes(1)
+  })
+
+  it('maps provider errors to AI_UNAVAILABLE and hands the request back', async () => {
+    setAiProvider(
+      fakeProvider(new AiProviderError('Try later', 'boom')).provider
+    )
+    await expect(
+      generateForTenant(ctx, tenantPrompt, input, { find, save })
+    ).rejects.toMatchObject({ code: 'AI_UNAVAILABLE', message: 'Try later' })
+    expect(releaseAiRequest).toHaveBeenCalledTimes(1)
+  })
+
+  it('applies the same guards in the same order as generateCached', async () => {
+    // No key: fails before the allowance is touched.
+    vi.stubEnv('ANTHROPIC_API_KEY', '')
+    await expect(
+      generateForTenant(ctx, tenantPrompt, input, { find, save })
+    ).rejects.toMatchObject({ code: 'AI_UNAVAILABLE' })
+    expect(reserveAiRequest).not.toHaveBeenCalled()
+    vi.unstubAllEnvs()
+
+    // Over the monthly allowance: no platform spend.
+    vi.mocked(reserveAiRequest).mockRejectedValue(
+      planLimit('AI requests this month', 25)
+    )
+    setAiProvider(fakeProvider(ok('x')).provider)
+    await expect(
+      generateForTenant(ctx, tenantPrompt, input, { find, save })
+    ).rejects.toMatchObject({ code: 'PLAN_LIMIT' })
+    expect(reservePlatformRequest).not.toHaveBeenCalled()
+  })
+
+  it('needs USE_AI even to read a hit', async () => {
+    const viewer = makeContext({ role: MemberRole.VIEWER })
+    await expect(
+      generateForTenant(viewer, tenantPrompt, input, { find, save })
+    ).rejects.toMatchObject({ code: 'FORBIDDEN' })
+    expect(find).not.toHaveBeenCalled()
   })
 })

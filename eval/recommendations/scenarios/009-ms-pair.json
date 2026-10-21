@@ -1,0 +1,41 @@
+{
+  "id": "009-ms-pair",
+  "title": "Mid-side: a cardioid mid with a figure-of-eight side",
+  "tags": ["stereo", "ms"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:neumann-u-87-ai"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:neumann-u-87-ai"
+    },
+    {
+      "unit": "c",
+      "mic": "seed:neumann-km-184"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Drum overheads",
+        "kind": "overheads",
+        "technique": "ms"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "roles": {
+        "s1": ["mid", "side"]
+      },
+      "patternSettings": {
+        "s1": ["cardioid", "figure8"]
+      },
+      "planWarnings": {
+        "s1": ["phantom_required"]
+      }
+    }
+  }
+}

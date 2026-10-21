@@ -12,7 +12,10 @@ export const TENANT_MODELS: ReadonlySet<string> = new Set([
   'Attachment',
   'MicrophoneUnit',
   'AiUsage',
-  'AuditLog'
+  'AuditLog',
+  'RecommendationRequest',
+  'RecommendationResult',
+  'RecommendationFeedback'
 ])
 
 type Args = Record<string, unknown> | undefined

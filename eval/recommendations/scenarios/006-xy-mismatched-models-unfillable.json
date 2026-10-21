@@ -1,0 +1,33 @@
+{
+  "id": "006-xy-mismatched-models-unfillable",
+  "title": "Two different models never make a stereo pair",
+  "tags": ["stereo", "pairs"],
+  "locker": [
+    {
+      "unit": "a",
+      "mic": "seed:neumann-km-184"
+    },
+    {
+      "unit": "b",
+      "mic": "seed:r-de-nt5"
+    }
+  ],
+  "request": {
+    "sources": [
+      {
+        "label": "Drum overheads"
+      }
+    ]
+  },
+  "expect": {
+    "rules": {
+      "plan": {
+        "s1": null
+      },
+      "unfillable": {
+        "s1": "no_suitable_mic"
+      },
+      "modelSources": []
+    }
+  }
+}
