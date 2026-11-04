@@ -19,6 +19,20 @@ Schema: `prisma/schema.prisma`. The target model for later phases is in `docs/PL
 
 | `AiUsage` | month (`YYYY-MM`, UTC), requests, inputTokens, outputTokens; unique (organisationId, month) | Monthly AI allowance counter (ADR 0013). `requests` is checked against `PLAN_LIMITS.aiRequestsPerMonth`. |
 
+## Layouts and sessions (tenant models, Phase 5, ADR 0016)
+
+All have non-null `organisationId` and are in `TENANT_MODELS`. Lengths mm, angles degrees, times UTC. The Prisma model is `RecordingSession` (Better Auth owns `Session`).
+
+| Model | Fields | Notes |
+| --- | --- | --- |
+| `RecordingSession` | roomId? (SetNull), name, client?, startsAt, endsAt, status (`planned` / `confirmed` / `completed` / `cancelled`), channelsAvailable?, phantomMode (`per_channel` / `global`), notes?, createdById? | Indexed `(organisationId, startsAt)`. Times are entered in the room's studio timezone and stored in UTC. |
+| `Layout` | sessionId? (unique, cascade), isTemplate, roomId? (SetNull), name, widthMm, lengthMm, heightMm?, gridMm (500), snapMm (50), version | A session's own copy, or a template (`sessionId` null). A check constraint (`("sessionId" IS NULL) = "isTemplate"`) is in the migration. The footprint is a snapshot of the room. `version` is the optimistic-concurrency token. |
+| `LayoutItem` | layoutId (cascade), type, variant?, label?, xMm, yMm, zMm, rotationDeg, pitchDeg, widthMm, depthMm, heightMm?, sortOrder, locked, groupId?, micUnitId? (SetNull), equipmentItemId? (SetNull), patternSetting?, showPattern, recommendationRef?, notes? | x, y, z, rotation, pitch and size are stored now so a 3D view needs no migration. `type` is validated against `LAYOUT_ITEM_TYPES` (`src/lib/layout/types.ts`). Mic and DI items each have one `InputChannel`. |
+| `InputChannel` | sessionId (cascade), number, layoutItemId? (unique, SetNull), kind (`mic` / `di` / `line`), source, micUnitId? (SetNull), stand?, preampInput?, phantom, padDb?, dawName?, notes? | Unique `(sessionId, number)`. A channel with no layout item is manual (line inputs) and never touched by the sync. |
+| `SessionShareLink` | sessionId (cascade), token (unique, 32 random bytes base64url), expiresAt?, revokedAt?, lastViewedAt? | One live link per session. The one place a token, not a `TenantContext`, authorises a read. |
+
+`RecommendationRequest.sessionId` is now a foreign key (SetNull).
+
 ## Global microphone catalogue (no `organisationId`, not in `TENANT_MODELS`; ADR 0008)
 
 Tenants read **published** rows only; writes go through platform admins (ADR 0012). Vocabulary (transducer types, patterns, powering, statuses, curve methods, extraction kinds) lives in `src/lib/mics/types.ts` and is stored as strings.
@@ -56,6 +70,9 @@ Unlike `AiSummary` these hold the studio's own data, so every row has `organisat
 Source kinds, techniques and the profile tables are code, not rows (`src/lib/recommendations/profiles.ts`, `techniques.ts`); `RulesOutput` and the snapshot are plain JSON shapes in `types.ts`.
 
 ## Key lib functions
+
+- `src/lib/layout/` (Phase 5): `types.ts` (vocabulary, `ITEM_TYPE_DEFAULTS`, limits), `geometry.ts` (snapping, rotated bounds, clamping, fit), `pattern.ts` (idealised pickup outline), `scene.ts` (`buildLayoutScene`: the one scene the editor, SVG pages and PDFs share), `schemas.ts` (save payload, 300 items), `diff.ts` (structural-change detection), `templates.ts` (four built-in starters, `placeTemplate`), `service.ts` (`getLayout`, `saveLayout` with version check, `matchRoomSize`, own templates: `listTemplates`, `saveTemplate`, `renameTemplate`, `deleteTemplate`; Pro).
+- `src/lib/sessions/`: `input-list.ts` (pure `reconcileInputList`, `defaultPhantom`), `sync.ts` (`syncInputList`, run inside the caller's transaction), `warnings.ts` (pure `sessionWarnings`), `time.ts` (studio-local to UTC with `Intl`, DST-safe), `daw-export.ts` (track names, CSV/text), `apply-recommendation.ts` (pure `planApply`) and `apply.ts` (`applyRecommendation`), `overview.ts` (`loadSessionOverview`), `queries.ts` (`loadUnitInfos`, `loadBookings`), `service.ts` (sessions and channels), `share.ts` (`createShareLink`, `revokeShareLink`, `getSharedSession`), `sheet.ts` (`getSessionSheet`, `getLayoutSheet`, `getDawExport`, the shared sheet view), `editor-data.ts` (`listEditorUnits`), `pdf/documents.tsx` (react-pdf documents).
 
 - `src/lib/ai/`: `provider.ts` (`AiProvider` interface, `AiOutputError`, `AiProviderError`), `anthropic.ts` (the Anthropic implementation using native structured output), `registry.ts` (`getAiProvider`, `setAiProvider` for tests), `config.ts` (`modelFor`, `AI_RATE_LIMIT`), `service.ts` (`findCachedAi` read-only, `generateCached`: cache → rate limit → allowance → provider → validate with one retry → store), `usage.ts` (`getAiUsage`, `reserveAiRequest`, `releaseAiRequest`, `recordAiTokens`), `platform-cap.ts` (`reservePlatformRequest`, `releasePlatformRequest`, `recordPlatformTokens`: the global daily cap), `local.ts` (`LocalProvider` for Ollama/LM Studio, dev only), `rate-limit.ts`, `hash.ts`, `grounding.ts` (rejects any number not in the input), `prompts/` (`mic-summary.ts`, `mic-comparison.ts`, and `mic-recommendation.ts`; each has `id`, `version`, `system`, `schema`, `build`, `validate`). Prompts are either a `Prompt` (catalogue data only, global `AiSummary` cache via `generateCached`) or a `TenantPrompt` (tenant data, `generateForTenant` with a tenant-scoped lookup and store; the global-cache functions refuse it).
 - `src/lib/mics/ai.ts` (`getMicSummary`, `generateMicSummary`, `getMicComparison`, `generateMicComparison`, `resolveCompareMics`), `ai-facts.ts` (`buildMicFacts`: the only data the model sees), `compare.ts` (`MIN_COMPARE`/`MAX_COMPARE`, `overlayCurves`, `parseMicRefs`); `format.ts` also has `comparisonRows`.

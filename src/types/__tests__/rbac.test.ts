@@ -66,6 +66,22 @@ describe('ROLE_PERMISSIONS', () => {
     }
   })
 
+  it('lets everyone view sessions but only engineers and up change them', () => {
+    for (const role of MEMBER_ROLES) {
+      expect(hasPermission(role, Permission.VIEW_SESSIONS)).toBe(true)
+    }
+    expect(hasPermission(MemberRole.VIEWER, Permission.MANAGE_SESSIONS)).toBe(
+      false
+    )
+    for (const role of [
+      MemberRole.OWNER,
+      MemberRole.MANAGER,
+      MemberRole.ENGINEER
+    ]) {
+      expect(hasPermission(role, Permission.MANAGE_SESSIONS)).toBe(true)
+    }
+  })
+
   it('defines permissions for every role', () => {
     for (const role of MEMBER_ROLES) {
       expect(ROLE_PERMISSIONS[role].length).toBeGreaterThan(0)

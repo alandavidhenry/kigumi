@@ -19,3 +19,4 @@ One short file per decision: `NNNN-title.md` with **Status**, **Context**, **Dec
 | 0013 | [AI service layer](0013-ai-service-layer.md)                                     | Accepted |
 | 0014 | [AI spend guards and local provider](0014-ai-spend-guards-and-local-provider.md) | Accepted |
 | 0015 | [Recommendation pipeline](0015-recommendation-pipeline.md)                       | Accepted |
+| 0016 | [Layouts, sessions and input list](0016-layouts-sessions-input-list.md)          | Accepted |

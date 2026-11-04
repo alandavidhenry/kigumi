@@ -74,7 +74,7 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Review the profile tables as content:** `profiles.ts` and `techniques.ts` (source priors, SPL bands of 115 / 125 / 135 dB SPL, placement ranges, stereo geometry) are Kigumi heuristics from common practice, not checked against a reference or an engineer. Bump `PROFILES_VERSION` and re-run the evaluation after any change.
 - **Sparse catalogue:** with no stated SPL, pads or applications on the seeded mics, scoring leans on the profiles and many results carry "max SPL not recorded" warnings. Transcribing real specs (Phase 2 follow-up) is what improves these.
 - **Greedy allocation:** stereo sources first, then fewest options, then input order. It can leave a source empty that an optimal assignment would fill (for example when the only mic able to do a kick is one half of the best pair). Consider an assignment solver if scenarios show it matters.
-- **Availability by session date:** `runRules` takes an `isBooked` hook that is a no-op until sessions exist (Phase 5); availability is today's equipment status. "Apply to session input list and layout" also waits for Phase 5.
+- **Availability by session date:** done in Phase 5. With a `sessionId` (or a `forDate`), `runRules`' `isBooked` excludes units in overlapping non-cancelled sessions. Applying a recommendation to a session is done too.
 - **"If you were buying" suggestions:** deferred. They would need their own aliases, a separate labelled section and no prices; the pipeline leaves room.
 - **Channel and preamp data:** channels come from the request. Console and preamp inventory (Phase 6) could supply channel counts and preamp inputs.
 - **Feedback use:** feedback is stored with full context but nothing reads it yet. A summary view for the owner, and using accepted/swapped patterns to tune the profile weights, are open.
@@ -83,6 +83,22 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Free-text classifier:** a keyword table, not a model. Unusual instruments fall back to a general profile; the user can correct the type.
 - **Evaluation spend:** `recs:eval` draws on the platform's daily request cap for paid providers but has no other spend limit beyond `--max-calls`.
 
+## Deferred from Phase 5
+
+- **3D view:** react-three-fiber reading the stored x, y, z, rotation, pitch and size. No migration needed; the camera and item models are the work.
+- **Polygon (non-rectangular) rooms**, doors and windows, and acoustic treatment items. Rooms are rectangles today; items outside the outline are flagged.
+- **Multi-select, group move/rotate and alignment tools** in the editor. `groupId` is stored (stereo pairs from a recommendation) but the editor doesn't yet move a group together.
+- **Real-time co-editing:** saves are whole-layout with an optimistic version, so two people editing get a 409 and reload.
+- **Touch polish on a real tablet:** pinch zoom and pan are implemented but were not exercised on a physical device here. Palette is tap-to-add or drag (desktop); there is no touch drag-in.
+- **Console and preamp channel data (Phase 6):** `channelsAvailable` is typed by hand today; the recall sheet should link to the input list and supply real channel counts and preamp inputs.
+- **Duplicate a session fully:** a copy keeps layout and microphones but not the stand, preamp, phantom overrides or notes on each channel.
+- **Share links:** one live link per session with optional expiry (API only; the UI creates non-expiring links). No view counts beyond `lastViewedAt`, and no per-link password.
+- **PDF polish:** fonts are the built-in Helvetica; labels over the layout are placed text, so heavily overlapping labels can collide. A multi-page layout or A3 option is not offered.
+- **Template scaling:** positions are scaled proportionally into a different room; item sizes are not, so a template from a large room can crowd a small one (the warnings flag items outside the walls).
+- **"If you were buying"** suggestions remain deferred (Phase 4).
+- **Free-plan E2E for the template upgrade prompt:** covered by route and service tests (403 `FEATURE_NOT_IN_PLAN`) but not by a Playwright run with a Free organisation.
+- **E2E specs that fail under full-suite load:** `inventory.spec.ts` ("can add, edit, search and delete an item", the known S/N flake above) and `mics.spec.ts` ("platform admin reviews a new mic through to publication") failed in all three full parallel dev-server runs during Phase 5 and pass when run on their own. Both time out at the default 5 s right after a save plus `router.refresh()` against the dev server. They don't touch Phase 5 code, but they need stabilising (longer expect timeouts or waiting on the save response).
+
 ## Later phases (summary)
 
-Recommendations (P4, built), layouts and sessions (P5), recall sheets (P6), maintenance and warranty (P7), hardening (P8). See `docs/PLAN.md`.
+Recommendations (P4, built), layouts and sessions (P5, built), recall sheets (P6), maintenance and warranty (P7), hardening (P8). See `docs/PLAN.md`.

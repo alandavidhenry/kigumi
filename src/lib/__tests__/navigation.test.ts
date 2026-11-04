@@ -25,6 +25,8 @@ describe('buildNavGroups', () => {
       '/mics',
       '/locker',
       '/recommendations',
+      '/sessions',
+      '/layouts/templates',
       '/settings/members',
       '/settings/organisation'
     ])
@@ -34,6 +36,14 @@ describe('buildNavGroups', () => {
     for (const role of Object.values(MemberRole)) {
       expect(hrefsFor(role)).toEqual(
         expect.arrayContaining(['/mics', '/locker', '/recommendations'])
+      )
+    }
+  })
+
+  it('shows sessions and layout templates to every role', () => {
+    for (const role of Object.values(MemberRole)) {
+      expect(hrefsFor(role)).toEqual(
+        expect.arrayContaining(['/sessions', '/layouts/templates'])
       )
     }
   })

@@ -25,11 +25,16 @@ describe('TENANT_MODELS', () => {
       'Attachment',
       'AuditLog',
       'EquipmentItem',
+      'InputChannel',
+      'Layout',
+      'LayoutItem',
       'MicrophoneUnit',
       'RecommendationFeedback',
       'RecommendationRequest',
       'RecommendationResult',
+      'RecordingSession',
       'Room',
+      'SessionShareLink',
       'Studio'
     ])
   })

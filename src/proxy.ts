@@ -23,6 +23,8 @@ export const config = {
     '/mics/:path*',
     '/locker/:path*',
     '/recommendations/:path*',
+    '/sessions/:path*',
+    '/layouts/:path*',
     '/admin/:path*',
     '/onboarding/:path*'
   ]

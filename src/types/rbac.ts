@@ -49,6 +49,10 @@ export enum Permission {
   // generating new output is not.
   USE_AI = 'use:ai',
 
+  // Sessions, layouts and input lists
+  VIEW_SESSIONS = 'view:sessions',
+  MANAGE_SESSIONS = 'manage:sessions',
+
   // Audit
   VIEW_AUDIT_LOG = 'view:audit-log'
 }
@@ -69,6 +73,8 @@ export const ROLE_PERMISSIONS: Readonly<
     Permission.VIEW_MIC_CATALOGUE,
     Permission.MANAGE_MIC_LOCKER,
     Permission.USE_AI,
+    Permission.VIEW_SESSIONS,
+    Permission.MANAGE_SESSIONS,
     Permission.VIEW_AUDIT_LOG
   ],
   [MemberRole.ENGINEER]: [
@@ -79,14 +85,17 @@ export const ROLE_PERMISSIONS: Readonly<
     Permission.MANAGE_INVENTORY,
     Permission.VIEW_MIC_CATALOGUE,
     Permission.MANAGE_MIC_LOCKER,
-    Permission.USE_AI
+    Permission.USE_AI,
+    Permission.VIEW_SESSIONS,
+    Permission.MANAGE_SESSIONS
   ],
   [MemberRole.VIEWER]: [
     Permission.VIEW_ORGANISATION,
     Permission.VIEW_MEMBERS,
     Permission.VIEW_STUDIOS,
     Permission.VIEW_INVENTORY,
-    Permission.VIEW_MIC_CATALOGUE
+    Permission.VIEW_MIC_CATALOGUE,
+    Permission.VIEW_SESSIONS
   ]
 }
 

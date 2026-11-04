@@ -46,7 +46,7 @@ function fakeModel(): FakeModel {
 
 // Stand-in for tenantDb(ctx) in unit tests: one vi.fn per model method.
 export function makeFakeDb() {
-  return {
+  const db = {
     studio: fakeModel(),
     room: fakeModel(),
     equipmentItem: fakeModel(),
@@ -56,8 +56,17 @@ export function makeFakeDb() {
     auditLog: fakeModel(),
     recommendationRequest: fakeModel(),
     recommendationResult: fakeModel(),
-    recommendationFeedback: fakeModel()
+    recommendationFeedback: fakeModel(),
+    recordingSession: fakeModel(),
+    layout: fakeModel(),
+    layoutItem: fakeModel(),
+    inputChannel: fakeModel(),
+    sessionShareLink: fakeModel(),
+    // Interactive transactions run against the same fake, so a test sees every
+    // write the service makes.
+    $transaction: vi.fn(async (run: (tx: unknown) => unknown) => run(db))
   }
+  return db
 }
 
 export type FakeDb = ReturnType<typeof makeFakeDb>

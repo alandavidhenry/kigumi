@@ -32,6 +32,7 @@ model User {
   auditLogs              AuditLog[]
   recommendationRequests RecommendationRequest[]
   recommendationFeedback RecommendationFeedback[]
+  recordingSessions      RecordingSession[]
 
   @@map("user")
 }
@@ -107,6 +108,11 @@ model Organization {
   recommendationRequests RecommendationRequest[]
   recommendationResults  RecommendationResult[]
   recommendationFeedback RecommendationFeedback[]
+  recordingSessions      RecordingSession[]
+  layouts                Layout[]
+  layoutItems            LayoutItem[]
+  inputChannels          InputChannel[]
+  sessionShareLinks      SessionShareLink[]
 
   @@map("organization")
 }
@@ -182,6 +188,8 @@ model Room {
   studio                 Studio                  @relation(fields: [studioId], references: [id], onDelete: Cascade)
   equipment              EquipmentItem[]
   recommendationRequests RecommendationRequest[]
+  recordingSessions      RecordingSession[]
+  layouts                Layout[]
 
   @@index([organisationId])
   @@index([studioId])
@@ -230,6 +238,7 @@ model EquipmentItem {
   organisation Organization    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   room         Room?           @relation(fields: [roomId], references: [id], onDelete: SetNull)
   micUnit      MicrophoneUnit?
+  layoutItems  LayoutItem[]
 
   @@index([organisationId])
   @@index([organisationId, category])
@@ -389,6 +398,8 @@ model MicrophoneUnit {
   organisation  Organization    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   micModel      MicrophoneModel @relation(fields: [micModelId], references: [id], onDelete: Restrict)
   equipmentItem EquipmentItem   @relation(fields: [equipmentItemId], references: [id], onDelete: Cascade)
+  layoutItems   LayoutItem[]
+  channels      InputChannel[]
 
   @@index([organisationId])
   @@index([organisationId, matchedPairGroup])
@@ -456,7 +467,7 @@ model RecommendationRequest {
   createdById     String?
   kind            String // 'sources' | 'question'
   roomId          String?
-  sessionId       String? // Phase 5; no foreign key until sessions exist
+  sessionId       String?
   forDate         String? // YYYY-MM-DD
   input           Json // the normalised request
   rules           Json // RulesOutput the model was asked to rank
@@ -470,6 +481,7 @@ model RecommendationRequest {
   organisation Organization           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   createdBy    User?                  @relation(fields: [createdById], references: [id], onDelete: SetNull)
   room         Room?                  @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  session      RecordingSession?      @relation(fields: [sessionId], references: [id], onDelete: SetNull)
   results      RecommendationResult[]
 
   @@index([organisationId, createdAt])
@@ -519,4 +531,147 @@ model RecommendationFeedback {
 
   @@unique([resultId, sourceKey, userId])
   @@index([organisationId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Layouts and sessions (Phase 5, ADR 0016). RecordingSession is named so to
+// avoid Better Auth's Session. Lengths are millimetres, angles degrees, times
+// UTC. Items store x, y, z, rotation, pitch and size now so a 3D view can read
+// the same rows later.
+// ---------------------------------------------------------------------------
+
+model RecordingSession {
+  id                String   @id @default(cuid())
+  organisationId    String
+  roomId            String?
+  name              String
+  client            String?
+  startsAt          DateTime
+  endsAt            DateTime
+  status            String   @default("planned") // SessionStatus
+  channelsAvailable Int?
+  phantomMode       String   @default("per_channel") // PhantomMode
+  notes             String?
+  createdById       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organisation           Organization            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  room                   Room?                   @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  createdBy              User?                   @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  layout                 Layout?
+  channels               InputChannel[]
+  shareLinks             SessionShareLink[]
+  recommendationRequests RecommendationRequest[]
+
+  @@index([organisationId, startsAt])
+  @@index([roomId])
+}
+
+// A session's own layout (sessionId set) or a template (sessionId null,
+// isTemplate true). The migration adds a check constraint that keeps the two
+// in step. The footprint is a snapshot of the room when the layout was made.
+model Layout {
+  id             String   @id @default(cuid())
+  organisationId String
+  sessionId      String?  @unique
+  isTemplate     Boolean  @default(false)
+  roomId         String?
+  name           String
+  widthMm        Int
+  lengthMm       Int
+  heightMm       Int?
+  gridMm         Int      @default(500)
+  snapMm         Int      @default(50)
+  version        Int      @default(1)
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organization      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  session      RecordingSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  room         Room?             @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  items        LayoutItem[]
+
+  @@index([organisationId, isTemplate])
+}
+
+model LayoutItem {
+  id                String  @id @default(cuid())
+  organisationId    String
+  layoutId          String
+  type              String // LayoutItemType
+  variant           String?
+  label             String?
+  xMm               Int
+  yMm               Int
+  zMm               Int     @default(0)
+  rotationDeg       Int     @default(0)
+  pitchDeg          Int     @default(0)
+  widthMm           Int
+  depthMm           Int
+  heightMm          Int?
+  sortOrder         Int     @default(0)
+  locked            Boolean @default(false)
+  groupId           String?
+  micUnitId         String?
+  equipmentItemId   String?
+  patternSetting    String?
+  showPattern       Boolean @default(false)
+  recommendationRef String?
+  notes             String?
+
+  organisation  Organization    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  layout        Layout          @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+  micUnit       MicrophoneUnit? @relation(fields: [micUnitId], references: [id], onDelete: SetNull)
+  equipmentItem EquipmentItem?  @relation(fields: [equipmentItemId], references: [id], onDelete: SetNull)
+  channel       InputChannel?
+
+  @@index([layoutId])
+  @@index([micUnitId])
+  @@index([organisationId])
+}
+
+model InputChannel {
+  id             String  @id @default(cuid())
+  organisationId String
+  sessionId      String
+  number         Int
+  layoutItemId   String? @unique
+  kind           String  @default("mic") // ChannelKind
+  source         String
+  micUnitId      String?
+  stand          String?
+  preampInput    String?
+  phantom        Boolean @default(false)
+  padDb          Int?
+  dawName        String?
+  notes          String?
+
+  organisation Organization     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  session      RecordingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  layoutItem   LayoutItem?      @relation(fields: [layoutItemId], references: [id], onDelete: SetNull)
+  micUnit      MicrophoneUnit?  @relation(fields: [micUnitId], references: [id], onDelete: SetNull)
+
+  @@unique([sessionId, number])
+  @@index([organisationId])
+  @@index([micUnitId])
+}
+
+model SessionShareLink {
+  id             String    @id @default(cuid())
+  organisationId String
+  sessionId      String
+  token          String    @unique
+  createdById    String?
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  lastViewedAt   DateTime?
+  createdAt      DateTime  @default(now())
+
+  organisation Organization     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  session      RecordingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([organisationId])
 }
