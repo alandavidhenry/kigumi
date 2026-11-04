@@ -43,7 +43,8 @@ export function RecommendationWorkbench({
   rooms,
   canGenerate,
   allowance,
-  lockerSize
+  lockerSize,
+  session
 }: {
   readonly rooms: ReadonlyArray<{
     id: string
@@ -53,15 +54,30 @@ export function RecommendationWorkbench({
   readonly canGenerate: boolean
   readonly allowance: { remaining: number; limit: number } | null
   readonly lockerSize: number
+  // Planning for a session: its inputs, room and channel count fill the form,
+  // and microphones booked in overlapping sessions are left out.
+  readonly session?: {
+    id: string
+    name: string
+    roomId: string | null
+    channels: number | null
+    sources: string[]
+  } | null
 }) {
   const router = useRouter()
   const [mode, setMode] = useState<'sources' | 'question'>('sources')
-  const [rows, setRows] = useState<Row[]>([blank()])
+  const [rows, setRows] = useState<Row[]>(() =>
+    session && session.sources.length > 0
+      ? session.sources.map((label) => ({ ...blank(), label }))
+      : [blank()]
+  )
   const [question, setQuestion] = useState('')
   const [intent, setIntent] = useState('')
-  const [roomId, setRoomId] = useState('')
+  const [roomId, setRoomId] = useState(session?.roomId ?? '')
   const [forDate, setForDate] = useState('')
-  const [channels, setChannels] = useState('')
+  const [channels, setChannels] = useState(
+    session?.channels ? String(session.channels) : ''
+  )
   const [phantomMode, setPhantomMode] = useState<PhantomMode>('per_channel')
 
   const [preview, setPreview] = useState<PreviewResult | null>(null)
@@ -85,6 +101,7 @@ export function RecommendationWorkbench({
         }),
     intent: intent.trim() || undefined,
     roomId: roomId || undefined,
+    sessionId: session?.id,
     forDate: forDate || undefined,
     channels: channels ? Number(channels) : undefined,
     phantomMode
@@ -150,6 +167,13 @@ export function RecommendationWorkbench({
 
   return (
     <div className='space-y-6'>
+      {session && (
+        <p className='rounded-md border border-brand-border bg-brand-tint/40 px-3 py-2 text-sm'>
+          Planning for <strong>{session.name}</strong>. Its room and channel
+          count are filled in, and microphones booked in overlapping sessions
+          are left out.
+        </p>
+      )}
       <Card>
         <CardHeader className='space-y-3'>
           <CardTitle className='text-base'>What are you recording?</CardTitle>

@@ -34,7 +34,7 @@ PLAN §4.4 asks for recommendations drawn only from what a studio owns, with det
 
 - The model is optional for value but required for explanation: with AI off, users get the rules-based result and no prose.
 - Greedy planning (stereo first, then fewest options, then input order) is deterministic and explainable but not optimal. In a tight locker it can leave a source empty that an optimal assignment would fill. Revisit if the golden set shows it matters.
-- Availability is the equipment status today. Booking by session date arrives with sessions (Phase 5) through the `isBooked` hook in `runRules`.
+- Availability is the equipment status plus, since Phase 5, booking by session: a request with a `sessionId` (or a `forDate`) excludes units in overlapping non-cancelled sessions through the `isBooked` hook in `runRules` (ADR 0016).
 - Strict grounding and name checks reject some good replies. Loosen the allowed set in `validate.ts` rather than dropping a check, and re-run the evaluation.
 - Changing a weight, a profile or the prompt means bumping `RULES_VERSION`, `PROFILES_VERSION` or `RECOMMENDATION_PROMPT_VERSION`, re-running `npm run recs:eval` and committing the report.
 - "If you were buying" suggestions are deferred. The schema leaves room (a separate section and aliases) but nothing is built.

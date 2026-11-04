@@ -5,6 +5,9 @@ import { recordAudit } from '@/lib/audit'
 import { badRequest, notFound } from '@/lib/errors'
 import prisma from '@/lib/prisma'
 import { toJsonValue } from '@/lib/prisma-json'
+import { DEFAULT_TIMEZONE } from '@/lib/sessions/overview'
+import { loadBookings } from '@/lib/sessions/queries'
+import { dayWindow } from '@/lib/sessions/time'
 import { requirePermission } from '@/lib/tenant-context'
 import type { TenantContext } from '@/lib/tenant-context'
 import { tenantDb } from '@/lib/tenant-db'
@@ -50,14 +53,55 @@ export interface PreviewResult {
 
 interface Prepared extends PreviewResult {
   snapshot: LockerSnapshot
+  sessionId: string | null
 }
 
 // Required JSON columns take a value, never undefined or a null sentinel.
 const asJson = (value: unknown) => value as Prisma.InputJsonValue
 
+// The time window to check bookings against: the session's own, or the whole
+// calendar day in the room's studio timezone.
+async function bookingWindow(
+  ctx: TenantContext,
+  roomId: string | null,
+  forDate: string | null
+): Promise<{ start: Date; end: Date } | null> {
+  if (!forDate) return null
+  let timeZone = DEFAULT_TIMEZONE
+  if (roomId) {
+    const row = await tenantDb(ctx).room.findFirst({
+      where: { id: roomId },
+      select: { studio: { select: { timezone: true } } }
+    })
+    timeZone = row?.studio.timezone ?? DEFAULT_TIMEZONE
+  }
+  return dayWindow(forDate, timeZone)
+}
+
 async function prepare(ctx: TenantContext, input: unknown): Promise<Prepared> {
-  const request = normaliseRequest(recommendationRequestSchema.parse(input))
+  const parsed = recommendationRequestSchema.parse(input)
+  const request = normaliseRequest(parsed)
   const db = tenantDb(ctx)
+
+  const sessionId = parsed.sessionId ?? null
+  let window: { start: Date; end: Date } | null
+  if (sessionId) {
+    const session = await db.recordingSession.findFirst({
+      where: { id: sessionId },
+      select: {
+        startsAt: true,
+        endsAt: true,
+        roomId: true,
+        channelsAvailable: true
+      }
+    })
+    if (!session) throw notFound('Session')
+    window = { start: session.startsAt, end: session.endsAt }
+    request.roomId ??= session.roomId
+    request.channels ??= session.channelsAvailable
+  } else {
+    window = await bookingWindow(ctx, request.roomId, request.forDate)
+  }
 
   let room: RequestRoom | null = null
   if (request.roomId) {
@@ -77,14 +121,21 @@ async function prepare(ctx: TenantContext, input: unknown): Promise<Prepared> {
   }
 
   const snapshot = await loadLockerSnapshot(ctx)
-  const rules = runRules(request, snapshot, { room })
+  // Units already in an overlapping, non-cancelled session are not free.
+  const booked = window
+    ? await loadBookings(db, window, sessionId ?? undefined)
+    : null
+  const rules = runRules(request, snapshot, {
+    room,
+    isBooked: booked ? (unitId) => booked.has(unitId) : undefined
+  })
 
   const unitNames: Record<string, string> = {}
   for (const unit of snapshot.units) {
     const mic = snapshot.mics[unit.micSlug]
     if (mic) unitNames[unit.unitId] = micName(mic)
   }
-  return { request, rules, room, unitNames, snapshot }
+  return { request, rules, room, unitNames, snapshot, sessionId }
 }
 
 export async function previewRecommendation(
@@ -120,6 +171,8 @@ export interface RecommendationDetail {
   model: string
   promptVersion: string
   request: NormalisedRequest
+  // The session this was planned for, if any (Phase 5).
+  sessionId: string | null
   rules: RulesOutput
   view: FinalView
   adjustments: Adjustment[]
@@ -141,6 +194,7 @@ interface ResultRow {
   request: {
     input: unknown
     rules: unknown
+    sessionId?: string | null
   }
 }
 
@@ -215,6 +269,7 @@ async function toDetail(
     model: row.model,
     promptVersion: row.promptVersion,
     request: row.request.input as unknown as NormalisedRequest,
+    sessionId: row.request.sessionId ?? null,
     rules: row.request.rules as unknown as RulesOutput,
     view,
     adjustments: (row.adjustments as unknown as Adjustment[] | null) ?? [],
@@ -224,7 +279,7 @@ async function toDetail(
 }
 
 const resultInclude = {
-  request: { select: { input: true, rules: true } }
+  request: { select: { input: true, rules: true, sessionId: true } }
 } as const
 
 export async function getRecommendation(
@@ -312,7 +367,7 @@ export async function createRecommendation(
 ): Promise<CreateResult> {
   requirePermission(ctx, Permission.USE_AI)
   const prepared = await prepare(ctx, input)
-  const { snapshot, ...preview } = prepared
+  const { snapshot, sessionId, ...preview } = prepared
   const { request, rules, room } = prepared
 
   const built = buildRecommendationInput({
@@ -365,6 +420,7 @@ export async function createRecommendation(
             createdById: ctx.userId,
             kind: request.kind,
             roomId: request.roomId,
+            sessionId,
             forDate: request.forDate,
             input: asJson(request),
             rules: asJson(rules),
@@ -392,6 +448,7 @@ export async function createRecommendation(
             id: true,
             input: true,
             rules: true,
+            sessionId: true,
             results: {
               select: {
                 id: true,
@@ -408,7 +465,11 @@ export async function createRecommendation(
         const result = created.results[0]
         return {
           ...result,
-          request: { input: created.input, rules: created.rules }
+          request: {
+            input: created.input,
+            rules: created.rules,
+            sessionId: created.sessionId
+          }
         }
       }
     }

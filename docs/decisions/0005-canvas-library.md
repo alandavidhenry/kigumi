@@ -12,6 +12,8 @@ The layout editor (Phase 5) needs a to-scale room, grid and snapping, draggable,
 - Considered: **Fabric.js** (imperative, awkward with React state), **tldraw** (whiteboard UX, licence terms), plain **SVG** (simple, but drag and transform would be hand-built), and **React Flow** (node graphs, not spatial floor plans).
 - Items store `x`, `y`, `z` (height), `rotationDeg`, `widthMm`, `depthMm` and `heightMm` in real-world millimetres, independent of screen scale, so a future 3D view (react-three-fiber) can read the same rows without a migration.
 
+Refined by [0016](0016-layouts-sessions-input-list.md): only the editor uses Konva; read-only views and PDFs render a shared scene as SVG. PNG export is client-side; PDF export does not embed a canvas PNG.
+
 ## Consequences
 
 - Konva needs `window`, so the editor is a client component loaded with `dynamic(..., { ssr: false })`.

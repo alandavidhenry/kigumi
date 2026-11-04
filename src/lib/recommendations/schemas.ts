@@ -42,6 +42,10 @@ export const recommendationRequestSchema = z
     question: text(1, 500).optional(),
     intent: text(0, 500).optional(),
     roomId: z.string().min(1).optional(),
+    // Phase 5: plan for this session. Its room, channel count and time window
+    // fill in what the request leaves out, and units booked in overlapping
+    // sessions are excluded.
+    sessionId: z.string().min(1).optional(),
     forDate: z
       .string()
       .refine(isCalendarDate, 'Use a real date as YYYY-MM-DD')

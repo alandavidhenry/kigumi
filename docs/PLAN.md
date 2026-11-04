@@ -87,8 +87,8 @@ Shapes below are the target. Each phase adds only the models it needs. Tenant-ow
 - `AiSummary` (P3, **global**: catalogue-derived input only) — kind (mic / comparison), subjectKey, inputHash, promptVersion, model, content JSON, token counts, createdAt; unique (kind, inputHash, promptVersion)
 - `AiUsage` (P3) — organisationId, month, inputTokens, outputTokens, requests
 - `RecommendationRequest` / `RecommendationResult` / `RecommendationFeedback` (P4) — full request context (sources, intent, room, candidate list, rules output), result JSON, promptVersion, model; feedback (accepted / swapped(toUnitId) / rejected, rating, comment)
-- `Layout` / `LayoutItem` (P5) — roomId, scaleMmPerPx, grid, isTemplate, name; items: type, x, y, z, rotationDeg, widthMm, depthMm, heightMm, label, equipmentItemId?, micUnitId?, showPattern
-- `Session` / `InputChannel` (P5) — date, start/end, roomId, layoutId, client (free text); channels: number, source, micUnitId, stand, preampInput, phantom, pad, notes, layoutItemId?
+- `Layout` / `LayoutItem` (P5, built) — session-owned copy or template; footprint snapshot, grid, snap, version; items: type, xMm, yMm, zMm, rotationDeg, pitchDeg, widthMm, depthMm, heightMm, label, equipmentItemId?, micUnitId?, patternSetting, showPattern (ADR [0016](decisions/0016-layouts-sessions-input-list.md); `scaleMmPerPx` dropped)
+- `RecordingSession` / `InputChannel` / `SessionShareLink` (P5, built; named `RecordingSession` because Better Auth owns `Session`) — start/end (UTC), roomId, client (free text), status, channelsAvailable, phantomMode; channels: number, kind, source, micUnitId, stand, preampInput, phantom, padDb, dawName, notes, layoutItemId?
 - `Console` / `ConsoleTemplate` / `RecallSheet` / `RecallChannel` / `OutboardRecall` (P6) — channel-strip definitions as JSON schemas; recall values as JSON per channel
 - `MaintenancePlan` / `MaintenanceTask` / `MaintenanceLog` / `PatTest` (P7) — interval by time and/or usage hours; PAT test date, result, next due
 - `Warranty` (P7) — equipmentItemId, start, end, provider, terms
@@ -208,7 +208,7 @@ Source of truth: `src/lib/plans.ts` (`PLAN_LIMITS`, `FEATURE_MINIMUM_TIER`, `PLA
 - **Phase 2 — Mic catalogue (built, awaiting approval):** data-sourcing spike + ADR 0008, schema, starter seed, admin review queue, mic detail page with charts (measured or idealised), mic locker. The AI summary on the mic page and the comparison view arrive with Phase 3.
 - **Phase 3 — AI layer (done):** AI service, mic summaries, comparison, caching, budgets/rate limits. See ADR [0013](decisions/0013-ai-service-layer.md).
 - **Phase 4 — Recommendations (built, awaiting approval):** rules engine (tests first), LLM ranking with validated structured output, feedback capture, free-text questions and the golden evaluation set. "If you were buying" suggestions are deferred. See ADR [0015](decisions/0015-recommendation-pipeline.md).
-- **Phase 5 — Layouts and sessions:** 2D layout editor, templates, sessions, auto input list, warnings, PDF/share link, apply recommendation.
+- **Phase 5 — Layouts and sessions (built, awaiting approval):** 2D layout editor with grid, snapping and templates, sessions, auto-built input list with warnings, PDF export, read-only share link, DAW track-name export, apply a recommendation to a session. Recall sheet link and 3D wait for later phases. See ADR [0016](decisions/0016-layouts-sessions-input-list.md).
 - **Phase 6 — Recall sheets:** console templates, per-session recall sheet, outboard recall.
 - **Phase 7 — Maintenance and warranty:** schedules, PAT testing, reminders, attachments, notifications, dashboard.
 - **Phase 8 — Hardening:** accessibility, performance, security review (tenant-isolation authz tests, upload handling, prompt injection), observability, backups, Terraform + deploy workflows.

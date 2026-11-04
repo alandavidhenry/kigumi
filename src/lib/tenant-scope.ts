@@ -15,7 +15,12 @@ export const TENANT_MODELS: ReadonlySet<string> = new Set([
   'AuditLog',
   'RecommendationRequest',
   'RecommendationResult',
-  'RecommendationFeedback'
+  'RecommendationFeedback',
+  'RecordingSession',
+  'Layout',
+  'LayoutItem',
+  'InputChannel',
+  'SessionShareLink'
 ])
 
 type Args = Record<string, unknown> | undefined

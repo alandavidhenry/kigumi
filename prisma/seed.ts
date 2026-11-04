@@ -243,6 +243,183 @@ async function seedRecommendation() {
   })
 }
 
+// Two demo sessions (dev only). The first has a layout with a drum kit, a
+// snare mic (SM57), a lead vocal mic (U 87 Ai) and a guitar amp, with the input
+// list the editor would have built from it. The second is empty, so the stored
+// recommendation can be applied to it end to end.
+async function seedSessions() {
+  const room = 'seed-room-live'
+  const sessions = [
+    {
+      id: 'seed-session-tracking',
+      name: 'Drum and vocal tracking',
+      client: 'The Harbour Lights',
+      startsAt: new Date('2030-06-15T09:00:00Z'),
+      endsAt: new Date('2030-06-15T17:00:00Z'),
+      channelsAvailable: 16
+    },
+    {
+      id: 'seed-session-apply',
+      name: 'Overdubs',
+      client: null,
+      startsAt: new Date('2030-06-22T09:00:00Z'),
+      endsAt: new Date('2030-06-22T17:00:00Z'),
+      channelsAvailable: null
+    }
+  ]
+  for (const session of sessions) {
+    await prisma.recordingSession.upsert({
+      where: { id: session.id },
+      update: {},
+      create: {
+        ...session,
+        organisationId: ORG_ID,
+        roomId: room,
+        createdById: 'seed-user-owner'
+      }
+    })
+    await prisma.layout.upsert({
+      where: { sessionId: session.id },
+      update: {},
+      create: {
+        id: `${session.id}-layout`,
+        organisationId: ORG_ID,
+        sessionId: session.id,
+        roomId: room,
+        name: session.name,
+        widthMm: 7200,
+        lengthMm: 9400,
+        heightMm: 4200,
+        createdById: 'seed-user-owner'
+      }
+    })
+  }
+
+  const layoutId = 'seed-session-tracking-layout'
+  const base = {
+    organisationId: ORG_ID,
+    layoutId,
+    variant: null,
+    pitchDeg: 0,
+    locked: false,
+    groupId: null,
+    equipmentItemId: null,
+    showPattern: false,
+    recommendationRef: null,
+    notes: null
+  }
+  const items = [
+    {
+      id: 'seed-item-kit',
+      type: 'instrument',
+      label: 'Drum kit',
+      xMm: 3600,
+      yMm: 2600,
+      zMm: 0,
+      rotationDeg: 0,
+      widthMm: 1800,
+      depthMm: 1600,
+      heightMm: 1000,
+      sortOrder: 0,
+      micUnitId: null,
+      patternSetting: null
+    },
+    {
+      id: 'seed-item-snare',
+      type: 'mic',
+      label: 'Snare',
+      xMm: 3300,
+      yMm: 2600,
+      zMm: 700,
+      rotationDeg: 90,
+      widthMm: 100,
+      depthMm: 100,
+      heightMm: 200,
+      sortOrder: 1,
+      micUnitId: 'seed-unit-sm57',
+      patternSetting: 'cardioid'
+    },
+    {
+      id: 'seed-item-vocal',
+      type: 'mic',
+      label: 'Lead vocal',
+      xMm: 3600,
+      yMm: 6200,
+      zMm: 1600,
+      rotationDeg: 180,
+      widthMm: 100,
+      depthMm: 100,
+      heightMm: 200,
+      sortOrder: 2,
+      micUnitId: 'seed-unit-u87',
+      patternSetting: 'cardioid'
+    },
+    {
+      id: 'seed-item-amp',
+      type: 'amp',
+      label: 'Guitar amp',
+      xMm: 1400,
+      yMm: 5000,
+      zMm: 0,
+      rotationDeg: 90,
+      widthMm: 600,
+      depthMm: 300,
+      heightMm: 600,
+      sortOrder: 3,
+      micUnitId: null,
+      patternSetting: null
+    }
+  ]
+  for (const item of items) {
+    await prisma.layoutItem.upsert({
+      where: { id: item.id },
+      update: {},
+      create: { ...base, ...item }
+    })
+  }
+
+  const channels = [
+    {
+      id: 'seed-ch-snare',
+      number: 1,
+      layoutItemId: 'seed-item-snare',
+      kind: 'mic',
+      source: 'Snare',
+      micUnitId: 'seed-unit-sm57',
+      phantom: false
+    },
+    {
+      id: 'seed-ch-vocal',
+      number: 2,
+      layoutItemId: 'seed-item-vocal',
+      kind: 'mic',
+      source: 'Lead vocal',
+      micUnitId: 'seed-unit-u87',
+      phantom: true
+    },
+    {
+      id: 'seed-ch-synth',
+      number: 3,
+      layoutItemId: null,
+      kind: 'line',
+      source: 'Synth',
+      micUnitId: null,
+      phantom: false
+    }
+  ]
+  for (const channel of channels) {
+    await prisma.inputChannel.upsert({
+      where: { id: channel.id },
+      update: {},
+      create: {
+        ...channel,
+        organisationId: ORG_ID,
+        sessionId: 'seed-session-tracking'
+      }
+    })
+  }
+}
+
 async function main() {
   const password =
     process.argv[2] ?? process.env.SEED_PASSWORD ?? 'kigumi-dev-password'
@@ -355,6 +532,7 @@ async function main() {
 
   await seedMicCatalogue()
   await seedRecommendation()
+  await seedSessions()
 
   console.warn(
     `Seeded ${ROLES.map((role) => `${role}@kigumi.test`).join(', ')} with the given password`

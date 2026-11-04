@@ -12,6 +12,8 @@ export type NavIconName =
   | 'mics'
   | 'locker'
   | 'recommendations'
+  | 'sessions'
+  | 'templates'
   | 'admin'
   | 'members'
   | 'activity'
@@ -58,6 +60,14 @@ export function buildNavGroups(
       name: 'Recommendations',
       href: '/recommendations',
       icon: 'recommendations'
+    })
+  }
+  if (can(Permission.VIEW_SESSIONS)) {
+    studioItems.push({ name: 'Sessions', href: '/sessions', icon: 'sessions' })
+    studioItems.push({
+      name: 'Layout templates',
+      href: '/layouts/templates',
+      icon: 'templates'
     })
   }
 

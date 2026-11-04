@@ -2,10 +2,12 @@ import { notFound } from 'next/navigation'
 
 import { BreadcrumbLabel } from '@/components/mics/breadcrumb-label'
 import { PageHeader } from '@/components/page-header'
+import { ApplyToSession } from '@/components/recommendations/apply-to-session'
 import { RecommendationView } from '@/components/recommendations/recommendation-view'
 import { isAppError } from '@/lib/errors'
 import { listLocker } from '@/lib/mics/locker'
 import { getRecommendation } from '@/lib/recommendations/service'
+import { listSessions } from '@/lib/sessions/service'
 import { getTenantContext } from '@/lib/tenant-context'
 import { Permission, hasPermission } from '@/types/rbac'
 
@@ -31,6 +33,10 @@ export default async function RecommendationPage({ params }: PageProps) {
 
   const canFeedback = hasPermission(ctx.role, Permission.USE_AI)
   const locker = canFeedback ? await listLocker(ctx) : []
+  const canApply = hasPermission(ctx.role, Permission.MANAGE_SESSIONS)
+  const sessions = canApply
+    ? await listSessions(ctx, { scope: 'upcoming' })
+    : []
   const title =
     detail.request.kind === 'question'
       ? 'Your question'
@@ -50,6 +56,13 @@ export default async function RecommendationPage({ params }: PageProps) {
         backHref='/recommendations'
         backLabel='Recommendations'
       />
+      {canApply && (
+        <ApplyToSession
+          resultId={detail.id}
+          defaultSessionId={detail.sessionId}
+          sessions={sessions.map((s) => ({ id: s.id, name: s.name }))}
+        />
+      )}
       <RecommendationView
         detail={detail}
         canFeedback={canFeedback}

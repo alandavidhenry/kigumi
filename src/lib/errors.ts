@@ -10,6 +10,7 @@ export type AppErrorCode =
   | 'PLAN_LIMIT'
   | 'FEATURE_NOT_IN_PLAN'
   | 'BAD_REQUEST'
+  | 'CONFLICT'
   | 'CROSS_TENANT'
   | 'RATE_LIMITED'
   | 'AI_UNAVAILABLE'
@@ -22,6 +23,7 @@ const STATUS_BY_CODE: Readonly<Record<AppErrorCode, number>> = {
   PLAN_LIMIT: 403,
   FEATURE_NOT_IN_PLAN: 403,
   BAD_REQUEST: 400,
+  CONFLICT: 409,
   CROSS_TENANT: 404,
   RATE_LIMITED: 429,
   AI_UNAVAILABLE: 503
@@ -70,6 +72,9 @@ export const featureNotInPlan = (featureLabel: string, planLabel: string) =>
 
 export const badRequest = (message: string, details?: unknown) =>
   new AppError('BAD_REQUEST', message, details)
+
+export const conflict = (message: string, details?: unknown) =>
+  new AppError('CONFLICT', message, details)
 
 export const rateLimited = (retryAfterSeconds: number) =>
   new AppError(

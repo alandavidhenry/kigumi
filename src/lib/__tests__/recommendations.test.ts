@@ -290,6 +290,100 @@ describe('previewRecommendation', () => {
     expect(option.warnings.map((w) => w.code)).toContain('other_studio')
   })
 
+  describe('bookings (Phase 5)', () => {
+    const sessionRow = {
+      startsAt: new Date('2026-07-01T09:00:00Z'),
+      endsAt: new Date('2026-07-01T17:00:00Z'),
+      roomId: 'r1',
+      channelsAvailable: 8
+    }
+    const room = {
+      id: 'r1',
+      studioId: 'st1',
+      name: 'Live room',
+      widthMm: 5000,
+      lengthMm: 7000,
+      heightMm: 3000
+    }
+
+    it("excludes units booked in an overlapping session, but not the session's own", async () => {
+      db.recordingSession.findFirst.mockResolvedValue(sessionRow)
+      db.room.findFirst.mockResolvedValue(room)
+      db.inputChannel.findMany.mockResolvedValue([
+        { micUnitId: 'ua', session: { id: 's9', name: 'Other band' } }
+      ])
+      const preview = await previewRecommendation(ctx, {
+        sources: [{ label: 'Lead vocal' }],
+        sessionId: 's1'
+      })
+      expect(preview.rules.excluded).toContainEqual({
+        unitId: 'ua',
+        reason: 'booked'
+      })
+      // The session's own channels are excluded from the booking query.
+      const where = db.inputChannel.findMany.mock.calls[0][0].where
+      expect(where.session).toMatchObject({
+        id: { not: 's1' },
+        status: { not: 'cancelled' },
+        startsAt: { lt: sessionRow.endsAt },
+        endsAt: { gt: sessionRow.startsAt }
+      })
+      // The session fills in the room and channel count.
+      expect(preview.request.roomId).toBe('r1')
+      expect(preview.request.channels).toBe(8)
+    })
+
+    it('treats a session in another organisation as not found', async () => {
+      db.recordingSession.findFirst.mockResolvedValue(null)
+      await expect(
+        previewRecommendation(ctx, {
+          sources: [{ label: 'Lead vocal' }],
+          sessionId: 'someone-elses'
+        })
+      ).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    })
+
+    it('checks the whole day in the studio timezone for a plain date', async () => {
+      db.room.findFirst.mockResolvedValue({
+        ...room,
+        studio: { timezone: 'Europe/London' }
+      })
+      db.inputChannel.findMany.mockResolvedValue([])
+      await previewRecommendation(ctx, {
+        sources: [{ label: 'Lead vocal' }],
+        roomId: 'r1',
+        forDate: '2026-07-01'
+      })
+      const where = db.inputChannel.findMany.mock.calls[0][0].where
+      expect(where.session.startsAt.lt.toISOString()).toBe(
+        '2026-07-01T23:00:00.000Z'
+      )
+      expect(where.session.endsAt.gt.toISOString()).toBe(
+        '2026-06-30T23:00:00.000Z'
+      )
+    })
+
+    it('does not look at bookings when there is no session or date', async () => {
+      await previewRecommendation(ctx, { sources: [{ label: 'Lead vocal' }] })
+      expect(db.inputChannel.findMany).not.toHaveBeenCalled()
+    })
+
+    it('stores the session on the request when generating', async () => {
+      db.recordingSession.findFirst.mockResolvedValue(sessionRow)
+      db.room.findFirst.mockResolvedValue(room)
+      db.inputChannel.findMany.mockResolvedValue([])
+      await createRecommendation(ctx, {
+        sources: [{ label: 'Lead vocal' }],
+        sessionId: 's1'
+      })
+      expect(
+        db.recommendationRequest.create.mock.calls[0][0].data
+      ).toMatchObject({
+        sessionId: 's1'
+      })
+    })
+  })
+
   it('never offers a model that has been unpublished', async () => {
     models = [modelRow('m_u87', 'neumann-u-87-ai', { status: 'draft' })]
     units = [unitRow('ua', 'm_u87')]
