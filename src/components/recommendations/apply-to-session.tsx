@@ -45,15 +45,18 @@ export function ApplyToSession({
   }
 
   const apply = async () => {
+    // Use the id from the server-provided list, never the raw DOM value.
+    const target = sessions.find((s) => s.id === sessionId)
+    if (!target) return
     setBusy(true)
     setError(null)
     setDone(null)
     try {
       const { result } = await apiFetch<{ result: ApplyResult }>(
-        `/api/sessions/${sessionId}/apply-recommendation`,
+        `/api/sessions/${target.id}/apply-recommendation`,
         { method: 'POST', body: { resultId } }
       )
-      setDone({ id: sessionId, result })
+      setDone({ id: target.id, result })
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Could not apply')
     } finally {
