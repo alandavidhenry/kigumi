@@ -89,7 +89,7 @@ export function ItemCareCards({
               No maintenance scheduled for this item.{' '}
               <Link
                 href='/maintenance/plans'
-                className='text-brand hover:underline'
+                className='text-brand underline underline-offset-2'
               >
                 See all plans
               </Link>

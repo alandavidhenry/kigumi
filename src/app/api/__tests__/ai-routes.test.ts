@@ -9,8 +9,9 @@ import {
   GET as getCompare,
   POST as postCompare
 } from '@/app/api/mics/compare/route'
+import { AI_RATE_LIMIT } from '@/lib/ai/config'
 import type { AiProvider, GenerateStructuredRequest } from '@/lib/ai/provider'
-import { aiRateLimiter } from '@/lib/ai/rate-limit'
+import { createRateLimiter, setAiRateLimiter } from '@/lib/ai/rate-limit'
 import { setAiProvider } from '@/lib/ai/registry'
 import { unauthorized } from '@/lib/errors'
 import { PlanTier } from '@/lib/plans'
@@ -153,7 +154,7 @@ function signInAs(role: MemberRole, overrides = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  aiRateLimiter.reset()
+  setAiRateLimiter(createRateLimiter(AI_RATE_LIMIT))
   provider.calls = 0
   reply = () => goodSummary
   setAiProvider(provider)

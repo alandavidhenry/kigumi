@@ -50,7 +50,7 @@ export function SessionActions({
   readonly layoutId: string | null
   readonly canEdit: boolean
   readonly canUseTemplates: boolean
-  readonly share: { token: string; expiresAt: string | null } | null
+  readonly share: { token: string | null; expiresAt: string | null } | null
   readonly recommendations: RecommendationChoice[]
 }) {
   const router = useRouter()
@@ -58,7 +58,8 @@ export function SessionActions({
   const [busy, setBusy] = useState(false)
   const [origin, setOrigin] = useState('')
   useEffect(() => setOrigin(window.location.origin), [])
-  const shareUrl = share && origin ? `${origin}/share/${share.token}` : null
+  const shareUrl =
+    share?.token && origin ? `${origin}/share/${share.token}` : null
 
   const run = async (action: () => Promise<void>) => {
     setBusy(true)
@@ -195,6 +196,12 @@ export function SessionActions({
                   }}
                 />
               </div>
+              {!share.token && (
+                <p className='text-xs text-muted-foreground'>
+                  This link still works but can no longer be shown. Make a new
+                  link to copy it (the old one will stop working).
+                </p>
+              )}
               <p className='text-xs text-muted-foreground'>
                 Anyone with the link can see the layout and input list, but not
                 your notes or serial numbers.

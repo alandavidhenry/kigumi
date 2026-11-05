@@ -2,6 +2,7 @@ import { Plus_Jakarta_Sans, Source_Code_Pro } from 'next/font/google'
 
 import { BreadcrumbProvider } from '@/components/providers/breadcrumb-provider'
 import { ThemeProvider } from '@/components/providers/theme-provider'
+import { SkipLink } from '@/components/skip-link'
 import { Toaster } from '@/components/ui/toaster'
 
 import type { Metadata, Viewport } from 'next'
@@ -60,6 +61,7 @@ export default function RootLayout({
       <body
         className={`${plusJakartaSans.variable} ${sourceCodePro.variable} font-sans`}
       >
+        <SkipLink />
         <ThemeProvider>
           <BreadcrumbProvider>{children}</BreadcrumbProvider>
           <Toaster />

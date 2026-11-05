@@ -26,6 +26,7 @@ const MODEL_METHODS = [
   'findFirstOrThrow',
   'findMany',
   'count',
+  'aggregate',
   'create',
   'createMany',
   'updateMany',
@@ -76,8 +77,12 @@ export function makeFakeDb() {
     notification: fakeModel(),
     // Interactive transactions run against the same fake, so a test sees every
     // write the service makes.
-    $transaction: vi.fn(async (run: (tx: unknown) => unknown) => run(db))
+    $transaction: vi.fn(async (run: (tx: unknown) => unknown) => run(db)),
+    $executeRaw: vi.fn(async () => 0)
   }
+  // Upload checks: an empty owner and no storage used, unless a test says so.
+  db.attachment.count.mockResolvedValue(0)
+  db.attachment.aggregate.mockResolvedValue({ _sum: { sizeBytes: null } })
   return db
 }
 

@@ -12,7 +12,7 @@ Better Auth (`src/lib/auth.ts`) with the Prisma adapter, email + password, **req
 
 Better Auth's access control (`src/lib/auth-permissions.ts`) guards its own org endpoints: owner = ownerAc, manager = adminAc, engineer/viewer = memberAc. Better Auth itself stops non-owners granting or editing the owner role. The client (`src/lib/auth-client.ts`) is used directly by UI for sign-in/up, password reset, organisation create/setActive/update, invite, role change, remove, and accepting invitations.
 
-Auth endpoints are rate-limited in production (Better Auth defaults, e.g. 3 sign-ins per 10 s per IP). `AUTH_RATE_LIMIT=off` disables it and is set only in the E2E workflow, because parallel workers all sign in from 127.0.0.1.
+Auth endpoints are rate-limited in production (Better Auth defaults, e.g. 3 sign-ins per 10 s per IP), with counts in Postgres (`rateLimit` table) so the limit holds across instances. `AUTH_RATE_LIMIT=off` disables it and is set only in the E2E workflow, because parallel workers all sign in from 127.0.0.1. A person may own at most two Free organisations (`organizationLimit`, `hasReachedOrganisationLimit`); organisation deletion is switched off (`disableOrganizationDeletion`) until there is a proper flow (ADR 0019).
 
 Session cookie cache is enabled (5 min) so most requests don't touch Postgres. Note: `organization.create` does not refresh the cached active organisation, so callers must follow it with `organization.setActive` (onboarding does).
 
@@ -30,7 +30,8 @@ Emails (`src/lib/email.ts`) go through ACS. Without ACS configured, development 
 ## App structure
 
 ```
-src/proxy.ts                # optimistic session-cookie redirect for app routes
+src/proxy.ts                # app pages: optimistic session-cookie redirect; /api: refuses cross-site writes (csrf.ts)
+src/instrumentation.ts      # Azure Monitor telemetry when configured; onRequestError logging (ADR 0020)
 src/app/
   page.tsx                  # landing (signed-in users → /dashboard)
   auth/                     # sign-in, sign-up, forgot/reset password, accept-invite/[invitationId]
@@ -82,7 +83,8 @@ src/app/
   api/pat, api/pat/[id]; api/warranties, api/warranties/[id], .../[id]/files; api/equipment/[id]/usage (PUT)
   api/notifications (GET), api/notifications/read (POST)
   api/cron/reminders        # bearer CRON_SECRET, no session; the daily reminder job
-  api/audit-log, api/health, api/health/deep
+  api/cron/housekeeping     # bearer CRON_SECRET; prunes rate-limit rows, sweeps orphaned blobs
+  api/audit-log, api/health (liveness, public), api/health/deep (bearer CRON_SECRET)
 src/lib/                    # all domain logic (tested); the only place that touches Prisma
 src/components/             # shell, providers, ui/ (Radix primitives copied from Minato), studios/, inventory/, auth/
 ```
@@ -106,3 +108,12 @@ Server components read data by calling lib functions directly with the tenant co
 - **Maintenance, warranty and reminders (ADR 0018):** viewers read, engineers and above change (inventory permissions). Time-based plans, the service log and warranties are free; usage-hour plans and the PAT register are Studio (`UpgradeNotice` on the page and in the item card, 403 `FEATURE_NOT_IN_PLAN` from the API); email reminders are Pro. Receipts and invoices take JPEG, PNG, WebP or PDF (8 MB, 6 per record), checked by magic bytes and served only through `/api/attachments/[id]`. The top-bar bell shows your unread count (resolved in the `(app)` layout, so it refreshes on a full load or `router.refresh()`). The dashboard shows upcoming sessions, tasks needing attention, PAT items that need action and warranties about to end, each only if your role and plan can see it. The daily job `runReminders` (`/api/cron/reminders`, called by `.github/workflows/cron-reminders.yml`) is the one place that reads tenant tables without `tenantDb`: it goes organisation by organisation, names `organisationId` in every query and write, creates deduplicated notifications for owners, managers and engineers, and on Pro and above mails each person one digest.
 - **Units:** forms collect metres; storage is millimetres (`metresToMm`, `formatDimensions` in `src/lib/validation.ts`).
 - Tablet-friendly: 36px+ touch rows on small screens, dialogs and lists that work at 768px.
+
+## Hardening (Phase 8, ADR 0021)
+
+- **Request bodies** are read only through `src/lib/request-body.ts` (JSON 1 MB, admin catalogue JSON 5 MB, CSV 2 MB, uploads 8 MB plus framing); over the limit is 413 `PAYLOAD_TOO_LARGE`. Don't call `request.json()` / `formData()` / `text()` in a route.
+- **Security headers** come from `security-headers.mjs` via `next.config.mjs`: a static CSP (`frame-ancestors 'none'`, `object-src 'none'`, `form-action 'self'`, `connect-src 'self'`), `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, COOP, and HSTS when the app URL is HTTPS. Uploaded files get their own sandbox CSP and are excluded from the page CSP.
+- **Uploads** are served by `/api/attachments/[id]` with `uploadedFileHeaders`: images inline, PDFs as downloads, a sanitised file name. The UI re-encodes photos in the browser before upload (`prepareImageForUpload`: no EXIF or GPS, upright, long edge 2048 px).
+- **Cross-site writes** to `/api` (by `Sec-Fetch-Site` or `Origin`) are refused in the proxy with 403. Requests with neither header pass to the normal auth checks.
+- **Logging:** use `logger` (`src/lib/logger.ts`) with a stable event name, never tenant content. Unhandled API errors return an `errorId` that is also logged. See `docs/operations.md` for events, alerts, backups and restores.
+- **Accessibility:** a skip link (`SkipLink`) is the first focus stop on every page and targets `#main`; `e2e/a11y.spec.ts` runs axe (WCAG 2.1 A/AA) on every main page and fails on serious or critical issues.

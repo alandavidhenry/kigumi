@@ -13,6 +13,8 @@ import {
   appUrl,
   beforeCreateInvitation,
   beforeUpdateMemberRole,
+  hasReachedOrganisationLimit,
+  MAX_FREE_OWNED_ORGANISATIONS,
   roleLabel,
   seatLimitFor,
   withDefaultActiveOrganisation
@@ -21,7 +23,7 @@ import prisma from '@/lib/prisma'
 import { countUsedSeats } from '@/lib/seats'
 
 vi.mock('@/lib/prisma', () => ({
-  default: { member: { findFirst: vi.fn() } }
+  default: { member: { findFirst: vi.fn(), count: vi.fn() } }
 }))
 vi.mock('@/lib/audit', () => ({ writeAuditLog: vi.fn() }))
 vi.mock('@/lib/seats', () => ({ countUsedSeats: vi.fn() }))
@@ -48,6 +50,31 @@ describe('appUrl', () => {
     expect(appUrl('/auth/accept-invite/1')).toBe(
       'https://app.kigumi.io/auth/accept-invite/1'
     )
+  })
+})
+
+describe('hasReachedOrganisationLimit', () => {
+  it('counts only Free organisations the user owns', async () => {
+    vi.mocked(prisma.member.count).mockResolvedValue(0)
+    await hasReachedOrganisationLimit({ id: 'user_1' })
+    expect(prisma.member.count).toHaveBeenCalledWith({
+      where: {
+        userId: 'user_1',
+        role: 'owner',
+        organization: { planTier: 'free' }
+      }
+    })
+  })
+
+  it('allows creating below the limit and refuses at it', async () => {
+    vi.mocked(prisma.member.count).mockResolvedValue(
+      MAX_FREE_OWNED_ORGANISATIONS - 1
+    )
+    expect(await hasReachedOrganisationLimit({ id: 'user_1' })).toBe(false)
+    vi.mocked(prisma.member.count).mockResolvedValue(
+      MAX_FREE_OWNED_ORGANISATIONS
+    )
+    expect(await hasReachedOrganisationLimit({ id: 'user_1' })).toBe(true)
   })
 })
 

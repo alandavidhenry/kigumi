@@ -1,10 +1,20 @@
 import { NextResponse } from 'next/server'
 
+import { toErrorResponse } from '@/lib/api'
+import { assertCronAuthorised } from '@/lib/cron'
 import { checkDatabase, checkStorage } from '@/lib/health'
 
-// Deep dependency check (DB + Blob Storage) — used only by the CI/CD smoke
-// test, not by Azure's continuous health monitor. See GET /api/health.
-export async function GET() {
+// Deep dependency check (DB + Blob Storage), used only by the CI/CD smoke test,
+// not by Azure's continuous health monitor (see GET /api/health). It needs the
+// same bearer secret as the cron routes: left open, anyone could keep Neon
+// awake and read which dependency is down.
+export async function GET(request: Request) {
+  try {
+    assertCronAuthorised(request)
+  } catch (error) {
+    return toErrorResponse(error)
+  }
+
   const [db, storage] = await Promise.all([checkDatabase(), checkStorage()])
 
   const checks = {
@@ -15,6 +25,6 @@ export async function GET() {
 
   return NextResponse.json(
     { status: allOk ? 'ok' : 'degraded', checks },
-    { status: allOk ? 200 : 503 }
+    { status: allOk ? 200 : 503, headers: { 'cache-control': 'no-store' } }
   )
 }

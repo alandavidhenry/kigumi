@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { DELETE as deleteAttachmentRoute } from '@/app/api/attachments/[attachmentId]/route'
+import {
+  DELETE as deleteAttachmentRoute,
+  GET as getAttachmentRoute
+} from '@/app/api/attachments/[attachmentId]/route'
 import { POST as postPhoto } from '@/app/api/equipment/[equipmentId]/photos/route'
 import {
   DELETE as deleteItem,
@@ -30,7 +33,7 @@ vi.mock('@/lib/audit', () => ({ recordAudit: vi.fn() }))
 vi.mock('@/lib/storage', () => ({
   blobPathFor: () => 'p',
   uploadBlob: vi.fn(),
-  downloadBlob: vi.fn(),
+  downloadBlob: vi.fn(async () => Buffer.from('%PDF-1.7')),
   deleteBlob: vi.fn()
 }))
 
@@ -74,6 +77,23 @@ describe('/api/equipment', () => {
     expect(response.status).toBe(200)
     expect(db.equipmentItem.findMany.mock.calls[0][0].where).toMatchObject({
       category: 'cable'
+    })
+  })
+
+  it('pages the list and reports the totals', async () => {
+    db.equipmentItem.count.mockResolvedValue(230)
+    db.equipmentItem.findMany.mockResolvedValue([])
+    const response = await listRoute(
+      new Request('http://localhost/api/equipment?page=3&status=repair')
+    )
+    expect(await response.json()).toMatchObject({
+      total: 230,
+      page: 3,
+      pageCount: 3
+    })
+    expect(db.equipmentItem.findMany.mock.calls[0][0]).toMatchObject({
+      skip: 200,
+      where: { status: 'repair' }
     })
   })
 
@@ -174,6 +194,35 @@ describe('photos and attachments', () => {
     const response = await postPhoto(
       new Request('http://localhost/api', { method: 'POST', body: form }),
       params(item)
+    )
+    expect(response.status).toBe(404)
+  })
+
+  it('GET attachment serves a PDF as a sandboxed download', async () => {
+    db.attachment.findFirst.mockResolvedValue({
+      blobPath: 'org/a1.pdf',
+      mimeType: 'application/pdf',
+      fileName: 'receipt "march".pdf',
+      entityType: 'warranty'
+    })
+    const response = await getAttachmentRoute(
+      plain(),
+      params({ attachmentId: 'a1' })
+    )
+    expect(response.status).toBe(200)
+    expect(response.headers.get('content-type')).toBe('application/pdf')
+    expect(response.headers.get('content-disposition')).toMatch(
+      /^attachment; filename="receipt _march_.pdf"/
+    )
+    expect(response.headers.get('content-security-policy')).toContain('sandbox')
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff')
+  })
+
+  it('GET attachment 404s across organisations', async () => {
+    db.attachment.findFirst.mockResolvedValue(null)
+    const response = await getAttachmentRoute(
+      plain(),
+      params({ attachmentId: 'a1' })
     )
     expect(response.status).toBe(404)
   })

@@ -22,3 +22,6 @@ One short file per decision: `NNNN-title.md` with **Status**, **Context**, **Dec
 | 0016 | [Layouts, sessions and input list](0016-layouts-sessions-input-list.md)            | Accepted |
 | 0017 | [Console definitions and recall sheets](0017-console-recall-sheets.md)             | Accepted |
 | 0018 | [Maintenance, PAT, warranty and reminders](0018-maintenance-warranty-reminders.md) | Accepted |
+| 0019 | [Backups and restore](0019-backups-and-restore.md)                                 | Accepted |
+| 0020 | [Observability](0020-observability.md)                                             | Accepted |
+| 0021 | [Phase 8 security hardening](0021-phase-8-security-hardening.md)                   | Accepted |

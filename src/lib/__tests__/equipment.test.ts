@@ -6,6 +6,8 @@ import {
   deleteEquipment,
   getEquipment,
   listEquipment,
+  listEquipmentPage,
+  EQUIPMENT_PAGE_SIZE,
   updateEquipment
 } from '@/lib/equipment'
 import { AppError } from '@/lib/errors'
@@ -94,6 +96,50 @@ describe('listEquipment', () => {
     await expect(
       listEquipment(viewer, { category: 'toaster' })
     ).rejects.toThrow()
+  })
+})
+
+describe('listEquipmentPage', () => {
+  it('reads one page of the filtered list, with a stable order', async () => {
+    db.equipmentItem.count.mockResolvedValue(250)
+    db.equipmentItem.findMany.mockResolvedValue([raw])
+    const result = await listEquipmentPage(viewer, { category: 'cable' }, '2')
+    expect(result).toMatchObject({
+      total: 250,
+      page: 2,
+      pageCount: 3,
+      pageSize: EQUIPMENT_PAGE_SIZE
+    })
+    expect(db.equipmentItem.count.mock.calls[0][0].where).toMatchObject({
+      category: 'cable'
+    })
+    const query = db.equipmentItem.findMany.mock.calls[0][0]
+    expect(query).toMatchObject({
+      skip: EQUIPMENT_PAGE_SIZE,
+      take: EQUIPMENT_PAGE_SIZE,
+      where: { category: 'cable' }
+    })
+    expect(query.orderBy.at(-1)).toEqual({ id: 'asc' })
+  })
+
+  it('falls back to the first or last page for junk or out-of-range pages', async () => {
+    db.equipmentItem.count.mockResolvedValue(150)
+    db.equipmentItem.findMany.mockResolvedValue([])
+    expect((await listEquipmentPage(viewer, {}, 'lots')).page).toBe(1)
+    expect((await listEquipmentPage(viewer, {}, '-3')).page).toBe(1)
+    expect((await listEquipmentPage(viewer, {}, '99')).page).toBe(2)
+  })
+
+  it('is one empty page when nothing matches', async () => {
+    db.equipmentItem.count.mockResolvedValue(0)
+    db.equipmentItem.findMany.mockResolvedValue([])
+    expect(await listEquipmentPage(viewer)).toMatchObject({
+      items: [],
+      total: 0,
+      page: 1,
+      pageCount: 1
+    })
+    expect(db.equipmentItem.findMany.mock.calls[0][0].skip).toBe(0)
   })
 })
 

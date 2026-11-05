@@ -1,0 +1,67 @@
+name: Backup — nightly database dump
+
+# An independent logical backup of the production database (ADR 0019). Neon's
+# point-in-time restore is the first line; this copy survives losing the Neon
+# project or account. The dump is checked for readability before upload and
+# lands in a separate storage account whose container has an immutability
+# (WORM) policy and lifecycle rules (docs/operations.md).
+#
+# Repository secrets (set once the app is deployed):
+#   BACKUP_DATABASE_URL                a read-only role's connection string
+#   BACKUP_STORAGE_CONNECTION_STRING   the backup storage account, not the app's
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: backup-db
+  cancel-in-progress: false
+
+jobs:
+  dump:
+    name: Dump, verify and upload
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      BACKUP_DATABASE_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+      BACKUP_STORAGE_CONNECTION_STRING: ${{ secrets.BACKUP_STORAGE_CONNECTION_STRING }}
+      CONTAINER: db-backups
+    steps:
+      - name: Check configuration
+        run: |
+          if [ -z "$BACKUP_DATABASE_URL" ] || [ -z "$BACKUP_STORAGE_CONNECTION_STRING" ]; then
+            echo "::error::BACKUP_DATABASE_URL and BACKUP_STORAGE_CONNECTION_STRING must be set as repository secrets"
+            exit 1
+          fi
+
+      - name: Dump (pg_dump 17, custom format)
+        run: |
+          FILE="kigumi-$(date -u +%Y-%m-%dT%H%M%SZ).dump"
+          echo "FILE=$FILE" >> "$GITHUB_ENV"
+          docker run --rm -v "$PWD:/out" -e DATABASE_URL="$BACKUP_DATABASE_URL" \
+            postgres:17 \
+            sh -c 'pg_dump --format=custom --no-owner --no-privileges --dbname "$DATABASE_URL" --file "/out/'"$FILE"'"'
+          ls -l "$FILE"
+
+      - name: Verify the archive is readable
+        run: |
+          docker run --rm -v "$PWD:/out" postgres:17 \
+            pg_restore --list "/out/$FILE" > toc.txt
+          # A dump without the core tables is not a backup.
+          for table in Organization Member EquipmentItem Attachment _prisma_migrations; do
+            grep -q "TABLE public \"\?$table\"\? " toc.txt || grep -q "TABLE DATA public \"\?$table\"\? " toc.txt || {
+              echo "::error::$table is missing from the dump"; exit 1; }
+          done
+          sha256sum "$FILE" | tee "$FILE.sha256"
+
+      - name: Upload
+        run: |
+          az storage blob upload --only-show-errors \
+            --connection-string "$BACKUP_STORAGE_CONNECTION_STRING" \
+            --container-name "$CONTAINER" --name "$FILE" --file "$FILE"
+          az storage blob upload --only-show-errors \
+            --connection-string "$BACKUP_STORAGE_CONNECTION_STRING" \
+            --container-name "$CONTAINER" --name "$FILE.sha256" --file "$FILE.sha256"

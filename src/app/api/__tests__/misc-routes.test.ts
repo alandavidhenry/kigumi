@@ -1,11 +1,16 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { GET as auditLogRoute } from '@/app/api/audit-log/route'
+import {
+  GET as housekeepingGet,
+  POST as housekeepingPost
+} from '@/app/api/cron/housekeeping/route'
 import { GET as deepHealth } from '@/app/api/health/deep/route'
 import { GET as health } from '@/app/api/health/route'
 import { listAuditLog } from '@/lib/audit'
 import { featureNotInPlan } from '@/lib/errors'
 import { checkDatabase, checkStorage } from '@/lib/health'
+import { runHousekeeping } from '@/lib/housekeeping'
 import { PlanTier } from '@/lib/plans'
 import { getTenantContext } from '@/lib/tenant-context'
 import { makeContext } from '@/test/fixtures'
@@ -17,6 +22,7 @@ vi.mock('@/lib/tenant-context', async (importOriginal) => ({
 }))
 vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: vi.fn() } } }))
 vi.mock('@/lib/audit', () => ({ listAuditLog: vi.fn() }))
+vi.mock('@/lib/housekeeping', () => ({ runHousekeeping: vi.fn() }))
 vi.mock('@/lib/health', () => ({
   checkDatabase: vi.fn(),
   checkStorage: vi.fn()
@@ -36,10 +42,43 @@ describe('GET /api/health', () => {
 })
 
 describe('GET /api/health/deep', () => {
+  const authed = () =>
+    new Request('http://x/api/health/deep', {
+      headers: { authorization: 'Bearer health-secret' }
+    })
+
+  beforeEach(() => {
+    vi.stubEnv('CRON_SECRET', 'health-secret')
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('401s without the secret and checks nothing', async () => {
+    const response = await deepHealth(new Request('http://x/api/health/deep'))
+    expect(response.status).toBe(401)
+    expect(checkDatabase).not.toHaveBeenCalled()
+    expect(checkStorage).not.toHaveBeenCalled()
+  })
+
+  it('401s with a wrong secret', async () => {
+    const response = await deepHealth(
+      new Request('http://x/api/health/deep', {
+        headers: { authorization: 'Bearer nope' }
+      })
+    )
+    expect(response.status).toBe(401)
+  })
+
+  it('401s when no secret is configured', async () => {
+    vi.stubEnv('CRON_SECRET', '')
+    expect((await deepHealth(authed())).status).toBe(401)
+  })
+
   it('is 200 when the database and storage are up', async () => {
     vi.mocked(checkDatabase).mockResolvedValue(true)
     vi.mocked(checkStorage).mockResolvedValue(true)
-    const response = await deepHealth()
+    const response = await deepHealth(authed())
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual({
       status: 'ok',
@@ -50,7 +89,7 @@ describe('GET /api/health/deep', () => {
   it('is 503 when a dependency is down', async () => {
     vi.mocked(checkDatabase).mockResolvedValue(false)
     vi.mocked(checkStorage).mockResolvedValue(true)
-    const response = await deepHealth()
+    const response = await deepHealth(authed())
     expect(response.status).toBe(503)
     expect((await response.json()).checks.db).toBe('error')
   })
@@ -86,5 +125,40 @@ describe('GET /api/audit-log', () => {
     const response = await auditLogRoute(new Request('http://x/api/audit-log'))
     expect(response.status).toBe(403)
     expect((await response.json()).code).toBe('FEATURE_NOT_IN_PLAN')
+  })
+})
+
+describe('/api/cron/housekeeping', () => {
+  beforeEach(() => {
+    vi.stubEnv('CRON_SECRET', 'cron-secret')
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  const call = (handler: typeof housekeepingPost, authorization?: string) =>
+    handler(
+      new Request('http://x/api/cron/housekeeping', {
+        method: 'POST',
+        headers: authorization ? { authorization } : {}
+      })
+    )
+
+  it('401s without the secret and runs nothing', async () => {
+    expect((await call(housekeepingPost)).status).toBe(401)
+    expect((await call(housekeepingPost, 'Bearer nope')).status).toBe(401)
+    expect(runHousekeeping).not.toHaveBeenCalled()
+  })
+
+  it('runs with the secret and needs no session', async () => {
+    vi.mocked(runHousekeeping).mockResolvedValue({
+      aiRateWindows: 1,
+      authRateLimits: 0,
+      orphanBlobs: { scanned: 2, deleted: 1, stoppedAtLimit: false }
+    })
+    const response = await call(housekeepingGet, 'Bearer cron-secret')
+    expect(response.status).toBe(200)
+    expect((await response.json()).orphanBlobs.deleted).toBe(1)
+    expect(getTenantContext).not.toHaveBeenCalled()
   })
 })

@@ -13,6 +13,7 @@ npm run format         # Format with Prettier
 npm run format:check   # Check formatting without writing
 npm run checks         # Lint + format check + TypeScript type check + tests
 npm test               # Run all Vitest tests (unit + integration)
+npm run test:db        # Tenant isolation against real Postgres (needs docker:up; recreates kigumi_test)
 npm run test:watch     # Run tests in watch mode
 npm run test:coverage  # Run tests with coverage report (src/lib)
 npm run test:e2e       # Playwright E2E (needs docker:up + migrated/seeded DB; starts dev server if none running)
@@ -25,7 +26,7 @@ npm run mics:derive     # Derive FR / polar points from open-dataset impulse res
 npm run recs:eval       # Golden recommendation scenarios; add --offline for no model. Run and commit the report when the prompt changes
 ```
 
-`npm run checks` is the full quality gate. Husky runs it on pre-commit (plus gitleaks if installed). `npm run test:e2e` and `npm run build` are not part of `checks`; run them at the end of a phase or when UI/auth changed. See `README.md` for first-time setup.
+`npm run checks` is the full quality gate. Husky runs it on pre-commit (plus gitleaks if installed). `npm run test:db`, `npm run test:e2e` and `npm run build` are not part of `checks`; run them at the end of a phase, when a route or tenant query changed (`test:db`), or when UI/auth changed. CI runs all of them. See `README.md` for first-time setup.
 
 ## Architecture
 
@@ -38,6 +39,7 @@ Detail lives in `docs/`. **Read the relevant file before working in that area** 
 - `docs/architecture.md`: auth, tenancy, routes, UI patterns
 - `docs/data-model.md`: Prisma models and key lib functions
 - `docs/testing.md`: what is covered where, and how
+- `docs/operations.md`: scheduled jobs, logging events and alerts, backups and restores
 - `docs/PLAN.md`: product plan and phases; `docs/decisions/`: ADRs; `future-considerations.md`: open work
 
 Always-relevant patterns:
@@ -50,6 +52,7 @@ Always-relevant patterns:
 - `src/proxy.ts` is the Next.js 16 proxy (not `middleware`). It only does an optimistic session-cookie redirect; real checks happen server-side.
 - **AI (ADR 0007, 0013):** only `src/lib/ai/service.ts` (`generateCached`) calls a model. Prompts are versioned modules in `src/lib/ai/prompts/` (bump `version` when they change); output is Zod-validated and any number not in the supplied data is rejected. The `AiSummary` cache is global, so its input must be catalogue data only, never tenant data. Paid calls also count against a platform-wide daily cap (ADR 0014). Generating needs `Permission.USE_AI` and spends the monthly allowance; AI output is always labelled AI-generated.
 - **Recommendations (ADR 0015):** `src/lib/recommendations/`. Rules first (`runRules`, pure, golden-tested in `eval/recommendations/`), then the model ranks only the candidates through `generateForTenant` (a `TenantPrompt`, never `generateCached`). Profile tables and weights are heuristics: bump `PROFILES_VERSION` / `RULES_VERSION` / the prompt version and re-run `recs:eval` when they change.
+- **Hardening (ADR 0021):** read request bodies only through `src/lib/request-body.ts` (bounded); log through `logger` (`src/lib/logger.ts`) with a stable event name and no tenant content; every new tenant route needs a case in `tenant-isolation.db.test.ts` (a coverage check enforces it) and must call `getTenantContext()` (`route-inventory.test.ts`).
 - Prisma nullable JSON: use `toJsonValue` from `src/lib/prisma-json.ts`.
 - Lengths in millimetres, angles in degrees, times in UTC.
 
@@ -72,11 +75,14 @@ AI_DAILY_REQUEST_CAP=         # platform-wide daily ceiling (default 100 dev / 1
 AI_PROVIDER=                  # "local" = Ollama/LM Studio for free dev testing (needs AI_LOCAL_MODEL; refused in production)
 AI_MODEL_DEFAULT=claude-sonnet-5-5
 AI_MODEL_FAST=claude-haiku-5-5
+APPLICATIONINSIGHTS_CONNECTION_STRING=  # production telemetry (ADR 0020); blank = off
+OTEL_TRACES_SAMPLER_RATIO=    # 0-1, default 1
+TEST_DATABASE_URL=            # optional; npm run test:db defaults to kigumi_test on the docker-compose Postgres
 ```
 
 ## Deployment
 
-Same target as Minato: Docker → GHCR → Azure App Service, Neon Postgres. The deploy workflows and Terraform are **not set up yet** (planned for a later phase). CI today (`.github/workflows/pr-check.yml`): lint/format/types/tests → security scan (npm audit on production deps + gitleaks) → Playwright E2E against a built app → Docker build (no push). Health checks are split like Minato's: `/api/health` is liveness only (no DB, so Neon can autosuspend) and `/api/health/deep` checks DB and Blob.
+Same target as Minato: Docker → GHCR → Azure App Service, Neon Postgres. The deploy workflows and Terraform are **not set up yet** (planned for a later phase). CI today (`.github/workflows/pr-check.yml`): lint/format/types/tests → security scan (npm audit on production deps + gitleaks) → Playwright E2E against a built app → Docker build (no push). Health checks are split like Minato's: `/api/health` is liveness only (no DB, so Neon can autosuspend) and `/api/health/deep` checks DB and Blob (bearer `CRON_SECRET`). Backups, the restore drill and housekeeping run from GitHub Actions; see `docs/operations.md`.
 
 ## Code Style
 

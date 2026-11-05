@@ -168,39 +168,52 @@ export async function storePhoto(
     throw badRequest('That file is not a valid image or PDF')
   }
 
-  const existing = await db.attachment.findMany({
-    select: { entityId: true, sizeBytes: true }
-  })
-  if (
-    existing.filter((row) => row.entityId === owner.entityId).length >=
-    owner.maxPhotos
-  ) {
-    throw badRequest(`At most ${owner.maxPhotos} files here`)
-  }
-  const usedBytes = existing.reduce((sum, row) => sum + row.sizeBytes, 0)
-  const limitBytes = getPlanLimits(ctx.planTier).storageMb * 1024 * 1024
-  if (usedBytes + file.data.length > limitBytes) {
-    throw badRequest("Your plan's storage limit has been reached")
-  }
-
   const id = randomUUID()
   const blobPath = blobPathFor(ctx.organisationId, id, EXTENSIONS[sniffed])
-  await uploadBlob(blobPath, file.data, sniffed)
+  const limitBytes = getPlanLimits(ctx.planTier).storageMb * 1024 * 1024
 
-  return db.attachment.create({
-    data: {
-      id,
-      organisationId: ctx.organisationId,
-      entityType: owner.entityType,
-      entityId: owner.entityId,
-      blobPath,
-      fileName: file.name.slice(0, 200) || 'photo',
-      mimeType: sniffed,
-      sizeBytes: file.data.length,
-      kind: document?.kind ?? 'photo'
-    },
-    select: attachmentSelect
+  // Check and reserve under a per-organisation lock, so two uploads at once
+  // can't both pass the per-owner and storage checks. The row is written
+  // before the blob: a failed upload takes the row back, so a database error
+  // can never leave a stray blob (the housekeeping sweep catches crashes).
+  const row = await db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${ctx.organisationId}))`
+    const [onOwner, usage] = await Promise.all([
+      tx.attachment.count({
+        where: { entityType: owner.entityType, entityId: owner.entityId }
+      }),
+      tx.attachment.aggregate({ _sum: { sizeBytes: true } })
+    ])
+    if (onOwner >= owner.maxPhotos) {
+      throw badRequest(`At most ${owner.maxPhotos} files here`)
+    }
+    const usedBytes = usage._sum.sizeBytes ?? 0
+    if (usedBytes + file.data.length > limitBytes) {
+      throw badRequest("Your plan's storage limit has been reached")
+    }
+    return tx.attachment.create({
+      data: {
+        id,
+        organisationId: ctx.organisationId,
+        entityType: owner.entityType,
+        entityId: owner.entityId,
+        blobPath,
+        fileName: file.name.slice(0, 200) || 'photo',
+        mimeType: sniffed,
+        sizeBytes: file.data.length,
+        kind: document?.kind ?? 'photo'
+      },
+      select: attachmentSelect
+    })
   })
+
+  try {
+    await uploadBlob(blobPath, file.data, sniffed)
+  } catch (error) {
+    await db.attachment.deleteMany({ where: { id } }).catch(() => undefined)
+    throw error
+  }
+  return row
 }
 
 export async function addEquipmentPhoto(
@@ -246,8 +259,15 @@ export async function getAttachmentFile(
   })
   if (!row) throw notFound('Attachment')
   requirePermission(ctx, VIEW_BY_ENTITY[entityOf(row.entityType)])
+  const data = await downloadBlob(row.blobPath).catch((error: unknown) => {
+    // A row whose upload never finished (the process died mid-request).
+    if ((error as { statusCode?: number }).statusCode === 404) {
+      throw notFound('Attachment')
+    }
+    throw error
+  })
   return {
-    data: await downloadBlob(row.blobPath),
+    data,
     mimeType: row.mimeType,
     fileName: row.fileName
   }

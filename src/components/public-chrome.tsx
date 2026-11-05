@@ -23,7 +23,13 @@ export function PublicChrome({
           <ThemeToggle />
         </div>
       </header>
-      <main className='flex flex-1 flex-col'>{children}</main>
+      <main
+        id='main'
+        tabIndex={-1}
+        className='outline-none flex flex-1 flex-col'
+      >
+        {children}
+      </main>
     </div>
   )
 }

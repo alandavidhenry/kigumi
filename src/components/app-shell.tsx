@@ -186,7 +186,13 @@ export function AppShell({
             </div>
           </header>
 
-          <main className='min-w-0 flex-1 overflow-y-auto'>
+          <main
+            id='main'
+            // Focusable (0, not -1): it is the scroll container, and keyboard
+            // users must be able to scroll pages that have no links in them.
+            tabIndex={0}
+            className='outline-none min-w-0 flex-1 overflow-y-auto'
+          >
             <div className='mx-auto max-w-6xl p-4 md:p-6'>{children}</div>
           </main>
         </div>

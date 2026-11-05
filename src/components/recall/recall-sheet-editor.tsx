@@ -14,6 +14,7 @@ import { NativeSelect } from '@/components/ui/native-select'
 import { Textarea } from '@/components/ui/textarea'
 import { toast } from '@/components/ui/use-toast'
 import { apiFetch } from '@/lib/client-api'
+import { prepareImageForUpload } from '@/lib/client-image'
 import { recallLines } from '@/lib/recall/format'
 import type {
   OutboardView,
@@ -499,7 +500,8 @@ export function RecallSheetEditor({
     setUploading(true)
     try {
       const body = new FormData()
-      body.append('file', file)
+      // Strips location and other metadata and downsizes large photos.
+      body.append('file', await prepareImageForUpload(file))
       const response = await fetch(`/api/sessions/${sessionId}/recall/photos`, {
         method: 'POST',
         body

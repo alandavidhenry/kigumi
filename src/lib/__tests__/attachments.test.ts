@@ -125,26 +125,70 @@ describe('addEquipmentPhoto', () => {
     expect(uploadBlob).not.toHaveBeenCalled()
   })
 
-  it('caps photos per item', async () => {
-    db.attachment.findMany.mockResolvedValue(
-      Array.from({ length: MAX_PHOTOS_PER_ITEM }, () => ({
-        entityId: 'e1',
-        sizeBytes: 10
-      }))
-    )
+  it('caps photos per item, counting only that item', async () => {
+    db.attachment.count.mockResolvedValue(MAX_PHOTOS_PER_ITEM)
     expect(await code(addEquipmentPhoto(owner, 'e1', photo()))).toBe(
       'BAD_REQUEST'
     )
+    expect(db.attachment.count.mock.calls[0][0].where).toEqual({
+      entityType: 'equipment',
+      entityId: 'e1'
+    })
+  })
+
+  it('totals storage with an aggregate, not by loading every row', async () => {
+    await addEquipmentPhoto(owner, 'e1', photo())
+    expect(db.attachment.aggregate).toHaveBeenCalledWith({
+      _sum: { sizeBytes: true }
+    })
+    expect(db.attachment.findMany).not.toHaveBeenCalled()
   })
 
   it('enforces the plan storage limit', async () => {
-    db.attachment.findMany.mockResolvedValue([
-      { entityId: 'other', sizeBytes: 250 * 1024 * 1024 }
-    ])
+    db.attachment.aggregate.mockResolvedValue({
+      _sum: { sizeBytes: 250 * 1024 * 1024 }
+    })
     const free = makeContext({ planTier: PlanTier.FREE })
     expect(await code(addEquipmentPhoto(free, 'e1', photo()))).toBe(
       'BAD_REQUEST'
     )
+  })
+
+  it('checks and reserves under a per-organisation lock, before uploading', async () => {
+    const order: string[] = []
+    db.$executeRaw.mockImplementation(async () => {
+      order.push('lock')
+      return 0
+    })
+    db.attachment.count.mockImplementation(async () => {
+      order.push('count')
+      return 0
+    })
+    db.attachment.create.mockImplementation(async () => {
+      order.push('create')
+      return { id: 'a1' }
+    })
+    vi.mocked(uploadBlob).mockImplementation(async () => {
+      order.push('upload')
+    })
+    await addEquipmentPhoto(owner, 'e1', photo())
+    expect(db.$transaction).toHaveBeenCalledTimes(1)
+    expect(order).toEqual(['lock', 'count', 'create', 'upload'])
+    const lock = db.$executeRaw.mock.calls[0] as unknown[]
+    expect((lock[0] as string[]).join('?')).toContain('pg_advisory_xact_lock')
+    expect(lock[1]).toBe('org_1')
+  })
+
+  it('takes the row back when the upload fails', async () => {
+    vi.mocked(uploadBlob).mockRejectedValueOnce(new Error('storage down'))
+    db.attachment.deleteMany.mockResolvedValue({ count: 1 })
+    await expect(addEquipmentPhoto(owner, 'e1', photo())).rejects.toThrow(
+      'storage down'
+    )
+    const created = db.attachment.create.mock.calls[0][0].data.id
+    expect(db.attachment.deleteMany).toHaveBeenCalledWith({
+      where: { id: created }
+    })
   })
 
   it('forbids viewers', async () => {
@@ -165,6 +209,18 @@ describe('getAttachmentFile', () => {
     expect(await getAttachmentFile(viewer, 'a1')).toMatchObject({
       mimeType: 'image/png'
     })
+  })
+
+  it('404s when the row exists but its upload never finished', async () => {
+    db.attachment.findFirst.mockResolvedValue({
+      blobPath: 'org_1/a.png',
+      mimeType: 'image/png',
+      fileName: 'a.png'
+    })
+    vi.mocked(downloadBlob).mockRejectedValue(
+      Object.assign(new Error('BlobNotFound'), { statusCode: 404 })
+    )
+    expect(await code(getAttachmentFile(viewer, 'a1'))).toBe('NOT_FOUND')
   })
 
   it('404s across organisations without touching storage', async () => {
@@ -215,10 +271,7 @@ describe('desk photos (recall_sheet owner)', () => {
   })
 
   it('rejects a fake image, an oversize file and a full sheet', async () => {
-    db.attachment.findMany.mockResolvedValue([
-      { entityId: 'rs1', sizeBytes: 10 },
-      { entityId: 'rs1', sizeBytes: 10 }
-    ])
+    db.attachment.count.mockResolvedValue(2)
     const owner = { entityType: 'recall_sheet', entityId: 'rs1', maxPhotos: 2 }
     expect(
       await code(

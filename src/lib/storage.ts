@@ -47,3 +47,14 @@ export async function downloadBlob(path: string): Promise<Buffer> {
 export async function deleteBlob(path: string): Promise<void> {
   await getContainer().getBlockBlobClient(path).deleteIfExists()
 }
+
+// Every blob in the container with its last-modified time, for the orphan
+// sweep in src/lib/housekeeping.ts.
+export async function* listBlobs(): AsyncGenerator<{
+  path: string
+  lastModified: Date
+}> {
+  for await (const blob of getContainer().listBlobsFlat()) {
+    yield { path: blob.name, lastModified: blob.properties.lastModified }
+  }
+}

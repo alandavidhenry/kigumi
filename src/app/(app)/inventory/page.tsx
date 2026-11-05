@@ -1,4 +1,4 @@
-import { Boxes, ChevronRight, Download, Plus } from 'lucide-react'
+import { Boxes, ChevronLeft, ChevronRight, Download, Plus } from 'lucide-react'
 import Link from 'next/link'
 
 import { EmptyState } from '@/components/empty-state'
@@ -10,7 +10,11 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { UpgradeNotice } from '@/components/upgrade-notice'
-import { countEquipment, listEquipment, listRoomOptions } from '@/lib/equipment'
+import {
+  countEquipment,
+  listEquipmentPage,
+  listRoomOptions
+} from '@/lib/equipment'
 import {
   EQUIPMENT_CATEGORY_LABELS,
   EQUIPMENT_STATUS_LABELS
@@ -48,11 +52,20 @@ export default async function InventoryPage({
   const filtered = Object.keys(filter).length > 0
 
   const ctx = await getTenantContext()
-  const [items, total, rooms] = await Promise.all([
-    listEquipment(ctx, filter),
+  const [result, total, rooms] = await Promise.all([
+    listEquipmentPage(ctx, filter, first(raw.page)),
     countEquipment(ctx),
     listRoomOptions(ctx)
   ])
+  const items = result.items
+  const pageHref = (page: number) => {
+    const params = new URLSearchParams(filter)
+    if (page > 1) params.set('page', String(page))
+    const query = params.toString()
+    return `/inventory${query ? `?${query}` : ''}`
+  }
+  const firstShown = (result.page - 1) * result.pageSize + 1
+  const lastShown = firstShown + items.length - 1
   const canManage = hasPermission(ctx.role, Permission.MANAGE_INVENTORY)
   const withinPlan = canAdd(ctx.planTier, 'inventoryItems', total)
   const upgradeTier = upgradeTierFor(ctx.planTier, 'inventoryItems', total)
@@ -161,6 +174,45 @@ export default async function InventoryPage({
             </Link>
           ))}
         </Card>
+      )}
+
+      {result.pageCount > 1 && (
+        <nav
+          aria-label='Inventory pages'
+          className='flex flex-wrap items-center justify-between gap-2 text-sm'
+        >
+          <p className='text-muted-foreground'>
+            Showing {firstShown}–{lastShown} of {result.total}
+          </p>
+          <div className='flex gap-2'>
+            {result.page > 1 ? (
+              <Button asChild variant='surface' size='sm'>
+                <Link href={pageHref(result.page - 1)} rel='prev'>
+                  <ChevronLeft />
+                  Previous
+                </Link>
+              </Button>
+            ) : (
+              <Button variant='surface' size='sm' disabled>
+                <ChevronLeft />
+                Previous
+              </Button>
+            )}
+            {result.page < result.pageCount ? (
+              <Button asChild variant='surface' size='sm'>
+                <Link href={pageHref(result.page + 1)} rel='next'>
+                  Next
+                  <ChevronRight />
+                </Link>
+              </Button>
+            ) : (
+              <Button variant='surface' size='sm' disabled>
+                Next
+                <ChevronRight />
+              </Button>
+            )}
+          </div>
+        </nav>
       )}
     </div>
   )

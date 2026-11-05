@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { recordAudit } from '@/lib/audit'
 import { badRequest, conflict, notFound } from '@/lib/errors'
 import { Feature } from '@/lib/plans'
-import { layoutSelect, toLayoutDoc } from '@/lib/sessions/queries'
+import { itemSelect, layoutSelect, toLayoutDoc } from '@/lib/sessions/queries'
 import type { Db } from '@/lib/sessions/queries'
 import { syncInputList } from '@/lib/sessions/sync'
 import { requireFeature, requirePermission } from '@/lib/tenant-context'
@@ -11,7 +11,7 @@ import type { TenantContext } from '@/lib/tenant-context'
 import { tenantDb } from '@/lib/tenant-db'
 import { Permission } from '@/types/rbac'
 
-import { diffItems } from './diff'
+import { changedItems, diffItems } from './diff'
 import {
   saveLayoutSchema,
   templateInputSchema,
@@ -103,7 +103,7 @@ export async function saveLayout(
       version: true,
       sessionId: true,
       isTemplate: true,
-      items: { select: { id: true, type: true, micUnitId: true } }
+      items: { select: itemSelect }
     }
   })
   if (!layout) throw notFound('Layout')
@@ -153,7 +153,7 @@ export async function saveLayout(
         where: { layoutId, id: { in: removedIds } }
       })
     }
-    for (const item of diff.kept) {
+    for (const item of changedItems(layout.items, diff.kept)) {
       await tx.layoutItem.updateMany({
         where: { id: item.id, layoutId },
         data: itemData(item)

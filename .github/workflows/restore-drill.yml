@@ -1,0 +1,77 @@
+name: Backup — monthly restore drill
+
+# Proves the nightly dumps restore (ADR 0019): downloads the newest dump,
+# checks its checksum, restores it into a throwaway Postgres on the runner and
+# runs sanity queries. Nothing touches production. A failure here means the
+# backups can't be trusted; treat it as an incident (docs/operations.md).
+#
+# Uses BACKUP_STORAGE_CONNECTION_STRING (read access is enough).
+on:
+  schedule:
+    - cron: '0 5 1 * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  drill:
+    name: Restore the newest dump
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: drill
+          POSTGRES_PASSWORD: drill
+          POSTGRES_DB: drill
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U drill" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    env:
+      BACKUP_STORAGE_CONNECTION_STRING: ${{ secrets.BACKUP_STORAGE_CONNECTION_STRING }}
+      CONTAINER: db-backups
+      PGPASSWORD: drill
+    steps:
+      - name: Check configuration
+        run: |
+          if [ -z "$BACKUP_STORAGE_CONNECTION_STRING" ]; then
+            echo "::error::BACKUP_STORAGE_CONNECTION_STRING must be set as a repository secret"
+            exit 1
+          fi
+
+      - name: Download the newest dump
+        run: |
+          NAME=$(az storage blob list --only-show-errors \
+            --connection-string "$BACKUP_STORAGE_CONNECTION_STRING" \
+            --container-name "$CONTAINER" --prefix kigumi- \
+            --query "sort_by([?ends_with(name, '.dump')], &properties.lastModified)[-1].name" -o tsv)
+          if [ -z "$NAME" ]; then echo "::error::No dumps found"; exit 1; fi
+          echo "Restoring $NAME"
+          for f in "$NAME" "$NAME.sha256"; do
+            az storage blob download --only-show-errors \
+              --connection-string "$BACKUP_STORAGE_CONNECTION_STRING" \
+              --container-name "$CONTAINER" --name "$f" --file "$f"
+          done
+          sha256sum -c "$NAME.sha256"
+          echo "NAME=$NAME" >> "$GITHUB_ENV"
+
+      - name: Restore
+        run: |
+          docker run --rm --network host -v "$PWD:/in" -e PGPASSWORD postgres:17 \
+            pg_restore --no-owner --no-privileges --exit-on-error \
+            -h localhost -U drill -d drill "/in/$NAME"
+
+      - name: Sanity checks
+        run: |
+          q() { docker run --rm --network host -e PGPASSWORD postgres:17 \
+            psql -h localhost -U drill -d drill -tAc "$1"; }
+          echo "Latest migration: $(q 'select migration_name from _prisma_migrations order by finished_at desc limit 1')"
+          ORGS=$(q 'select count(*) from "Organization"')
+          ITEMS=$(q 'select count(*) from "EquipmentItem"')
+          echo "Organisations: $ORGS, equipment items: $ITEMS"
+          if [ "$ORGS" -lt 1 ]; then echo "::error::Restored database has no organisations"; exit 1; fi
+          # Every tenant row still points at an organisation that exists.
+          ORPHANS=$(q 'select count(*) from "EquipmentItem" e left join "Organization" o on o.id = e."organisationId" where o.id is null')
+          if [ "$ORPHANS" -ne 0 ]; then echo "::error::$ORPHANS equipment rows lost their organisation"; exit 1; fi

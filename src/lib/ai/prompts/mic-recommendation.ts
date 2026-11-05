@@ -1,3 +1,4 @@
+import { promptJson } from '@/lib/ai/prompt-data'
 import type { RecommendationInput } from '@/lib/recommendations/llm-input'
 import {
   recommendationSchema,
@@ -11,9 +12,10 @@ import type { TenantPrompt } from './types'
 // already decided what is owned, available and suitable; the model ranks that
 // list and explains the choice. Its input holds the studio's own locker, so this
 // is a TenantPrompt: it never touches the global AiSummary cache.
+// v2: data blocks escape < and > so user text cannot close its tag.
 // Bump VERSION whenever the wording, schema, validation or input shape changes
 // meaning, and record a new evaluation report (eval/recommendations/reports).
-export const RECOMMENDATION_PROMPT_VERSION = '1'
+export const RECOMMENDATION_PROMPT_VERSION = '2'
 
 const SYSTEM = `You recommend microphones for recording engineers. You are given a session as JSON inside <session_data> tags and the user's own wording inside <user_text> tags. Every source comes with candidate options built from microphones the studio actually owns, best first. You rank and explain. You do not add choices.
 
@@ -44,7 +46,7 @@ export const recommendationPrompt: TenantPrompt<
   // `guard` is for validation only and is never sent.
   build: ({ data }) => {
     const { userText, ...session } = data
-    return `Recommend microphones for this session.\n\n<session_data>\n${JSON.stringify(session, null, 2)}\n</session_data>\n\n<user_text>\n${JSON.stringify(userText, null, 2)}\n</user_text>`
+    return `Recommend microphones for this session.\n\n<session_data>\n${promptJson(session)}\n</session_data>\n\n<user_text>\n${promptJson(userText)}\n</user_text>`
   },
   validate: validateRecommendation
 }

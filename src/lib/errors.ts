@@ -14,6 +14,7 @@ export type AppErrorCode =
   | 'CROSS_TENANT'
   | 'RATE_LIMITED'
   | 'AI_UNAVAILABLE'
+  | 'PAYLOAD_TOO_LARGE'
 
 const STATUS_BY_CODE: Readonly<Record<AppErrorCode, number>> = {
   UNAUTHORIZED: 401,
@@ -26,7 +27,8 @@ const STATUS_BY_CODE: Readonly<Record<AppErrorCode, number>> = {
   CONFLICT: 409,
   CROSS_TENANT: 404,
   RATE_LIMITED: 429,
-  AI_UNAVAILABLE: 503
+  AI_UNAVAILABLE: 503,
+  PAYLOAD_TOO_LARGE: 413
 }
 
 export class AppError extends Error {
@@ -86,3 +88,10 @@ export const rateLimited = (retryAfterSeconds: number) =>
 // The AI provider is unconfigured, down, or returned output we refuse to show.
 export const aiUnavailable = (message: string) =>
   new AppError('AI_UNAVAILABLE', message)
+
+export const payloadTooLarge = (maxBytes: number) =>
+  new AppError(
+    'PAYLOAD_TOO_LARGE',
+    `That request is too large (the limit is ${Math.round(maxBytes / (1024 * 1024))} MB)`,
+    { maxBytes }
+  )

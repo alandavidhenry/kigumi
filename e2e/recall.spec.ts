@@ -52,7 +52,7 @@ test.describe('owner', () => {
     await expect(strip).toContainText('Source Mic')
     await strip.locator('summary').click()
 
-    await page.getByLabel('Gain for strip 1').fill('32')
+    await page.getByLabel('Gain for strip 1', { exact: true }).fill('32')
     await page.getByLabel('Fader for strip 1').fill('-6')
     const saved = page.waitForResponse(
       (r) =>

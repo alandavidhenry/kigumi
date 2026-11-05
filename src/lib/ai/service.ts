@@ -1,5 +1,7 @@
 import type { Prisma } from '@/generated/prisma/client'
 import { aiUnavailable, rateLimited } from '@/lib/errors'
+import { logger } from '@/lib/logger'
+import { PlanTier } from '@/lib/plans'
 import prisma from '@/lib/prisma'
 import { requirePermission } from '@/lib/tenant-context'
 import type { TenantContext } from '@/lib/tenant-context'
@@ -166,7 +168,7 @@ export async function callWithValidation<Input, Output>(
     }
   }
 
-  console.error('AI output rejected after retry', {
+  logger.warn('ai.output_rejected', {
     prompt: prompt.id,
     version: prompt.version,
     problems
@@ -196,15 +198,19 @@ async function generateAndStore<Input, Output, Stored>(
   // Fail early when AI is not configured, before spending any allowance.
   const provider = getAiProvider()
 
-  const wait = aiRateLimiter.consume(ctx.organisationId)
+  const wait = await aiRateLimiter.consume(ctx.organisationId)
   if (wait > 0) throw rateLimited(wait)
 
   const month = await reserveAiRequest(ctx)
   // Paid calls also draw on the platform-wide daily ceiling (ADR 0014); a
   // local model is free and skips it.
+  // Free organisations only get a share of it, so paid tenants keep theirs.
+  const platform = { freeTier: ctx.planTier === PlanTier.FREE }
   let platformDay: string | null = null
   try {
-    if (provider.costsMoney) platformDay = await reservePlatformRequest()
+    if (provider.costsMoney) {
+      platformDay = await reservePlatformRequest(new Date(), platform)
+    }
   } catch (error) {
     await releaseAiRequest(ctx, month)
     throw error
@@ -228,7 +234,7 @@ async function generateAndStore<Input, Output, Stored>(
     return stored
   } catch (error) {
     if (error instanceof AiProviderError) {
-      console.error('AI provider error', error.message)
+      logger.error('ai.provider_error', { error })
       throw aiUnavailable(error.userMessage)
     }
     throw error
@@ -238,12 +244,12 @@ async function generateAndStore<Input, Output, Stored>(
     try {
       if (!succeeded) {
         await releaseAiRequest(ctx, month)
-        if (platformDay) await releasePlatformRequest(platformDay)
+        if (platformDay) await releasePlatformRequest(platformDay, platform)
       }
       await recordAiTokens(ctx, month, tokens)
       if (platformDay) await recordPlatformTokens(platformDay, tokens)
     } catch (bookkeeping) {
-      console.error('Could not update AI usage', bookkeeping)
+      logger.error('ai.usage_bookkeeping_failed', { error: bookkeeping })
     }
   }
 }

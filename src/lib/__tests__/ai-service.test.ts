@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
+import { AI_RATE_LIMIT } from '@/lib/ai/config'
 import {
   recordPlatformTokens,
   releasePlatformRequest,
@@ -14,7 +15,7 @@ import {
   type GenerateStructuredRequest,
   type GenerateStructuredResult
 } from '@/lib/ai/provider'
-import { aiRateLimiter } from '@/lib/ai/rate-limit'
+import { createRateLimiter, setAiRateLimiter } from '@/lib/ai/rate-limit'
 import { getAiProvider, setAiProvider } from '@/lib/ai/registry'
 import {
   findCachedAi,
@@ -27,6 +28,7 @@ import {
   reserveAiRequest
 } from '@/lib/ai/usage'
 import { aiUnavailable, planLimit } from '@/lib/errors'
+import { PlanTier } from '@/lib/plans'
 import prisma from '@/lib/prisma'
 import { makeContext } from '@/test/fixtures'
 import { MemberRole } from '@/types/rbac'
@@ -120,7 +122,7 @@ const storedRow = {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  aiRateLimiter.reset()
+  setAiRateLimiter(createRateLimiter(AI_RATE_LIMIT))
   db.aiSummary.findUnique.mockResolvedValue(null)
   db.aiSummary.upsert.mockImplementation((async (args: {
     create: { model: string }
@@ -421,6 +423,25 @@ describe('platform daily cap', () => {
     })
   })
 
+  it('marks Free organisations so they draw on the Free share only', async () => {
+    const { provider } = fakeProvider(ok('hello'))
+    setAiProvider(provider)
+    await generateCached(ctx, prompt, input, 's')
+    expect(vi.mocked(reservePlatformRequest).mock.calls[0][1]).toEqual({
+      freeTier: false
+    })
+    vi.mocked(reservePlatformRequest).mockClear()
+    await generateCached(
+      makeContext({ planTier: PlanTier.FREE }),
+      prompt,
+      { topic: 'kicks' },
+      's'
+    )
+    expect(vi.mocked(reservePlatformRequest).mock.calls[0][1]).toEqual({
+      freeTier: true
+    })
+  })
+
   it('does not count a free (local) provider against the cap', async () => {
     const { provider } = fakeProvider(ok('hello'))
     setAiProvider({ ...provider, costsMoney: false })
@@ -449,7 +470,9 @@ describe('platform daily cap', () => {
     const { provider } = fakeProvider(ok('bad'))
     setAiProvider(provider)
     await generateCached(ctx, prompt, input, 's').catch(() => null)
-    expect(releasePlatformRequest).toHaveBeenCalledWith('2026-10-08')
+    expect(releasePlatformRequest).toHaveBeenCalledWith('2026-10-08', {
+      freeTier: false
+    })
     // The two attempts' tokens were still spent.
     expect(recordPlatformTokens).toHaveBeenCalledWith('2026-10-08', {
       inputTokens: 20,

@@ -1,11 +1,13 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest'
 
+import { AI_RATE_LIMIT } from '@/lib/ai/config'
 import {
   releasePlatformRequest,
   reservePlatformRequest
 } from '@/lib/ai/platform-cap'
+import { RECOMMENDATION_PROMPT_VERSION } from '@/lib/ai/prompts/mic-recommendation'
 import type { AiProvider, GenerateStructuredRequest } from '@/lib/ai/provider'
-import { aiRateLimiter } from '@/lib/ai/rate-limit'
+import { createRateLimiter, setAiRateLimiter } from '@/lib/ai/rate-limit'
 import { setAiProvider } from '@/lib/ai/registry'
 import {
   recordAiTokens,
@@ -171,7 +173,7 @@ const provider: AiProvider = {
 beforeEach(() => {
   vi.clearAllMocks()
   sent.length = 0
-  aiRateLimiter.reset()
+  setAiRateLimiter(createRateLimiter(AI_RATE_LIMIT))
   db = makeFakeDb()
   vi.mocked(tenantDb).mockReturnValue(db as never)
 
@@ -419,7 +421,7 @@ describe('createRecommendation', () => {
       id: 'res1',
       requestId: 'req1',
       model: 'fake-model',
-      promptVersion: '1'
+      promptVersion: RECOMMENDATION_PROMPT_VERSION
     })
     expect(
       recommendation?.view.sources.map((s) => s.primary?.units[0].name)
@@ -440,7 +442,7 @@ describe('createRecommendation', () => {
     // nested writes.
     expect(data.results.create).toMatchObject({
       organisationId: 'org_1',
-      promptVersion: '1',
+      promptVersion: RECOMMENDATION_PROMPT_VERSION,
       model: 'fake-model',
       inputTokens: 100,
       outputTokens: 50
@@ -555,7 +557,7 @@ describe('createRecommendation', () => {
     await createRecommendation(ctx, vocalAndSnare)
     const query = db.recommendationResult.findFirst.mock.calls[0][0]
     expect(query.where).toMatchObject({
-      promptVersion: '1',
+      promptVersion: RECOMMENDATION_PROMPT_VERSION,
       request: { inputHash: expect.stringMatching(/^[0-9a-f]{64}$/) }
     })
     // tenantDb is what adds organisationId; the plain client is never used.

@@ -4,6 +4,7 @@ import { deleteAttachmentsFor } from '@/lib/attachments'
 import { AppError } from '@/lib/errors'
 import { PlanTier } from '@/lib/plans'
 import prisma from '@/lib/prisma'
+import { hashToken, openToken, sealToken } from '@/lib/secret-box'
 import { applyRecommendation } from '@/lib/sessions/apply'
 import {
   createChannel,
@@ -18,6 +19,7 @@ import {
   updateSession
 } from '@/lib/sessions/service'
 import {
+  SHARE_TOKEN_PURPOSE,
   createShareLink,
   getSharedSession,
   revokeShareLink
@@ -286,7 +288,7 @@ describe('reading sessions', () => {
     db.recordingSession.findFirst.mockResolvedValue(overviewRow)
     db.layout.findFirst.mockResolvedValue(null)
     db.sessionShareLink.findFirst.mockResolvedValue({
-      token: 'secret',
+      tokenSealed: sealToken('secret', SHARE_TOKEN_PURPOSE),
       expiresAt: null
     })
     const asViewer = await getSession(viewer, 's1')
@@ -294,6 +296,21 @@ describe('reading sessions', () => {
     expect(asViewer.startsLocal).toBe('2026-07-01T10:00')
     const asEngineer = await getSession(engineer, 's1')
     expect(asEngineer.share).toEqual({ token: 'secret', expiresAt: null })
+  })
+
+  it('reports a live link it can no longer show as having no token', async () => {
+    db.recordingSession.findFirst.mockResolvedValue(overviewRow)
+    db.layout.findFirst.mockResolvedValue(null)
+    for (const tokenSealed of [null, 'tampered-or-other-secret']) {
+      db.sessionShareLink.findFirst.mockResolvedValue({
+        tokenSealed,
+        expiresAt: null
+      })
+      expect((await getSession(engineer, 's1')).share).toEqual({
+        token: null,
+        expiresAt: null
+      })
+    }
   })
 
   it('404s for a session in another organisation', async () => {
@@ -699,11 +716,15 @@ describe('share links', () => {
       where: { sessionId: 's1', revokedAt: null },
       data: { revokedAt: expect.any(Date) }
     })
-    expect(db.sessionShareLink.create.mock.calls[0][0].data).toMatchObject({
+    const data = db.sessionShareLink.create.mock.calls[0][0].data
+    expect(data).toMatchObject({
       sessionId: 's1',
       organisationId: 'org_1',
-      token: info.token
+      tokenHash: hashToken(info.token!)
     })
+    // Never stored in plain text; the sealed copy opens back to the token.
+    expect(JSON.stringify(data)).not.toContain(info.token)
+    expect(openToken(data.tokenSealed, SHARE_TOKEN_PURPOSE)).toBe(info.token)
     const second = await createShareLink(engineer, 's1')
     expect(second.token).not.toBe(info.token)
     expect(second.expiresAt).toBeNull()
@@ -796,6 +817,13 @@ describe('getSharedSession', () => {
         }
       }
     ])
+  })
+
+  it('looks the link up by the token hash, never the token', async () => {
+    await getSharedSession(token)
+    expect(raw.sessionShareLink.findUnique.mock.calls[0][0].where).toEqual({
+      tokenHash: hashToken(token)
+    })
   })
 
   it('reads through a client scoped to the link’s own organisation', async () => {

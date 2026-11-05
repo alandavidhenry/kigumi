@@ -6,6 +6,7 @@ import { badRequest, notFound, planLimit } from '@/lib/errors'
 import { assertOwnedRefs } from '@/lib/layout/service'
 import { getBuiltInTemplate, placeTemplate } from '@/lib/layout/templates'
 import { Feature } from '@/lib/plans'
+import { openToken } from '@/lib/secret-box'
 import { requireFeature, requirePermission } from '@/lib/tenant-context'
 import type { TenantContext } from '@/lib/tenant-context'
 import { tenantDb } from '@/lib/tenant-db'
@@ -22,6 +23,7 @@ import {
   sessionListSchema,
   sessionUpdateSchema
 } from './schemas'
+import { SHARE_TOKEN_PURPOSE } from './share'
 import { syncInputList } from './sync'
 import { formatLocalInput, localToUtc } from './time'
 import { MAX_CHANNELS } from './types'
@@ -48,7 +50,8 @@ export interface SessionSummary {
 }
 
 export interface ShareInfo {
-  token: string
+  // Null when the link can no longer be shown (see getActiveShare).
+  token: string | null
   expiresAt: string | null
 }
 
@@ -121,11 +124,15 @@ export async function getActiveShare(
       OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }]
     },
     orderBy: { createdAt: 'desc' },
-    select: { token: true, expiresAt: true }
+    select: { tokenSealed: true, expiresAt: true }
   })
   return link
     ? {
-        token: link.token,
+        // Null when the link predates sealing or the secret was rotated: the
+        // link still works, but the page offers a new one to copy.
+        token: link.tokenSealed
+          ? openToken(link.tokenSealed, SHARE_TOKEN_PURPOSE)
+          : null,
         expiresAt: link.expiresAt ? link.expiresAt.toISOString() : null
       }
     : null
