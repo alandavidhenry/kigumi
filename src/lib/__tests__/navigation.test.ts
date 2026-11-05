@@ -27,6 +27,7 @@ describe('buildNavGroups', () => {
       '/recommendations',
       '/sessions',
       '/layouts/templates',
+      '/consoles',
       '/settings/members',
       '/settings/organisation'
     ])

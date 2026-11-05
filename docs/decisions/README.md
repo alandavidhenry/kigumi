@@ -20,3 +20,4 @@ One short file per decision: `NNNN-title.md` with **Status**, **Context**, **Dec
 | 0014 | [AI spend guards and local provider](0014-ai-spend-guards-and-local-provider.md) | Accepted |
 | 0015 | [Recommendation pipeline](0015-recommendation-pipeline.md)                       | Accepted |
 | 0016 | [Layouts, sessions and input list](0016-layouts-sessions-input-list.md)          | Accepted |
+| 0017 | [Console definitions and recall sheets](0017-console-recall-sheets.md)           | Accepted |

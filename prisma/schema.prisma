@@ -113,6 +113,11 @@ model Organization {
   layoutItems            LayoutItem[]
   inputChannels          InputChannel[]
   sessionShareLinks      SessionShareLink[]
+  consoleTemplates       ConsoleTemplate[]
+  consoles               Console[]
+  recallSheets           RecallSheet[]
+  recallChannels         RecallChannel[]
+  outboardRecalls        OutboardRecall[]
 
   @@map("organization")
 }
@@ -235,10 +240,11 @@ model EquipmentItem {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  organisation Organization    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  room         Room?           @relation(fields: [roomId], references: [id], onDelete: SetNull)
-  micUnit      MicrophoneUnit?
-  layoutItems  LayoutItem[]
+  organisation    Organization     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  room            Room?            @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  micUnit         MicrophoneUnit?
+  layoutItems     LayoutItem[]
+  outboardRecalls OutboardRecall[]
 
   @@index([organisationId])
   @@index([organisationId, category])
@@ -250,7 +256,7 @@ model EquipmentItem {
 model Attachment {
   id             String   @id @default(cuid())
   organisationId String
-  entityType     String // 'equipment'
+  entityType     String // 'equipment' | 'recall_sheet'
   entityId       String
   blobPath       String
   fileName       String
@@ -563,6 +569,7 @@ model RecordingSession {
   channels               InputChannel[]
   shareLinks             SessionShareLink[]
   recommendationRequests RecommendationRequest[]
+  recallSheet            RecallSheet?
 
   @@index([organisationId, startsAt])
   @@index([roomId])
@@ -648,10 +655,11 @@ model InputChannel {
   dawName        String?
   notes          String?
 
-  organisation Organization     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  session      RecordingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  layoutItem   LayoutItem?      @relation(fields: [layoutItemId], references: [id], onDelete: SetNull)
-  micUnit      MicrophoneUnit?  @relation(fields: [micUnitId], references: [id], onDelete: SetNull)
+  organisation   Organization     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  session        RecordingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  layoutItem     LayoutItem?      @relation(fields: [layoutItemId], references: [id], onDelete: SetNull)
+  micUnit        MicrophoneUnit?  @relation(fields: [micUnitId], references: [id], onDelete: SetNull)
+  recallChannels RecallChannel[]
 
   @@unique([sessionId, number])
   @@index([organisationId])
@@ -674,4 +682,107 @@ model SessionShareLink {
 
   @@index([sessionId])
   @@index([organisationId])
+}
+
+// ---------------------------------------------------------------------------
+// Console recall (Phase 6, ADR 0017). A template defines a channel strip as
+// JSON; a console is a desk using a template; a recall sheet belongs to one
+// session and snapshots the strip so a past sheet never changes when the
+// template is edited.
+// ---------------------------------------------------------------------------
+
+model ConsoleTemplate {
+  id             String   @id @default(cuid())
+  organisationId String
+  name           String
+  description    String?
+  strip          Json // StripDefinition
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organization @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  consoles     Console[]
+
+  @@index([organisationId])
+}
+
+model Console {
+  id             String   @id @default(cuid())
+  organisationId String
+  templateId     String
+  name           String
+  make           String?
+  model          String?
+  channelCount   Int
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organization    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  template     ConsoleTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  recallSheets RecallSheet[]
+
+  @@index([organisationId])
+  @@index([templateId])
+}
+
+model RecallSheet {
+  id             String   @id @default(cuid())
+  organisationId String
+  sessionId      String   @unique
+  consoleId      String?
+  consoleName    String
+  channelCount   Int
+  strip          Json // StripDefinition snapshot
+  notes          String?
+  createdById    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organization     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  session      RecordingSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  console      Console?         @relation(fields: [consoleId], references: [id], onDelete: SetNull)
+  channels     RecallChannel[]
+  outboard     OutboardRecall[]
+
+  @@index([organisationId])
+  @@index([consoleId])
+}
+
+model RecallChannel {
+  id             String  @id @default(cuid())
+  organisationId String
+  recallSheetId  String
+  stripNumber    Int
+  inputChannelId String?
+  label          String
+  micName        String?
+  values         Json? // { [controlKey]: string | number | boolean }
+  notes          String?
+
+  organisation Organization  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  recallSheet  RecallSheet   @relation(fields: [recallSheetId], references: [id], onDelete: Cascade)
+  inputChannel InputChannel? @relation(fields: [inputChannelId], references: [id], onDelete: SetNull)
+
+  @@unique([recallSheetId, stripNumber])
+  @@index([organisationId])
+}
+
+model OutboardRecall {
+  id              String  @id @default(cuid())
+  organisationId  String
+  recallSheetId   String
+  equipmentItemId String?
+  name            String
+  insertOn        String?
+  settings        Json? // [{ label, value }]
+  notes           String?
+  sortOrder       Int     @default(0)
+
+  organisation  Organization   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  recallSheet   RecallSheet    @relation(fields: [recallSheetId], references: [id], onDelete: Cascade)
+  equipmentItem EquipmentItem? @relation(fields: [equipmentItemId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId])
+  @@index([recallSheetId])
 }

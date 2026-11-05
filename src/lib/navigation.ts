@@ -14,6 +14,7 @@ export type NavIconName =
   | 'recommendations'
   | 'sessions'
   | 'templates'
+  | 'consoles'
   | 'admin'
   | 'members'
   | 'activity'
@@ -68,6 +69,11 @@ export function buildNavGroups(
       name: 'Layout templates',
       href: '/layouts/templates',
       icon: 'templates'
+    })
+    studioItems.push({
+      name: 'Consoles & recall',
+      href: '/consoles',
+      icon: 'consoles'
     })
   }
 

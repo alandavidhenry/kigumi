@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { SceneSvg } from '@/components/layout/scene-svg'
@@ -8,6 +9,7 @@ import { SessionActions } from '@/components/sessions/session-actions'
 import { SessionDetailsForm } from '@/components/sessions/session-details-form'
 import { WarningsPanel } from '@/components/sessions/warnings-panel'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { listRoomOptions } from '@/lib/equipment'
 import { isAppError } from '@/lib/errors'
@@ -154,6 +156,23 @@ export default async function SessionPage({ params }: PageProps) {
             canEdit={canEdit}
             channelIdsWithWarnings={flagged}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className='text-base'>Recall sheet</CardTitle>
+        </CardHeader>
+        <CardContent className='flex flex-wrap items-center gap-3'>
+          <p className='text-sm text-muted-foreground'>
+            Record desk settings and outboard for this session, pre-filled from
+            the input list.
+          </p>
+          <Button asChild variant='surface'>
+            <Link href={`/sessions/${session.id}/recall`}>
+              Open recall sheet
+            </Link>
+          </Button>
         </CardContent>
       </Card>
 

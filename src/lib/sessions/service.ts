@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
+import { deleteAttachmentsFor } from '@/lib/attachments'
 import { recordAudit } from '@/lib/audit'
 import { badRequest, notFound, planLimit } from '@/lib/errors'
 import { assertOwnedRefs } from '@/lib/layout/service'
@@ -402,6 +403,12 @@ export async function deleteSession(
     select: { name: true }
   })
   if (!existing) throw notFound('Session')
+  // Desk photos are blobs, so they go before the rows that point at them.
+  const recall = await db.recallSheet.findFirst({
+    where: { sessionId },
+    select: { id: true }
+  })
+  if (recall) await deleteAttachmentsFor(ctx, 'recall_sheet', recall.id)
   await db.recordingSession.deleteMany({ where: { id: sessionId } })
   await recordAudit(ctx, {
     action: 'session.delete',
