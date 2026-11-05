@@ -28,6 +28,8 @@ describe('buildNavGroups', () => {
       '/sessions',
       '/layouts/templates',
       '/consoles',
+      '/maintenance',
+      '/warranties',
       '/settings/members',
       '/settings/organisation'
     ])

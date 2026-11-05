@@ -244,6 +244,23 @@ export async function deleteEquipment(
   if (!row) throw notFound('Equipment')
 
   await deleteAttachmentsFor(ctx, 'equipment', id)
+  // Receipts and service documents belong to rows that go with the item.
+  const [warranties, logs] = await Promise.all([
+    db.warranty.findMany({
+      where: { equipmentItemId: id },
+      select: { id: true }
+    }),
+    db.maintenanceLog.findMany({
+      where: { equipmentItemId: id },
+      select: { id: true }
+    })
+  ])
+  for (const warranty of warranties) {
+    await deleteAttachmentsFor(ctx, 'warranty', warranty.id)
+  }
+  for (const log of logs) {
+    await deleteAttachmentsFor(ctx, 'maintenance_log', log.id)
+  }
   await db.equipmentItem.deleteMany({ where: { id } })
   await recordAudit(ctx, {
     action: 'equipment.delete',

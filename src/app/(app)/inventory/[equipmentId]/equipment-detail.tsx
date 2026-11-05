@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { ConfirmDeleteButton } from '@/components/confirm-delete-button'
 import { EquipmentFormDialog } from '@/components/inventory/equipment-form-dialog'
+import { ItemCareCards } from '@/components/maintenance/item-care'
 import { PageHeader } from '@/components/page-header'
 import { useBreadcrumbLabel } from '@/components/providers/breadcrumb-provider'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +21,7 @@ import {
   EQUIPMENT_STATUS_LABELS,
   MAX_PHOTOS_PER_ITEM
 } from '@/lib/equipment-types'
+import type { ItemCare } from '@/lib/maintenance/overview'
 import { formatMoney } from '@/lib/validation'
 
 function Field({
@@ -40,11 +42,17 @@ function Field({
 export function EquipmentDetailView({
   item,
   rooms,
-  canManage
+  canManage,
+  care,
+  hoursAllowed,
+  patAllowed
 }: {
   readonly item: EquipmentDetail
   readonly rooms: RoomOption[]
   readonly canManage: boolean
+  readonly care: ItemCare
+  readonly hoursAllowed: boolean
+  readonly patAllowed: boolean
 }) {
   const router = useRouter()
   const fileInput = useRef<HTMLInputElement>(null)
@@ -245,6 +253,15 @@ export function EquipmentDetailView({
               )}
             </CardContent>
           </Card>
+
+          <ItemCareCards
+            itemId={item.id}
+            itemName={title}
+            care={care}
+            canManage={canManage}
+            hoursAllowed={hoursAllowed}
+            patAllowed={patAllowed}
+          />
         </div>
 
         <Card className='h-fit print:border-0 print:shadow-none'>

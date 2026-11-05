@@ -25,6 +25,9 @@ export const config = {
     '/recommendations/:path*',
     '/sessions/:path*',
     '/layouts/:path*',
+    '/maintenance/:path*',
+    '/warranties/:path*',
+    '/notifications/:path*',
     '/admin/:path*',
     '/onboarding/:path*'
   ]

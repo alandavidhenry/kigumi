@@ -4,6 +4,7 @@ import { AppShell } from '@/components/app-shell'
 import { TenantProvider } from '@/components/providers/tenant-provider'
 import type { ClientTenant } from '@/components/providers/tenant-provider'
 import { isAppError } from '@/lib/errors'
+import { countUnreadNotifications } from '@/lib/maintenance/notifications'
 import { listMyOrganisations } from '@/lib/members'
 import { isCurrentUserPlatformAdmin } from '@/lib/platform-admin'
 import { getTenantContext } from '@/lib/tenant-context'
@@ -31,10 +32,12 @@ export default async function AppLayout({
   readonly children: React.ReactNode
 }) {
   const ctx = await resolveTenant()
-  const [organisations, isPlatformAdmin] = await Promise.all([
-    listMyOrganisations(ctx.userId),
-    isCurrentUserPlatformAdmin()
-  ])
+  const [organisations, isPlatformAdmin, unreadNotifications] =
+    await Promise.all([
+      listMyOrganisations(ctx.userId),
+      isCurrentUserPlatformAdmin(),
+      countUnreadNotifications(ctx)
+    ])
 
   const tenant: ClientTenant = {
     userId: ctx.userId,
@@ -50,7 +53,7 @@ export default async function AppLayout({
 
   return (
     <TenantProvider tenant={tenant}>
-      <AppShell>{children}</AppShell>
+      <AppShell unreadNotifications={unreadNotifications}>{children}</AppShell>
     </TenantProvider>
   )
 }

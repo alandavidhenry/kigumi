@@ -190,8 +190,17 @@ describe('deleteEquipment', () => {
       make: 'Neumann',
       model: 'U 87'
     })
+    db.warranty.findMany.mockResolvedValue([{ id: 'w1' }])
+    db.maintenanceLog.findMany.mockResolvedValue([{ id: 'l1' }, { id: 'l2' }])
     await deleteEquipment(owner, 'e1')
     expect(deleteAttachmentsFor).toHaveBeenCalledWith(owner, 'equipment', 'e1')
+    // Receipts and service documents go with the item, not into the void.
+    expect(deleteAttachmentsFor).toHaveBeenCalledWith(owner, 'warranty', 'w1')
+    expect(deleteAttachmentsFor).toHaveBeenCalledWith(
+      owner,
+      'maintenance_log',
+      'l2'
+    )
     expect(db.equipmentItem.deleteMany).toHaveBeenCalledWith({
       where: { id: 'e1' }
     })

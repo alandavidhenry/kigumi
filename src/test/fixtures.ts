@@ -67,6 +67,13 @@ export function makeFakeDb() {
     recallSheet: fakeModel(),
     recallChannel: fakeModel(),
     outboardRecall: fakeModel(),
+    usageCounter: fakeModel(),
+    maintenancePlan: fakeModel(),
+    maintenanceTask: fakeModel(),
+    maintenanceLog: fakeModel(),
+    patTest: fakeModel(),
+    warranty: fakeModel(),
+    notification: fakeModel(),
     // Interactive transactions run against the same fake, so a test sees every
     // write the service makes.
     $transaction: vi.fn(async (run: (tx: unknown) => unknown) => run(db))

@@ -110,6 +110,20 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Template editing UI is basic:** no reordering of sections or controls, and control keys cannot be renamed after creation (by design).
 - **Pre-existing E2E failures:** `ai.spec.ts` ("mic page offers an AI summary...", no "Generate AI summary" button) and `mics.spec.ts` ("browses the catalogue...", `getByText('40 Hz')` matches two elements) fail on the Phase 5 code too (checked by stashing the Phase 6 changes). They need fixing separately.
 
+## Deferred from Phase 7
+
+- **Category plans don't see new items straight away.** Tasks for a category plan are created when the plan is saved or edited; an item added afterwards gets its task on the next edit of that plan. Hooking item create/update (or running a sync in the daily job) would close it.
+- **No per-person reminder preferences.** Owners, managers and engineers all get every reminder, and the email digest has no opt-out or frequency setting. Lead time is configurable per plan and per warranty; PAT uses a fixed 30 days.
+- **Usage hours are manual.** There is no automatic count from sessions or a meter feed, and no history of readings (only the latest value and the reading at each completion).
+- **PAT is item-level only:** no appliance class, no test results values (earth continuity, insulation), no certificates as attachments, no bulk "test these 20 items", and nothing marks an item as needing PAT before its first test.
+- **Cron needs wiring.** `.github/workflows/cron-reminders.yml` needs `APP_URL` and `CRON_SECRET` repository secrets and a deployed app (Phase 8). Until then run the route by hand.
+- **Receipt scanning with an LLM** (`Feature.AI_RECEIPT_SCAN`, PLAN §4.9 "later") is not built; receipts are stored and viewed only.
+- **No calendar view or export** of due dates (ICS), and no push or SMS reminders.
+- **No cost reporting** across the service log yet (totals per item or year), although cost is recorded.
+- **Dashboard** is server-rendered and static per request: the bell count updates on a full page load or refresh, not live.
+- **Pre-existing E2E failure in `recall.spec.ts`** ("builds a recall sheet..."): `getByLabel('Gain for strip 1')` is a substring match and also hits HF/HMF/LMF/LF gain, so Playwright's strict mode fails. Needs `{ exact: true }`; unrelated to Phase 7 (all other specs passed in the full run).
+- **Free-plan E2E for the PAT and usage-hour upgrade prompts:** covered by lib and route tests (403 `FEATURE_NOT_IN_PLAN`) but not by a Playwright run with a Free organisation.
+
 ## Later phases (summary)
 
-Recommendations (P4, built), layouts and sessions (P5, built), recall sheets (P6, built), maintenance and warranty (P7), hardening (P8). See `docs/PLAN.md`.
+Recommendations (P4, built), layouts and sessions (P5, built), recall sheets (P6, built), maintenance and warranty (P7, built), hardening (P8). See `docs/PLAN.md`.

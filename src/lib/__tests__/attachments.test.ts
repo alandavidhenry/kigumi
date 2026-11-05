@@ -253,3 +253,127 @@ describe('desk photos (recall_sheet owner)', () => {
     expect(deleteBlob).toHaveBeenCalledWith('org_1/a.png')
   })
 })
+
+describe('receipts and service documents (storePhoto with document)', () => {
+  const pdf = Buffer.from('%PDF-1.7\n%%EOF')
+  const owned = (extra = {}) => ({
+    entityType: 'warranty' as const,
+    entityId: 'w1',
+    maxPhotos: 3,
+    document: { kind: 'receipt', maxBytes: 1024 },
+    ...extra
+  })
+
+  it('sniffFileType recognises PDFs and still rejects other content', async () => {
+    const { sniffFileType } = await import('@/lib/attachments')
+    expect(sniffFileType(pdf)).toBe('application/pdf')
+    expect(sniffFileType(png)).toBe('image/png')
+    expect(sniffFileType(Buffer.from('<html></html>'))).toBeNull()
+  })
+
+  it('accepts a PDF, stores it under the receipt kind and the organisation', async () => {
+    await storePhoto(owner, owned(), {
+      name: 'receipt.pdf',
+      type: 'application/pdf',
+      data: pdf
+    })
+    expect(uploadBlob).toHaveBeenCalledWith(
+      expect.stringMatching(/^org_1\/.+\.pdf$/),
+      pdf,
+      'application/pdf'
+    )
+    expect(db.attachment.create.mock.calls[0][0].data).toMatchObject({
+      organisationId: 'org_1',
+      entityType: 'warranty',
+      entityId: 'w1',
+      kind: 'receipt',
+      mimeType: 'application/pdf'
+    })
+  })
+
+  it('refuses a PDF where only photos are allowed', async () => {
+    expect(
+      await code(
+        storePhoto(
+          owner,
+          { entityType: 'equipment', entityId: 'e1', maxPhotos: 3 },
+          { name: 'a.pdf', type: 'application/pdf', data: pdf }
+        )
+      )
+    ).toBe('BAD_REQUEST')
+    expect(uploadBlob).not.toHaveBeenCalled()
+  })
+
+  it('refuses a file whose bytes are not what it claims', async () => {
+    expect(
+      await code(
+        storePhoto(owner, owned(), {
+          name: 'fake.pdf',
+          type: 'application/pdf',
+          data: Buffer.from('<script>alert(1)</script>')
+        })
+      )
+    ).toBe('BAD_REQUEST')
+    expect(
+      await code(
+        storePhoto(owner, owned(), {
+          name: 'fake.png',
+          type: 'image/png',
+          data: pdf
+        })
+      )
+    ).toBe('BAD_REQUEST')
+  })
+
+  it('applies the document size cap', async () => {
+    const big = Buffer.concat([pdf, Buffer.alloc(2048)])
+    expect(
+      await code(
+        storePhoto(owner, owned(), {
+          name: 'big.pdf',
+          type: 'application/pdf',
+          data: big
+        })
+      )
+    ).toBe('BAD_REQUEST')
+  })
+})
+
+describe('attachment access by owner type', () => {
+  it('lets a viewer read but not delete a warranty file', async () => {
+    db.attachment.findFirst.mockResolvedValue({
+      id: 'a1',
+      blobPath: 'org_1/a1.pdf',
+      mimeType: 'application/pdf',
+      fileName: 'r.pdf',
+      entityType: 'warranty',
+      entityId: 'w1'
+    })
+    vi.mocked(downloadBlob).mockResolvedValue(Buffer.from('%PDF-'))
+    await expect(getAttachmentFile(viewer, 'a1')).resolves.toMatchObject({
+      mimeType: 'application/pdf'
+    })
+    expect(await code(deleteAttachment(viewer, 'a1'))).toBe('FORBIDDEN')
+    expect(deleteBlob).not.toHaveBeenCalled()
+  })
+
+  it('audits removal of a maintenance file under its own action', async () => {
+    const { recordAudit } = await import('@/lib/audit')
+    db.attachment.findFirst.mockResolvedValue({
+      id: 'a2',
+      blobPath: 'org_1/a2.pdf',
+      entityId: 'l1',
+      entityType: 'maintenance_log'
+    })
+    await deleteAttachment(owner, 'a2')
+    expect(deleteBlob).toHaveBeenCalledWith('org_1/a2.pdf')
+    expect(recordAudit).toHaveBeenCalledWith(
+      owner,
+      expect.objectContaining({
+        action: 'maintenance.file_remove',
+        entityType: 'maintenance_log',
+        entityId: 'l1'
+      })
+    )
+  })
+})

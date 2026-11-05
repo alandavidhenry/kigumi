@@ -1,6 +1,6 @@
 'use client'
 
-import { Menu, X } from 'lucide-react'
+import { Bell, Menu, X } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -40,7 +40,13 @@ function OrganisationName({ visible }: { readonly visible: boolean }) {
 // Signed-in chrome: hover/expanded/collapsed sidebar plus a top bar, mirroring
 // Minato's shell. Only rendered by the (app) layout, which has already
 // resolved the tenant server-side.
-export function AppShell({ children }: { readonly children: React.ReactNode }) {
+export function AppShell({
+  children,
+  unreadNotifications = 0
+}: {
+  readonly children: React.ReactNode
+  readonly unreadNotifications?: number
+}) {
   const pathname = usePathname() ?? ''
   const [mode, setMode] = useState<SidebarMode>('hover')
   const [hovering, setHovering] = useState(false)
@@ -158,6 +164,23 @@ export function AppShell({ children }: { readonly children: React.ReactNode }) {
             <Breadcrumbs />
             <div className='ml-auto flex items-center gap-2'>
               <CommandPalette />
+              <Button asChild variant='ghost' size='icon' className='relative'>
+                <Link
+                  href='/notifications'
+                  aria-label={
+                    unreadNotifications > 0
+                      ? `Reminders, ${unreadNotifications} unread`
+                      : 'Reminders'
+                  }
+                >
+                  <Bell className='h-4 w-4' />
+                  {unreadNotifications > 0 && (
+                    <span className='absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full border border-brand-border bg-brand-tint px-1 text-[10px] font-medium leading-none text-foreground'>
+                      {unreadNotifications > 99 ? '99+' : unreadNotifications}
+                    </span>
+                  )}
+                </Link>
+              </Button>
               <ThemeToggle />
               <UserMenu />
             </div>

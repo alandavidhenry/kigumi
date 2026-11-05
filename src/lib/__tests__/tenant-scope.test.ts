@@ -30,8 +30,13 @@ describe('TENANT_MODELS', () => {
       'InputChannel',
       'Layout',
       'LayoutItem',
+      'MaintenanceLog',
+      'MaintenancePlan',
+      'MaintenanceTask',
       'MicrophoneUnit',
+      'Notification',
       'OutboardRecall',
+      'PatTest',
       'RecallChannel',
       'RecallSheet',
       'RecommendationFeedback',
@@ -40,7 +45,9 @@ describe('TENANT_MODELS', () => {
       'RecordingSession',
       'Room',
       'SessionShareLink',
-      'Studio'
+      'Studio',
+      'UsageCounter',
+      'Warranty'
     ])
   })
 })

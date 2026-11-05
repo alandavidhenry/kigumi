@@ -15,6 +15,8 @@ export type NavIconName =
   | 'sessions'
   | 'templates'
   | 'consoles'
+  | 'maintenance'
+  | 'warranty'
   | 'admin'
   | 'members'
   | 'activity'
@@ -74,6 +76,18 @@ export function buildNavGroups(
       name: 'Consoles & recall',
       href: '/consoles',
       icon: 'consoles'
+    })
+  }
+  if (can(Permission.VIEW_INVENTORY)) {
+    studioItems.push({
+      name: 'Maintenance',
+      href: '/maintenance',
+      icon: 'maintenance'
+    })
+    studioItems.push({
+      name: 'Warranties',
+      href: '/warranties',
+      icon: 'warranty'
     })
   }
 

@@ -420,6 +420,76 @@ async function seedSessions() {
   }
 }
 
+// A little maintenance and warranty data so the dashboard has something to
+// show in development. Dates are relative to the first time the seed runs.
+async function seedCare() {
+  const day = 86_400_000
+  const at = (offsetDays: number) => {
+    const date = new Date(Date.now() + offsetDays * day)
+    date.setUTCHours(0, 0, 0, 0)
+    return date
+  }
+
+  await prisma.maintenancePlan.upsert({
+    where: { id: 'seed-plan-sm57' },
+    update: {},
+    create: {
+      id: 'seed-plan-sm57',
+      organisationId: ORG_ID,
+      equipmentItemId: 'seed-eq-sm57',
+      title: 'Check cable and clean grille',
+      intervalDays: 90,
+      leadDays: 14,
+      startsOn: at(-80)
+    }
+  })
+  await prisma.maintenanceTask.upsert({
+    where: {
+      planId_equipmentItemId: {
+        planId: 'seed-plan-sm57',
+        equipmentItemId: 'seed-eq-sm57'
+      }
+    },
+    update: {},
+    create: {
+      organisationId: ORG_ID,
+      planId: 'seed-plan-sm57',
+      equipmentItemId: 'seed-eq-sm57',
+      dueAt: at(10)
+    }
+  })
+
+  await prisma.warranty.upsert({
+    where: { id: 'seed-warranty-u87' },
+    update: {},
+    create: {
+      id: 'seed-warranty-u87',
+      organisationId: ORG_ID,
+      equipmentItemId: 'seed-eq-u87',
+      startsOn: at(-340),
+      endsOn: at(25),
+      provider: 'Sennheiser UK (Neumann)',
+      leadDays: 30
+    }
+  })
+
+  await prisma.patTest.upsert({
+    where: { id: 'seed-pat-u87' },
+    update: {},
+    create: {
+      id: 'seed-pat-u87',
+      organisationId: ORG_ID,
+      equipmentItemId: 'seed-eq-u87',
+      testedAt: at(-350),
+      testType: 'combined',
+      result: 'pass',
+      testerName: 'In-house',
+      intervalMonths: 12,
+      nextDueAt: at(15)
+    }
+  })
+}
+
 async function main() {
   const password =
     process.argv[2] ?? process.env.SEED_PASSWORD ?? 'kigumi-dev-password'
@@ -533,6 +603,7 @@ async function main() {
   await seedMicCatalogue()
   await seedRecommendation()
   await seedSessions()
+  await seedCare()
 
   console.warn(
     `Seeded ${ROLES.map((role) => `${role}@kigumi.test`).join(', ')} with the given password`
