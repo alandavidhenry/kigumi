@@ -29,7 +29,7 @@ test.describe('owner', () => {
       page.getByText('Specifications', { exact: true })
     ).toBeVisible()
     // The seeded SM57 has a sourced frequency range but no curve data.
-    await expect(page.getByText('40 Hz')).toBeVisible()
+    await expect(page.getByText('40 Hz', { exact: true })).toBeVisible()
     await expect(page.getByText('No frequency-response data yet')).toBeVisible()
     // With no measured polar data the plot must say it is idealised.
     await expect(

@@ -57,6 +57,26 @@ export async function withDefaultActiveOrganisation<
   }
 }
 
+// Each Free organisation carries its own AI allowance, and all of them draw on
+// the one platform-wide daily cap (ADR 0014). Capping how many Free
+// organisations one person can own stops allowance farming. Organisations
+// you were invited into, and paid ones you own, don't count, so a freelance
+// engineer in many studios can still start their own.
+export const MAX_FREE_OWNED_ORGANISATIONS = 2
+
+export async function hasReachedOrganisationLimit(user: {
+  id: string
+}): Promise<boolean> {
+  const owned = await prisma.member.count({
+    where: {
+      userId: user.id,
+      role: 'owner',
+      organization: { planTier: 'free' }
+    }
+  })
+  return owned >= MAX_FREE_OWNED_ORGANISATIONS
+}
+
 export async function seatLimitFor(org: OrgRef): Promise<number> {
   return getPlanLimits(org.planTier).seats
 }

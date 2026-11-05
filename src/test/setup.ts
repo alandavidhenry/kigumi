@@ -4,3 +4,6 @@ import { vi } from 'vitest'
 // expected error paths (e.g. Azure failures, missing users). Keeping stderr
 // clean makes it easier to spot genuine test failures.
 vi.spyOn(console, 'error').mockImplementation(() => {})
+
+// Share-link tokens are sealed with a key derived from this (src/lib/secret-box.ts).
+process.env.BETTER_AUTH_SECRET ??= 'test-only-better-auth-secret-not-real'

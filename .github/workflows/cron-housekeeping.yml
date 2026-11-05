@@ -1,0 +1,36 @@
+name: Cron — housekeeping
+
+# Calls the protected housekeeping route once a day (ADR 0009): prunes old
+# rate-limit rows and deletes orphaned blobs. The route is
+# idempotent, so a manual re-run or a doubled schedule does no harm.
+#
+# Needs two repository secrets once the app is deployed:
+#   APP_URL      e.g. https://kigumi.example.com (no trailing slash)
+#   CRON_SECRET  the same value as the app's CRON_SECRET
+on:
+  schedule:
+    - cron: '30 3 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  housekeeping:
+    name: Run housekeeping
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Call /api/cron/housekeeping
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$APP_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "APP_URL and CRON_SECRET must be set as repository secrets"
+            exit 1
+          fi
+          curl --fail --silent --show-error --max-time 120 \
+            --retry 2 --retry-delay 10 \
+            -X POST \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$APP_URL/api/cron/housekeeping"

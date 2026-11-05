@@ -7,8 +7,9 @@ import {
   GET as listRoute,
   POST as postCreate
 } from '@/app/api/recommendations/route'
+import { AI_RATE_LIMIT } from '@/lib/ai/config'
 import type { AiProvider, GenerateStructuredRequest } from '@/lib/ai/provider'
-import { aiRateLimiter } from '@/lib/ai/rate-limit'
+import { createRateLimiter, setAiRateLimiter } from '@/lib/ai/rate-limit'
 import { setAiProvider } from '@/lib/ai/registry'
 import { unauthorized } from '@/lib/errors'
 import prisma from '@/lib/prisma'
@@ -264,7 +265,7 @@ function signInAs(role: MemberRole, overrides = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks()
-  aiRateLimiter.reset()
+  setAiRateLimiter(createRateLimiter(AI_RATE_LIMIT))
   counter = 0
   provider.calls = 0
   replies = validReply

@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { recordAudit } from '@/lib/audit'
 import { notFound } from '@/lib/errors'
 import prisma from '@/lib/prisma'
+import { hashToken, sealToken } from '@/lib/secret-box'
 import { requirePermission } from '@/lib/tenant-context'
 import type { TenantContext } from '@/lib/tenant-context'
 import { tenantDb } from '@/lib/tenant-db'
@@ -26,6 +27,9 @@ export type { SharedSessionView } from './sheet'
 // nothing in SharedSessionView carries an id, serial, note or client name.
 
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/
+
+// The sealing purpose for share tokens (src/lib/secret-box.ts).
+export const SHARE_TOKEN_PURPOSE = 'session-share-link'
 
 async function assertSession(ctx: TenantContext, sessionId: string) {
   const session = await tenantDb(ctx).recordingSession.findFirst({
@@ -61,7 +65,8 @@ export async function createShareLink(
       data: {
         organisationId: ctx.organisationId,
         sessionId,
-        token,
+        tokenHash: hashToken(token),
+        tokenSealed: sealToken(token, SHARE_TOKEN_PURPOSE),
         expiresAt,
         createdById: ctx.userId
       }
@@ -104,7 +109,7 @@ export async function getSharedSession(
   if (!TOKEN_PATTERN.test(token)) throw missing()
 
   const link = await prisma.sessionShareLink.findUnique({
-    where: { token },
+    where: { tokenHash: hashToken(token) },
     select: {
       id: true,
       organisationId: true,

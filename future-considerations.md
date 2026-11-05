@@ -5,10 +5,10 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 ## Deferred from Phase 0
 
 - **Deploy pipeline and Terraform:** `dev-deploy.yml` / `prod-deploy.yml`, `azure-deploy.yml`, and `infrastructure/` modules (App Service, Key Vault, Storage, ACS), mirroring Minato. `docker-build.yml` needs `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` secrets for the hardened `dhi.io` runner image, same as Minato.
-- **Automated cross-tenant test against a real DB:** isolation is unit tested on `scopeArgs` and was verified manually against Postgres. Phase 8 should add an integration suite that runs against a test database with two organisations.
+- ~~**Automated cross-tenant test against a real DB**~~ Done in Phase 8: `npm run test:db` (two organisations, every tenant route, in CI).
 - **Account settings page:** change name, email or password, and delete account (Better Auth endpoints exist; no UI yet).
-- **Organisation deletion and leaving:** owners can't yet delete an organisation or leave it from the UI.
-- **Rate limiting on auth endpoints:** Better Auth's built-in rate limiter uses in-memory storage by default; configure database or secondary storage before running more than one instance.
+- **Organisation deletion and leaving:** owners can't yet delete an organisation or leave it from the UI. Since Phase 8 the Better Auth delete endpoint is disabled too (`disableOrganizationDeletion`); a real flow needs confirmation, a grace period, an audit record and blob clean-up (ADR 0019).
+- ~~**Rate limiting on auth endpoints in memory**~~ Done in Phase 8: `rateLimit.storage = 'database'`.
 - **`organization.create` and the cookie cache:** creating an org doesn't refresh the cached active organisation; callers must call `setActive`. Revisit if Better Auth changes this.
 - **Gitleaks locally:** the pre-commit hook skips the secret scan when gitleaks isn't installed; CI always runs it.
 - **Dev-only npm advisory:** `braces` via `@next/eslint-plugin-next` → `fast-glob` has no fix; CI audits production dependencies only.
@@ -19,8 +19,8 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Excel import/export:** CSV only for now; `exceljs` (as in Minato) can add `.xlsx`.
 - **Currency:** prices are stored in minor units and shown in GBP; add an organisation currency setting.
 - **Label sheets:** one QR label per item today; add multi-up label sheets (e.g. Avery) for bulk printing.
-- **Orphaned blobs:** if the DB write fails after a blob upload, the blob is left behind; add a periodic sweep in Phase 8.
-- **Photo thumbnails and EXIF stripping:** images are stored and served as uploaded.
+- ~~**Orphaned blobs**~~ Done in Phase 8: the attachment row is reserved before the upload and removed if it fails; a daily sweep deletes anything left over.
+- **Photo thumbnails:** since Phase 8 the browser strips EXIF and scales photos to 2048 px before upload, but there are no separate thumbnails, and uploads made straight to the API are stored as sent. Server-side processing (`sharp`) needs the Docker build and runtime images to match first.
 - **Bulk edit and soft-delete/restore** for inventory.
 - **`Feature.BULK_IMPORT`** (Studio) is unused; CSV import is currently available on every tier per `plans.ts`.
 
@@ -57,7 +57,7 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 
 ## Deferred from Phase 3
 
-- **Burst limit across instances:** the per-organisation AI rate limit (`src/lib/ai/rate-limit.ts`) is in memory. Move it to Postgres or a shared store before running more than one instance. The monthly allowance already lives in Postgres.
+- ~~**Burst limit across instances**~~ Done in Phase 8: `AiRateWindow` in Postgres (fixed one-minute windows; up to twice the limit can pass across a window boundary).
 - **Local model not exercised:** the local provider is unit tested against a mocked HTTP server only. Try it once with Ollama (`ollama pull qwen2.5:7b`) and confirm the server honours `response_format` JSON-schema output; if a server ignores it, replies will rely on the prompt alone.
 - **Real-model check:** nothing here has been run against the live Anthropic API (the tests use a fake provider). Before relying on it, generate a summary and a comparison with a real key and a published mic that has most specs filled in, and watch for the grounding check rejecting good text. Loosen `src/lib/ai/grounding.ts` if it does. Also confirm the structured-output schema (array limits) is accepted by the API.
 - **Sparse data:** summaries are only as good as the catalogue. Most seeded mics have structural facts only (ADR 0008), so early output will be thin and say "not recorded" a lot.
@@ -108,7 +108,7 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Recall diff:** comparing two sessions' sheets (what changed since last time) is not offered.
 - **No public share link for recall,** and no browser print stylesheet: Print/PDF is the PDF.
 - **Template editing UI is basic:** no reordering of sections or controls, and control keys cannot be renamed after creation (by design).
-- **Pre-existing E2E failures:** `ai.spec.ts` ("mic page offers an AI summary...", no "Generate AI summary" button) and `mics.spec.ts` ("browses the catalogue...", `getByText('40 Hz')` matches two elements) fail on the Phase 5 code too (checked by stashing the Phase 6 changes). They need fixing separately.
+- ~~**Pre-existing E2E failures** in `ai.spec.ts` and `mics.spec.ts`~~ Fixed in Phase 8 (exact text match; the AI spec accepts an already-cached summary).
 
 ## Deferred from Phase 7
 
@@ -116,14 +116,27 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **No per-person reminder preferences.** Owners, managers and engineers all get every reminder, and the email digest has no opt-out or frequency setting. Lead time is configurable per plan and per warranty; PAT uses a fixed 30 days.
 - **Usage hours are manual.** There is no automatic count from sessions or a meter feed, and no history of readings (only the latest value and the reading at each completion).
 - **PAT is item-level only:** no appliance class, no test results values (earth continuity, insulation), no certificates as attachments, no bulk "test these 20 items", and nothing marks an item as needing PAT before its first test.
-- **Cron needs wiring.** `.github/workflows/cron-reminders.yml` needs `APP_URL` and `CRON_SECRET` repository secrets and a deployed app (Phase 8). Until then run the route by hand.
+- **Cron needs wiring.** `cron-reminders.yml` and `cron-housekeeping.yml` need `APP_URL` and `CRON_SECRET` repository secrets and a deployed app. Until then run the routes by hand.
 - **Receipt scanning with an LLM** (`Feature.AI_RECEIPT_SCAN`, PLAN §4.9 "later") is not built; receipts are stored and viewed only.
 - **No calendar view or export** of due dates (ICS), and no push or SMS reminders.
 - **No cost reporting** across the service log yet (totals per item or year), although cost is recorded.
 - **Dashboard** is server-rendered and static per request: the bell count updates on a full page load or refresh, not live.
-- **Pre-existing E2E failure in `recall.spec.ts`** ("builds a recall sheet..."): `getByLabel('Gain for strip 1')` is a substring match and also hits HF/HMF/LMF/LF gain, so Playwright's strict mode fails. Needs `{ exact: true }`; unrelated to Phase 7 (all other specs passed in the full run).
+- ~~**Pre-existing E2E failure in `recall.spec.ts`**~~ Fixed in Phase 8 (`exact: true`).
 - **Free-plan E2E for the PAT and usage-hour upgrade prompts:** covered by lib and route tests (403 `FEATURE_NOT_IN_PLAN`) but not by a Playwright run with a Free organisation.
+
+## Deferred from Phase 8
+
+- **Terraform and deploy workflows** (PLAN §7 Phase 8) were not part of this hardening pass. When written they should own: App Service settings (`APPLICATIONINSIGHTS_CONNECTION_STRING`), the Azure Monitor alerts in `docs/operations.md`, Blob soft delete and versioning, and the separate backup storage account with its immutability and lifecycle policies.
+- **Backups need setting up for real:** the `BACKUP_DATABASE_URL` read-only role, the backup storage account and both secrets; then run `backup-db.yml` and `restore-drill.yml` by hand once. Pick a Neon plan with at least 7 days of point-in-time history.
+- **Nonce-based CSP:** the static CSP keeps `'unsafe-inline'` scripts. A nonce (Next's proxy pattern) would remove that at the cost of dynamic rendering everywhere.
+- **Catalogue prompts don't escape `<` and `>`** in their data blocks yet: they hold admin-reviewed data only, and bumping their versions would discard every cached summary. Do it with the next deliberate version bump.
+- **Pickers load every item:** `listEquipment` stays unpaged for the outboard and maintenance pickers. Very large inventories will want a searchable picker.
+- **`test:db` is not in `npm run checks`:** it needs Docker, so it runs in CI and by hand rather than in the pre-commit hook.
+- **Share links from before Phase 8** keep working but can't be shown again; the page offers a new link.
+- **PDF attachments download** rather than open in a tab (sandboxing). A dedicated viewer page (`pdf.js` under a strict CSP) could bring back in-browser viewing.
+- **Accessibility beyond axe:** keyboard-only and screen-reader passes on the layout editor and recall sheet, and a real tablet at the console, are still manual.
+- **Dev server reload loop:** once during Phase 8 `next dev` (Turbopack) got stuck recompiling and reloading `/auth/sign-in`; restarting the server cleared it, and the headers were ruled out. Worth noting if E2E runs against a dev server flake.
 
 ## Later phases (summary)
 
-Recommendations (P4, built), layouts and sessions (P5, built), recall sheets (P6, built), maintenance and warranty (P7, built), hardening (P8). See `docs/PLAN.md`.
+Recommendations (P4, built), layouts and sessions (P5, built), recall sheets (P6, built), maintenance and warranty (P7, built), hardening (P8, built). See `docs/PLAN.md`.

@@ -41,3 +41,20 @@ export function diffItems(
     structural: added.length > 0 || removed.length > 0 || unitChanged.length > 0
   }
 }
+
+// Kept items whose stored values differ from the payload. Autosave sends the
+// whole layout every time, so writing only these keeps a save to the one or
+// two items that moved instead of one UPDATE per item (up to 300).
+export function changedItems(
+  stored: readonly Record<string, unknown>[],
+  kept: readonly SaveLayoutItem[]
+): SaveLayoutItem[] {
+  const storedById = new Map(stored.map((row) => [row.id, row]))
+  return kept.filter((item) => {
+    const row = storedById.get(item.id)
+    if (!row) return true
+    return (Object.keys(item) as (keyof SaveLayoutItem)[]).some(
+      (key) => key !== 'id' && (row[key] ?? null) !== (item[key] ?? null)
+    )
+  })
+}

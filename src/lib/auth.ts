@@ -14,6 +14,7 @@ import {
   appUrl,
   beforeCreateInvitation,
   beforeUpdateMemberRole,
+  hasReachedOrganisationLimit,
   roleLabel,
   seatLimitFor,
   withDefaultActiveOrganisation
@@ -52,10 +53,13 @@ export const auth = betterAuth({
   // Better Auth rate-limits auth endpoints in production by default (e.g. 3
   // sign-ins per 10 s per IP). AUTH_RATE_LIMIT=off exists only for the E2E
   // job, where parallel workers all sign in from 127.0.0.1.
+  // Counts live in Postgres (the rateLimit table) so the limit holds across
+  // instances and restarts; the housekeeping job prunes old rows.
   rateLimit: {
     enabled:
       process.env.NODE_ENV === 'production' &&
-      process.env.AUTH_RATE_LIMIT !== 'off'
+      process.env.AUTH_RATE_LIMIT !== 'off',
+    storage: 'database'
   },
   session: {
     // Serve most session reads from a signed cookie instead of Postgres so
@@ -72,6 +76,11 @@ export const auth = betterAuth({
       ac,
       roles,
       creatorRole: 'owner',
+      organizationLimit: hasReachedOrganisationLimit,
+      // No deletion flow yet (it would need confirmation, an audit trail and
+      // blob clean-up), so the endpoint stays off rather than reachable by a
+      // direct API call.
+      disableOrganizationDeletion: true,
       invitationExpiresIn: INVITATION_EXPIRES_IN_SECONDS,
       cancelPendingInvitationsOnReInvite: true,
       requireEmailVerificationOnInvitation: true,

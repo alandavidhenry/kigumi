@@ -17,6 +17,21 @@ jobs:
     name: ESLint & Prettier
     runs-on: ubuntu-latest
 
+    # For the real-database tenant isolation suite (npm run test:db). Throwaway
+    # database reachable only from this job, so no password: trust auth keeps
+    # credentials out of the workflow entirely.
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: kigumi
+          POSTGRES_DB: kigumi
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U kigumi" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -48,4 +63,10 @@ jobs:
 
       - name: Run unit tests
         run: npm test
+        continue-on-error: ${{ !inputs.fail_on_error }}
+
+      - name: Run tenant isolation tests against Postgres
+        run: npm run test:db
+        env:
+          TEST_DATABASE_URL: postgresql://kigumi@localhost:5433/kigumi_test
         continue-on-error: ${{ !inputs.fail_on_error }}

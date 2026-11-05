@@ -1,4 +1,5 @@
 import { sendReminderDigestEmail } from '@/lib/email'
+import { logger } from '@/lib/logger'
 import { Feature, hasFeature, toPlanTier } from '@/lib/plans'
 import prisma from '@/lib/prisma'
 import { MemberRole } from '@/types/rbac'
@@ -198,7 +199,10 @@ export async function runReminders(
         result.emailFailures += done.emailFailures
       } catch (error) {
         // One organisation's problem must not stop everyone else's reminders.
-        console.error(`Reminders failed for organisation ${org.id}`, error)
+        logger.error('reminders.organisation_failed', {
+          organisationId: org.id,
+          error
+        })
       }
     }
     if (orgs.length < ORG_BATCH) break
@@ -370,7 +374,7 @@ async function remindOrganisation(
       } catch (error) {
         // Left unmarked, so the next run tries again within the window.
         emailFailures += 1
-        console.error(`Reminder email failed for ${member.userId}`, error)
+        logger.error('reminders.email_failed', { userId: member.userId, error })
       }
     }
   }

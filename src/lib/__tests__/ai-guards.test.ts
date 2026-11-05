@@ -11,6 +11,7 @@ import { LocalProvider } from '@/lib/ai/local'
 import {
   dayKey,
   recordPlatformTokens,
+  freeTierCap,
   releasePlatformRequest,
   reservePlatformRequest
 } from '@/lib/ai/platform-cap'
@@ -88,25 +89,77 @@ describe('platform daily cap', () => {
   })
 
   it('counts a request against today and returns the day', async () => {
-    usage.upsert.mockResolvedValue({ requests: 1 } as never)
+    usage.upsert.mockResolvedValue({ requests: 1, freeRequests: 0 } as never)
     const day = await reservePlatformRequest(new Date('2026-10-15T12:00:00Z'))
     expect(day).toBe('2026-10-15')
     expect(usage.upsert).toHaveBeenCalledWith({
       where: { day: '2026-10-15' },
-      create: { day: '2026-10-15', requests: 1 },
+      create: { day: '2026-10-15', requests: 1, freeRequests: 0 },
       update: { requests: { increment: 1 } },
-      select: { requests: true }
+      select: { requests: true, freeRequests: true }
+    })
+  })
+
+  describe('Free-tier share', () => {
+    beforeEach(() => {
+      vi.stubEnv('AI_DAILY_REQUEST_CAP', '10')
+    })
+
+    it('is half the cap, rounded down', () => {
+      expect(freeTierCap(10)).toBe(5)
+      expect(freeTierCap(3)).toBe(1)
+      expect(freeTierCap(0)).toBe(0)
+    })
+
+    it('counts a Free call in both totals', async () => {
+      usage.upsert.mockResolvedValue({ requests: 1, freeRequests: 1 } as never)
+      await reservePlatformRequest(new Date('2026-10-15T12:00:00Z'), {
+        freeTier: true
+      })
+      expect(usage.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: { day: '2026-10-15', requests: 1, freeRequests: 1 },
+          update: {
+            requests: { increment: 1 },
+            freeRequests: { increment: 1 }
+          }
+        })
+      )
+    })
+
+    it('refuses a Free call over its share and gives both back', async () => {
+      usage.upsert.mockResolvedValue({ requests: 6, freeRequests: 6 } as never)
+      const error = await reservePlatformRequest(
+        new Date('2026-10-15T12:00:00Z'),
+        { freeTier: true }
+      ).catch((e) => e)
+      expect(error.code).toBe('AI_UNAVAILABLE')
+      expect(error.message).toMatch(/Free plan/)
+      expect(usage.updateMany).toHaveBeenCalledWith({
+        where: { day: '2026-10-15', requests: { gt: 0 } },
+        data: { requests: { decrement: 1 } }
+      })
+      expect(usage.updateMany).toHaveBeenCalledWith({
+        where: { day: '2026-10-15', freeRequests: { gt: 0 } },
+        data: { freeRequests: { decrement: 1 } }
+      })
+    })
+
+    it('still lets a paid call through when Free has used its whole share', async () => {
+      usage.upsert.mockResolvedValue({ requests: 6, freeRequests: 5 } as never)
+      await expect(reservePlatformRequest()).resolves.toBeTruthy()
+      expect(usage.updateMany).not.toHaveBeenCalled()
     })
   })
 
   it('allows the last request under the cap', async () => {
-    usage.upsert.mockResolvedValue({ requests: 3 } as never)
+    usage.upsert.mockResolvedValue({ requests: 3, freeRequests: 0 } as never)
     await expect(reservePlatformRequest()).resolves.toBeTruthy()
     expect(usage.updateMany).not.toHaveBeenCalled()
   })
 
   it('refuses over the cap, says so plainly, and gives the increment back', async () => {
-    usage.upsert.mockResolvedValue({ requests: 4 } as never)
+    usage.upsert.mockResolvedValue({ requests: 4, freeRequests: 0 } as never)
     const error = await reservePlatformRequest(
       new Date('2026-10-15T12:00:00Z')
     ).catch((e) => e)

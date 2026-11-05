@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 
 import { toErrorResponse } from '@/lib/api'
 import { assertCronAuthorised } from '@/lib/cron'
+import { logger } from '@/lib/logger'
 import { runReminders } from '@/lib/maintenance/reminders'
 
 // Daily job: raise due, overdue and expiring reminders and email the digest.
@@ -9,7 +10,9 @@ import { runReminders } from '@/lib/maintenance/reminders'
 async function handle(request: Request) {
   try {
     assertCronAuthorised(request)
-    return NextResponse.json(await runReminders())
+    const result = await runReminders()
+    logger.info('cron.reminders.finished', { ...result })
+    return NextResponse.json(result)
   } catch (error) {
     return toErrorResponse(error)
   }

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
 import { readJson, toErrorResponse } from '@/lib/api'
@@ -67,12 +67,24 @@ describe('toErrorResponse', () => {
     expect(body.details[0].path).toBe('name')
   })
 
-  it('hides unexpected errors behind a 500', async () => {
+  it('hides unexpected errors behind a 500 with an id that is also logged', async () => {
+    const logged = vi.mocked(console.error)
+    logged.mockClear()
     const response = toErrorResponse(new Error('db exploded'))
     expect(response.status).toBe(500)
-    expect(await response.json()).toEqual({
+    const body = await response.json()
+    expect(body).toEqual({
       error: 'Something went wrong',
-      code: 'INTERNAL'
+      code: 'INTERNAL',
+      errorId: expect.stringMatching(/^[0-9a-f-]{36}$/)
+    })
+    expect(JSON.stringify(body)).not.toContain('db exploded')
+    const line = JSON.parse(String(logged.mock.calls.at(-1)?.[0]))
+    expect(line).toMatchObject({
+      level: 'error',
+      event: 'api.unhandled_error',
+      errorId: body.errorId,
+      error: { message: 'db exploded' }
     })
   })
 })

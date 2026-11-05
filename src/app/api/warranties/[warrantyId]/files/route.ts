@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 
 import { toErrorResponse } from '@/lib/api'
-import { badRequest } from '@/lib/errors'
 import { addWarrantyFile } from '@/lib/maintenance/warranty'
+import { readUploadedFile } from '@/lib/request-body'
 import { getTenantContext } from '@/lib/tenant-context'
 
 interface RouteContext {
@@ -13,15 +13,8 @@ export async function POST(request: Request, { params }: RouteContext) {
   try {
     const ctx = await getTenantContext()
     const { warrantyId } = await params
-    const form = await request.formData().catch(() => null)
-    const file = form?.get('file')
-    if (!(file instanceof File)) throw badRequest('Choose a file to upload')
-
-    const attachment = await addWarrantyFile(ctx, warrantyId, {
-      name: file.name,
-      type: file.type,
-      data: Buffer.from(await file.arrayBuffer())
-    })
+    const file = await readUploadedFile(request, 'Choose a file to upload')
+    const attachment = await addWarrantyFile(ctx, warrantyId, file)
     return NextResponse.json({ file: attachment }, { status: 201 })
   } catch (error) {
     return toErrorResponse(error)

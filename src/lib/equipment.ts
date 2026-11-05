@@ -137,6 +137,57 @@ export async function listEquipment(
   return rows.map(toEquipmentRow)
 }
 
+export const EQUIPMENT_PAGE_SIZE = 100
+
+export interface EquipmentPage {
+  items: EquipmentRow[]
+  // Items matching the filter, across every page.
+  total: number
+  page: number
+  pageCount: number
+  pageSize: number
+}
+
+// Unparseable or out-of-range pages fall back to the first or last page.
+function pageNumber(value: unknown): number {
+  const parsed = Number(value)
+  return Number.isInteger(parsed) && parsed >= 1 ? parsed : 1
+}
+
+// The inventory list, a page at a time: paid plans have no item limit, so a
+// large studio would otherwise load every row on each visit.
+export async function listEquipmentPage(
+  ctx: TenantContext,
+  filter: unknown = {},
+  page: unknown = 1
+): Promise<EquipmentPage> {
+  requirePermission(ctx, Permission.VIEW_INVENTORY)
+  const db = tenantDb(ctx)
+  const where = buildWhere(filter)
+  const total = await db.equipmentItem.count({ where })
+  const pageCount = Math.max(1, Math.ceil(total / EQUIPMENT_PAGE_SIZE))
+  const current = Math.min(pageNumber(page), pageCount)
+  const rows = await db.equipmentItem.findMany({
+    where,
+    orderBy: [
+      { category: 'asc' },
+      { make: 'asc' },
+      { model: 'asc' },
+      { id: 'asc' }
+    ],
+    select: equipmentSelect,
+    skip: (current - 1) * EQUIPMENT_PAGE_SIZE,
+    take: EQUIPMENT_PAGE_SIZE
+  })
+  return {
+    items: rows.map(toEquipmentRow),
+    total,
+    page: current,
+    pageCount,
+    pageSize: EQUIPMENT_PAGE_SIZE
+  }
+}
+
 export async function countEquipment(ctx: TenantContext): Promise<number> {
   requirePermission(ctx, Permission.VIEW_INVENTORY)
   return tenantDb(ctx).equipmentItem.count()

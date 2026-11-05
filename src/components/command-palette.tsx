@@ -62,12 +62,14 @@ export function CommandPalette() {
       <button
         type='button'
         onClick={() => setOpen(true)}
-        aria-label='Search'
         className='flex h-8 items-center gap-2 rounded-md border border-input bg-field px-2 text-sm text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground'
       >
         <Search className='h-4 w-4 shrink-0' />
-        <span className='hidden sm:inline'>Search…</span>
-        <kbd className='hidden rounded border border-border px-1 font-mono text-[10px] sm:inline'>
+        <span className='sr-only sm:not-sr-only'>Search…</span>
+        <kbd
+          aria-hidden='true'
+          className='hidden rounded border border-border px-1 font-mono text-[10px] sm:inline'
+        >
           {isMac ? '⌘' : 'Ctrl '}K
         </kbd>
       </button>

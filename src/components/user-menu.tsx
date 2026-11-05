@@ -64,7 +64,7 @@ export function UserMenu() {
           variant='ghost'
           size='icon'
           className='rounded-full'
-          aria-label='Account menu'
+          aria-label={`${initials(userName)}: account menu`}
         >
           <span className='flex h-8 w-8 items-center justify-center rounded-full border border-brand-border bg-brand-tint text-sm font-medium text-foreground'>
             {initials(userName)}

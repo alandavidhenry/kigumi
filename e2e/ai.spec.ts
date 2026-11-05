@@ -20,10 +20,14 @@ test.describe('owner', () => {
       { timeout: 30_000 }
     )
     await expect(page.getByText('AI-generated').first()).toBeVisible()
-    await expect(
-      page.getByRole('button', { name: 'Generate AI summary' })
-    ).toBeVisible()
-    await expect(page.getByText(/AI requests this month/)).toBeVisible()
+    // A fresh database offers to generate; a database where someone already
+    // generated one (a local run) shows it with its provenance instead.
+    const generate = page.getByRole('button', { name: 'Generate AI summary' })
+    const provenance = page.getByText(/^Written by .+ from the specifications/)
+    await expect(generate.or(provenance)).toBeVisible()
+    if (await generate.isVisible()) {
+      await expect(page.getByText(/AI requests this month/)).toBeVisible()
+    }
   })
 
   test('compares two mics side by side with the differences marked', async ({

@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from '@/components/ui/use-toast'
 import { apiFetch } from '@/lib/client-api'
+import { prepareImageForUpload } from '@/lib/client-image'
 import type { EquipmentDetail, RoomOption } from '@/lib/equipment'
 import {
   EQUIPMENT_CATEGORY_LABELS,
@@ -77,7 +78,8 @@ export function EquipmentDetailView({
     setUploading(true)
     try {
       const body = new FormData()
-      body.append('file', file)
+      // Strips location and other metadata and downsizes large photos.
+      body.append('file', await prepareImageForUpload(file))
       const response = await fetch(`/api/equipment/${item.id}/photos`, {
         method: 'POST',
         body
@@ -271,7 +273,12 @@ export function EquipmentDetailView({
           <CardContent className='space-y-3'>
             <div className='print-area flex flex-col items-center gap-2 rounded-md bg-white p-4 text-black'>
               {origin ? (
-                <QRCodeSVG value={itemUrl} size={144} marginSize={0} />
+                <QRCodeSVG
+                  value={itemUrl}
+                  size={144}
+                  marginSize={0}
+                  title={`QR code linking to ${title}`}
+                />
               ) : (
                 <div className='h-36 w-36' />
               )}

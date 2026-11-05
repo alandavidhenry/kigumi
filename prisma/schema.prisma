@@ -87,6 +87,17 @@ model Verification {
   @@map("verification")
 }
 
+// Better Auth's rate-limit store (rateLimit.storage = "database"), so auth
+// limits hold across instances and restarts. Pruned by the housekeeping job.
+model RateLimit {
+  id          String @id
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+
+  @@map("rateLimit")
+}
+
 model Organization {
   id        String   @id
   name      String
@@ -468,9 +479,23 @@ model AiUsage {
 model AiPlatformUsage {
   day          String   @id // 'YYYY-MM-DD' (UTC)
   requests     Int      @default(0)
+  // The part of `requests` made by Free organisations, which may use at most
+  // FREE_TIER_CAP_SHARE of the cap so paid tenants are never crowded out.
+  freeRequests Int      @default(0)
   inputTokens  Int      @default(0)
   outputTokens Int      @default(0)
   updatedAt    DateTime @updatedAt
+}
+
+// Per-organisation AI burst limit: fixed one-minute windows shared by every
+// instance (src/lib/ai/rate-limit.ts). Global table keyed by organisation, not
+// tenant data; pruned by the housekeeping job.
+model AiRateWindow {
+  id        String   @id // `${organisationId}:${windowStartMs}`
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
 }
 
 // ---------------------------------------------------------------------------
@@ -683,7 +708,10 @@ model SessionShareLink {
   id             String    @id @default(cuid())
   organisationId String
   sessionId      String
-  token          String    @unique
+  // SHA-256 of the URL token (lookups) and the token sealed with a key outside
+  // the database (so members can copy the link again). See src/lib/secret-box.ts.
+  tokenHash      String    @unique
+  tokenSealed    String?
   createdById    String?
   expiresAt      DateTime?
   revokedAt      DateTime?

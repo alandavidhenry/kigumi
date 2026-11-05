@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { diffItems } from '@/lib/layout/diff'
+import { changedItems, diffItems } from '@/lib/layout/diff'
 import {
   clampToRoom,
   displaySize,
@@ -16,6 +16,7 @@ import {
 import { patternOutline } from '@/lib/layout/pattern'
 import { buildLayoutScene } from '@/lib/layout/scene'
 import { saveLayoutSchema } from '@/lib/layout/schemas'
+import type { SaveLayoutItem } from '@/lib/layout/schemas'
 import {
   BUILT_IN_TEMPLATES,
   getBuiltInTemplate,
@@ -343,5 +344,49 @@ describe('built-in templates', () => {
         }
       }
     }
+  })
+})
+
+describe('changedItems', () => {
+  const base = {
+    id: 'a',
+    type: 'mic',
+    variant: null,
+    label: 'Kick',
+    xMm: 100,
+    yMm: 200,
+    zMm: 0,
+    rotationDeg: 0,
+    pitchDeg: 0,
+    widthMm: 100,
+    depthMm: 100,
+    heightMm: null,
+    sortOrder: 0,
+    locked: false,
+    groupId: null,
+    micUnitId: null,
+    equipmentItemId: null,
+    patternSetting: null,
+    showPattern: false,
+    recommendationRef: null,
+    notes: null
+  } as const
+
+  it('keeps only items with a different value', () => {
+    const kept = [
+      { ...base },
+      { ...base, id: 'b', xMm: 150 },
+      { ...base, id: 'c', label: 'Snare' }
+    ] as SaveLayoutItem[]
+    const stored = [{ ...base }, { ...base, id: 'b' }, { ...base, id: 'c' }]
+    expect(changedItems(stored, kept).map((i) => i.id)).toEqual(['b', 'c'])
+  })
+
+  it('treats undefined and null as the same, and a missing row as changed', () => {
+    const kept = [
+      { ...base, heightMm: undefined }
+    ] as unknown as SaveLayoutItem[]
+    expect(changedItems([{ ...base }], kept)).toEqual([])
+    expect(changedItems([], kept)).toHaveLength(1)
   })
 })

@@ -194,6 +194,48 @@ describe('saveLayout', () => {
     expect(db.$transaction).not.toHaveBeenCalled()
   })
 
+  it('writes only the items whose values changed', async () => {
+    // Stored rows as the database holds them (schema defaults filled in).
+    const row = (id: string, extra: Record<string, unknown> = {}) => ({
+      ...item(id),
+      variant: null,
+      label: null,
+      zMm: 0,
+      rotationDeg: 0,
+      pitchDeg: 0,
+      heightMm: null,
+      sortOrder: 0,
+      locked: false,
+      groupId: null,
+      micUnitId: null,
+      equipmentItemId: null,
+      patternSetting: null,
+      showPattern: false,
+      recommendationRef: null,
+      notes: null,
+      ...extra
+    })
+    db.layout.findFirst.mockResolvedValue(
+      stored({ items: [row('a'), row('b'), row('c')] })
+    )
+    await saveLayout(engineer, 'l1', {
+      version: 3,
+      items: [item('a'), item('b', { xMm: 1500 }), item('c')]
+    })
+    expect(db.layoutItem.updateMany).toHaveBeenCalledTimes(1)
+    expect(db.layoutItem.updateMany.mock.calls[0][0].where).toEqual({
+      id: 'b',
+      layoutId: 'l1'
+    })
+
+    vi.mocked(db.layoutItem.updateMany).mockClear()
+    await saveLayout(engineer, 'l1', {
+      version: 3,
+      items: [item('a'), item('b'), item('c')]
+    })
+    expect(db.layoutItem.updateMany).not.toHaveBeenCalled()
+  })
+
   it('a pure move writes the items and syncs, but is not audited', async () => {
     db.layout.findFirst.mockResolvedValue(stored())
     const result = await saveLayout(engineer, 'l1', {

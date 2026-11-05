@@ -1,7 +1,10 @@
+import { randomUUID } from 'node:crypto'
+
 import { NextResponse } from 'next/server'
 import { ZodError } from 'zod'
 
 import { isAppError } from '@/lib/errors'
+import { logger } from '@/lib/logger'
 
 // Maps errors thrown by src/lib into JSON responses for route handlers.
 export function toErrorResponse(error: unknown): NextResponse {
@@ -34,19 +37,16 @@ export function toErrorResponse(error: unknown): NextResponse {
     )
   }
 
-  console.error('Unhandled API error', error)
+  // The id goes back to the caller and into the log, so a report of "it said
+  // something went wrong" can be matched to the real error.
+  const errorId = randomUUID()
+  logger.error('api.unhandled_error', { errorId, error })
   return NextResponse.json(
-    { error: 'Something went wrong', code: 'INTERNAL' },
+    { error: 'Something went wrong', code: 'INTERNAL', errorId },
     { status: 500 }
   )
 }
 
-// Parses a JSON body, treating malformed JSON as an empty object so schema
-// validation reports the problem consistently.
-export async function readJson(request: Request): Promise<unknown> {
-  try {
-    return await request.json()
-  } catch {
-    return {}
-  }
-}
+// Bounded JSON parsing lives in request-body.ts; re-exported so routes keep
+// importing it from here.
+export { readJson } from '@/lib/request-body'
