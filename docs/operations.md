@@ -1,6 +1,23 @@
 # Operations runbook
 
-How to watch, back up and restore Kigumi in production. Decisions behind this are in ADR [0019](decisions/0019-backups-and-restore.md) (backups), [0020](decisions/0020-observability.md) (observability) and [0021](decisions/0021-phase-8-security-hardening.md) (hardening). Terraform and the deploy workflows are not built yet; until they are, the settings below are applied by hand and this file is the checklist.
+How to watch, back up and restore Kigumi in production. Decisions behind this are in ADR [0019](decisions/0019-backups-and-restore.md) (backups), [0020](decisions/0020-observability.md) (observability) and [0021](decisions/0021-phase-8-security-hardening.md) (hardening). The pipeline and infrastructure are in ADR [0022](decisions/0022-deploy-pipeline-and-infrastructure.md); Azure Monitor alerts are still applied by hand.
+
+## Deploying
+
+**Workflows.** `dev-deploy.yml` (push to `main`) and `prod-deploy.yml` (release published) run lint and tests, E2E, build and push the image to GHCR, then `azure-deploy.yml` migrates, switches the image and smoke tests. `TF-CICD.yml` plans on any change under `infrastructure/` and applies on `main`; `TF-CD-PROD.yml` applies Production on `v*` tags.
+
+**First-time setup (once per environment).**
+
+1. Create the state storage: `terraform apply` in `infrastructure/bootstrap/<Env>` (variables: `subscription_id`, `cicd_sp_object_id`).
+2. Reuse or create the CI service principal with OIDC federated credentials for the repository and each GitHub environment (`Development`, `Production`). Give it `Contributor` and `User Access Administrator` on the subscription.
+3. Create the Neon project and branch; copy its connection string.
+4. GitHub environment secrets (per environment): `ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID`, `DATABASE_URL`, `GHCR_PAT` (`read:packages`), optional `ANTHROPIC_API_KEY`, and `CRON_SECRET` (after step 6). Repository secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` (hardened base images).
+5. Edit `infrastructure/env/<Env>/terraform.tfvars` (`platform_admin_emails`, `kv_deployer_object_id`; `app_url` once a custom domain exists), then run the Terraform workflow (or `terraform apply` locally with `secrets.auto.tfvars`, copied from the `.example`).
+6. Read the outputs: `terraform output -raw cron_secret` goes into the `CRON_SECRET` environment secret. Set the environment variables `AZURE_APP_NAME` and `AZURE_RESOURCE_GROUP` from `app_service_name` and `resource_group_name`.
+7. Production only: put `terraform output -raw backup_storage_connection_string` in `BACKUP_STORAGE_CONNECTION_STRING`, create the read-only role below for `BACKUP_DATABASE_URL`, and set the repository secrets `APP_URL` and `CRON_SECRET` (the cron workflows use these) to the Production values.
+8. Run `dev-deploy.yml` (or publish a release), then check `/api/health` and the smoke test.
+
+**Rollback.** Re-run the deploy for the previous good commit's image (`az webapp config container set � ghcr.io/<repo>:<sha>`). Schema changes are expand-then-contract, so the previous image still works against the migrated database.
 
 ## Scheduled jobs
 
@@ -40,7 +57,7 @@ A user who reports "Something went wrong" can quote the `errorId` from the respo
 
 **Database.** Neon point-in-time restore (keep at least 7 days of history) plus the nightly dump in a separate storage account.
 
-**Files.** On the app's storage account:
+**Files.** On the app's storage account (Terraform sets this up; the command is for reference or a manual fix):
 
 ```bash
 az storage account blob-service-properties update -g <rg> -n <account> \
@@ -49,7 +66,7 @@ az storage account blob-service-properties update -g <rg> -n <account> \
   --enable-container-delete-retention true --container-delete-retention-days 30
 ```
 
-**Backup storage account** (separate from the app's, private, its own credentials):
+**Backup storage account** (separate from the app's, private, its own credentials; Terraform creates it in Production with the 35-day immutability and lifecycle delete, the commands below are for reference):
 
 ```bash
 az storage container create --account-name <backup-account> -n db-backups --auth-mode login

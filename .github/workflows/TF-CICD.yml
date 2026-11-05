@@ -1,0 +1,51 @@
+name: Terraform - CICD
+
+on:
+  push:
+    paths:
+      - infrastructure/env/**
+      - infrastructure/modules/**
+      - .github/workflows/TF-CI.yml
+      - .github/workflows/TF-CD.yml
+      - .github/workflows/TF-CICD.yml
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  CI-DEV:
+    uses: ./.github/workflows/TF-CI.yml
+    with:
+      ENVIRONMENT: Development
+    secrets:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GHCR_PAT: ${{ secrets.GHCR_PAT }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  # CI-PROD:
+  #   uses: ./.github/workflows/TF-CI.yml
+  #   with:
+  #     ENVIRONMENT: Production
+  #   secrets:
+  #     ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+  #     ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+  #     ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+  #     DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+  CD-DEV:
+    if: github.ref_name == 'main'
+    needs: CI-DEV
+    uses: ./.github/workflows/TF-CD.yml
+    with:
+      ENVIRONMENT: Development
+    secrets:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GHCR_PAT: ${{ secrets.GHCR_PAT }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

@@ -4,7 +4,7 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 
 ## Deferred from Phase 0
 
-- **Deploy pipeline and Terraform:** `dev-deploy.yml` / `prod-deploy.yml`, `azure-deploy.yml`, and `infrastructure/` modules (App Service, Key Vault, Storage, ACS), mirroring Minato. `docker-build.yml` needs `DOCKERHUB_USERNAME`/`DOCKERHUB_TOKEN` secrets for the hardened `dhi.io` runner image, same as Minato.
+- ~~**Deploy pipeline and Terraform**~~ Written (ADR 0022) but not yet applied: needs the first-time setup in `docs/operations.md`, then a first run of each environment. Follow-ups: Azure Monitor alerts in Terraform; monthly dump retention for a year (the lifecycle rule currently deletes every dump after 36 days); custom domain and `app_url`; deployment slots for zero-downtime swaps.
 - ~~**Automated cross-tenant test against a real DB**~~ Done in Phase 8: `npm run test:db` (two organisations, every tenant route, in CI).
 - **Account settings page:** change name, email or password, and delete account (Better Auth endpoints exist; no UI yet).
 - **Organisation deletion and leaving:** owners can't yet delete an organisation or leave it from the UI. Since Phase 8 the Better Auth delete endpoint is disabled too (`disableOrganizationDeletion`); a real flow needs confirmation, a grace period, an audit record and blob clean-up (ADR 0019).
