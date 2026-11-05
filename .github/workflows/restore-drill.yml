@@ -21,10 +21,12 @@ jobs:
     services:
       postgres:
         image: postgres:17
+        # Throwaway database reachable only from this job, so no password:
+        # trust auth keeps credentials out of the workflow entirely.
         env:
           POSTGRES_USER: drill
-          POSTGRES_PASSWORD: drill
           POSTGRES_DB: drill
+          POSTGRES_HOST_AUTH_METHOD: trust
         ports: ['5432:5432']
         options: >-
           --health-cmd "pg_isready -U drill" --health-interval 5s
@@ -32,7 +34,6 @@ jobs:
     env:
       BACKUP_STORAGE_CONNECTION_STRING: ${{ secrets.BACKUP_STORAGE_CONNECTION_STRING }}
       CONTAINER: db-backups
-      PGPASSWORD: drill
     steps:
       - name: Check configuration
         run: |
@@ -59,13 +60,13 @@ jobs:
 
       - name: Restore
         run: |
-          docker run --rm --network host -v "$PWD:/in" -e PGPASSWORD postgres:17 \
+          docker run --rm --network host -v "$PWD:/in" postgres:17 \
             pg_restore --no-owner --no-privileges --exit-on-error \
             -h localhost -U drill -d drill "/in/$NAME"
 
       - name: Sanity checks
         run: |
-          q() { docker run --rm --network host -e PGPASSWORD postgres:17 \
+          q() { docker run --rm --network host postgres:17 \
             psql -h localhost -U drill -d drill -tAc "$1"; }
           echo "Latest migration: $(q 'select migration_name from _prisma_migrations order by finished_at desc limit 1')"
           ORGS=$(q 'select count(*) from "Organization"')
