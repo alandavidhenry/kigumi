@@ -1,0 +1,36 @@
+name: Terraform - Prod Deploy
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  CI-PROD:
+    uses: ./.github/workflows/TF-CI.yml
+    with:
+      ENVIRONMENT: Production
+    secrets:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GHCR_PAT: ${{ secrets.GHCR_PAT }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  CD-PROD:
+    needs: CI-PROD
+    uses: ./.github/workflows/TF-CD.yml
+    with:
+      ENVIRONMENT: Production
+    secrets:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GHCR_PAT: ${{ secrets.GHCR_PAT }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

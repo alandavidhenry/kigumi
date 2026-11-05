@@ -1,0 +1,77 @@
+name: Deploy to Dev
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - src/**
+      - public/**
+      - e2e/**
+      - data/**
+      - scripts/**
+      - playwright.config.ts
+      - prisma/**
+      - package.json
+      - package-lock.json
+      - next.config.mjs
+      - postcss.config.mjs
+      - Dockerfile
+      - .github/workflows/**
+
+permissions:
+  contents: read
+  packages: write
+  security-events: write
+  actions: read
+  id-token: write
+
+jobs:
+  lint_and_test:
+    name: Lint and Test
+    uses: ./.github/workflows/lint-format.yml
+
+  security_scan:
+    name: Security Scan
+    uses: ./.github/workflows/security-scan.yml
+
+  e2e:
+    name: Playwright E2E
+    uses: ./.github/workflows/playwright.yml
+
+  setup:
+    name: Extract Version
+    needs: [lint_and_test, security_scan, e2e]
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Extract version from package.json
+        id: version
+        run: echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+  build:
+    name: Build Docker Image
+    needs: setup
+    uses: ./.github/workflows/docker-build.yml
+    with:
+      environment: Development
+      version: ${{ needs.setup.outputs.version }}
+      push: true
+    secrets: inherit
+
+  deploy:
+    name: Deploy to Azure Dev
+    needs: [setup, build]
+    uses: ./.github/workflows/azure-deploy.yml
+    with:
+      environment: Development
+      image_uri: ${{ needs.build.outputs.image_uri }}
+    secrets:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}

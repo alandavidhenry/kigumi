@@ -82,7 +82,7 @@ TEST_DATABASE_URL=            # optional; npm run test:db defaults to kigumi_tes
 
 ## Deployment
 
-Same target as Minato: Docker → GHCR → Azure App Service, Neon Postgres. The deploy workflows and Terraform are **not set up yet** (planned for a later phase). CI today (`.github/workflows/pr-check.yml`): lint/format/types/tests → security scan (npm audit on production deps + gitleaks) → Playwright E2E against a built app → Docker build (no push). Health checks are split like Minato's: `/api/health` is liveness only (no DB, so Neon can autosuspend) and `/api/health/deep` checks DB and Blob (bearer `CRON_SECRET`). Backups, the restore drill and housekeeping run from GitHub Actions; see `docs/operations.md`.
+Same target as Minato: Docker → GHCR → Azure App Service, Neon Postgres (ADR 0022). `dev-deploy.yml` deploys on merge to `main`, `prod-deploy.yml` on a published release, both through `azure-deploy.yml` (migrate, switch image, smoke test). Infrastructure is Terraform in `infrastructure/` (`TF-*.yml` workflows); first-time setup is in `docs/operations.md`. PR CI (`.github/workflows/pr-check.yml`): lint/format/types/tests → security scan (npm audit on production deps + gitleaks) → Playwright E2E against a built app → Docker build (no push). Health checks are split like Minato's: `/api/health` is liveness only (no DB, so Neon can autosuspend) and `/api/health/deep` checks DB and Blob (bearer `CRON_SECRET`). Backups, the restore drill and housekeeping run from GitHub Actions; see `docs/operations.md`.
 
 ## Code Style
 
