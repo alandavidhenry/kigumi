@@ -1,6 +1,7 @@
 import { Building2, DoorOpen, Users } from 'lucide-react'
 import Link from 'next/link'
 
+import { StateBadge } from '@/components/maintenance/shared'
 import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,6 +12,15 @@ import {
   CardTitle
 } from '@/components/ui/card'
 import { listAuditLog } from '@/lib/audit'
+import {
+  PAT_STATE_LABELS,
+  STATE_LABELS,
+  WARRANTY_STATE_LABELS,
+  describePat,
+  describeTask,
+  describeWarranty
+} from '@/lib/maintenance/format'
+import { loadDashboardCare } from '@/lib/maintenance/overview'
 import { countMembers } from '@/lib/members'
 import {
   Feature,
@@ -19,6 +29,7 @@ import {
   getPlanLimits,
   hasFeature
 } from '@/lib/plans'
+import { formatSessionTime } from '@/lib/sessions/time'
 import { getOrganisationUsage } from '@/lib/studios'
 import { getTenantContext } from '@/lib/tenant-context'
 import { Permission, hasPermission } from '@/types/rbac'
@@ -35,10 +46,11 @@ export default async function DashboardPage() {
   const canSeeActivity =
     hasPermission(ctx.role, Permission.VIEW_AUDIT_LOG) &&
     hasFeature(ctx.planTier, Feature.AUDIT_LOG)
-  const [usage, members, activity] = await Promise.all([
+  const [usage, members, activity, care] = await Promise.all([
     getOrganisationUsage(ctx),
     countMembers(ctx),
-    canSeeActivity ? listAuditLog(ctx, { limit: 8 }) : Promise.resolve([])
+    canSeeActivity ? listAuditLog(ctx, { limit: 8 }) : Promise.resolve([]),
+    loadDashboardCare(ctx)
   ])
   const limits = getPlanLimits(ctx.planTier)
 
@@ -109,15 +121,184 @@ export default async function DashboardPage() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Coming next</CardTitle>
-          <CardDescription>
-            Equipment inventory, the mic catalogue and your mic locker, AI mic
-            recommendations, layouts and session sheets are on the way.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      {care.unreadNotifications > 0 && (
+        <Link href='/notifications' className='block'>
+          <Card className='border-brand-border bg-brand-tint/30 transition-colors hover:border-brand'>
+            <CardContent className='py-3 text-sm'>
+              You have {care.unreadNotifications} unread{' '}
+              {care.unreadNotifications === 1 ? 'reminder' : 'reminders'}.
+            </CardContent>
+          </Card>
+        </Link>
+      )}
+
+      <div className='grid gap-4 lg:grid-cols-2'>
+        {care.sessions && (
+          <Card>
+            <CardHeader className='flex flex-row items-center justify-between space-y-0'>
+              <CardTitle>Upcoming sessions</CardTitle>
+              <Button asChild variant='link' size='sm'>
+                <Link href='/sessions'>View all</Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {care.sessions.length === 0 ? (
+                <p className='text-sm text-muted-foreground'>
+                  No sessions coming up.
+                </p>
+              ) : (
+                <ul className='divide-y'>
+                  {care.sessions.map((session) => (
+                    <li key={session.id} className='py-2'>
+                      <Link
+                        href={`/sessions/${session.id}`}
+                        className='font-medium hover:underline'
+                      >
+                        {session.name}
+                      </Link>
+                      <p className='text-xs text-muted-foreground'>
+                        {formatSessionTime(
+                          new Date(session.startsAt),
+                          new Date(session.endsAt),
+                          session.timeZone
+                        )}
+                        {session.roomName && ` · ${session.roomName}`}
+                      </p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {care.tasks && (
+          <Card>
+            <CardHeader className='flex flex-row items-center justify-between space-y-0'>
+              <CardTitle>
+                Maintenance
+                {care.overdueTasks > 0 && (
+                  <span className='ml-2 text-sm font-normal text-destructive'>
+                    {care.overdueTasks} overdue
+                  </span>
+                )}
+              </CardTitle>
+              <Button asChild variant='link' size='sm'>
+                <Link href='/maintenance'>View all</Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {care.tasks.length === 0 ? (
+                <p className='text-sm text-muted-foreground'>
+                  Nothing due or overdue.
+                </p>
+              ) : (
+                <ul className='divide-y'>
+                  {care.tasks.map((task) => (
+                    <li
+                      key={task.id}
+                      className='flex items-center justify-between gap-2 py-2'
+                    >
+                      <div className='min-w-0'>
+                        <p className='truncate text-sm font-medium'>
+                          {task.planTitle} · {task.itemName}
+                        </p>
+                        <p className='text-xs text-muted-foreground'>
+                          {describeTask(task)}
+                        </p>
+                      </div>
+                      <StateBadge
+                        state={task.state}
+                        label={STATE_LABELS[task.state]}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {care.pat && (
+          <Card>
+            <CardHeader className='flex flex-row items-center justify-between space-y-0'>
+              <CardTitle>PAT testing</CardTitle>
+              <Button asChild variant='link' size='sm'>
+                <Link href='/maintenance/pat'>View all</Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {care.pat.length === 0 ? (
+                <p className='text-sm text-muted-foreground'>
+                  All tested items are in date.
+                </p>
+              ) : (
+                <ul className='divide-y'>
+                  {care.pat.map((test) => (
+                    <li
+                      key={test.id}
+                      className='flex items-center justify-between gap-2 py-2'
+                    >
+                      <div className='min-w-0'>
+                        <p className='truncate text-sm font-medium'>
+                          {test.itemName}
+                        </p>
+                        <p className='text-xs text-muted-foreground'>
+                          {describePat(test)}
+                        </p>
+                      </div>
+                      <StateBadge
+                        state={test.state}
+                        label={PAT_STATE_LABELS[test.state]}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {care.warranties && (
+          <Card>
+            <CardHeader className='flex flex-row items-center justify-between space-y-0'>
+              <CardTitle>Expiring warranties</CardTitle>
+              <Button asChild variant='link' size='sm'>
+                <Link href='/warranties'>View all</Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {care.warranties.length === 0 ? (
+                <p className='text-sm text-muted-foreground'>
+                  No warranties are about to end.
+                </p>
+              ) : (
+                <ul className='divide-y'>
+                  {care.warranties.map((warranty) => (
+                    <li
+                      key={warranty.id}
+                      className='flex items-center justify-between gap-2 py-2'
+                    >
+                      <div className='min-w-0'>
+                        <p className='truncate text-sm font-medium'>
+                          {warranty.itemName}
+                        </p>
+                        <p className='text-xs text-muted-foreground'>
+                          {describeWarranty(warranty)}
+                        </p>
+                      </div>
+                      <StateBadge
+                        state={warranty.state}
+                        label={WARRANTY_STATE_LABELS[warranty.state]}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       {canSeeActivity && (
         <Card>

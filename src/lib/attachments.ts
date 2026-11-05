@@ -19,17 +19,23 @@ import type { TenantContext } from '@/lib/tenant-context'
 import { tenantDb } from '@/lib/tenant-db'
 import { Permission, hasPermission } from '@/types/rbac'
 
-export type AttachmentEntity = 'equipment' | 'recall_sheet'
+export type AttachmentEntity =
+  'equipment' | 'recall_sheet' | 'warranty' | 'maintenance_log'
 
-// Who may read and change an owner's attachments. Equipment photos follow the
-// inventory permissions, desk photos follow the session permissions.
+// Who may read and change an owner's attachments. Equipment photos, warranty
+// receipts and service documents follow the inventory permissions; desk photos
+// follow the session permissions.
 const VIEW_BY_ENTITY: Record<AttachmentEntity, Permission> = {
   equipment: Permission.VIEW_INVENTORY,
-  recall_sheet: Permission.VIEW_SESSIONS
+  recall_sheet: Permission.VIEW_SESSIONS,
+  warranty: Permission.VIEW_INVENTORY,
+  maintenance_log: Permission.VIEW_INVENTORY
 }
 const MANAGE_BY_ENTITY: Record<AttachmentEntity, Permission> = {
   equipment: Permission.MANAGE_INVENTORY,
-  recall_sheet: Permission.MANAGE_SESSIONS
+  recall_sheet: Permission.MANAGE_SESSIONS,
+  warranty: Permission.MANAGE_INVENTORY,
+  maintenance_log: Permission.MANAGE_INVENTORY
 }
 
 export interface AttachmentRow {
@@ -56,13 +62,31 @@ function requireAnyOf(ctx: TenantContext, permissions: Permission[]) {
 
 // Unknown owner types are treated as equipment.
 function entityOf(value: string): AttachmentEntity {
-  return value === 'recall_sheet' ? 'recall_sheet' : 'equipment'
+  return value === 'recall_sheet' ||
+    value === 'warranty' ||
+    value === 'maintenance_log'
+    ? value
+    : 'equipment'
+}
+
+const REMOVE_AUDIT: Record<
+  AttachmentEntity,
+  { action: string; summary: string }
+> = {
+  equipment: { action: 'equipment.photo_remove', summary: 'Removed a photo' },
+  recall_sheet: { action: 'recall.photo_remove', summary: 'Removed a photo' },
+  warranty: { action: 'warranty.file_remove', summary: 'Removed a file' },
+  maintenance_log: {
+    action: 'maintenance.file_remove',
+    summary: 'Removed a file'
+  }
 }
 
 const EXTENSIONS: Record<string, string> = {
   'image/jpeg': 'jpg',
   'image/png': 'png',
-  'image/webp': 'webp'
+  'image/webp': 'webp',
+  'application/pdf': 'pdf'
 }
 
 // The declared content type is client-supplied, so confirm it against the
@@ -85,6 +109,14 @@ export function sniffImageType(data: Uint8Array): string | null {
   return null
 }
 
+// Receipts and service documents may also be PDFs.
+export function sniffFileType(data: Uint8Array): string | null {
+  const image = sniffImageType(data)
+  if (image) return image
+  const header = String.fromCharCode(...data.slice(0, 5))
+  return header === '%PDF-' ? 'application/pdf' : null
+}
+
 export async function listAttachments(
   ctx: TenantContext,
   entityType: AttachmentEntity,
@@ -103,21 +135,37 @@ export async function listAttachments(
 // check, size cap, per-owner cap and storage-plan limit.
 export async function storePhoto(
   ctx: TenantContext,
-  owner: { entityType: AttachmentEntity; entityId: string; maxPhotos: number },
+  owner: {
+    entityType: AttachmentEntity
+    entityId: string
+    maxPhotos: number
+    // Receipts and service documents: also accept PDFs, with their own size
+    // cap and attachment kind.
+    document?: { kind: string; maxBytes: number }
+  },
   file: { name: string; type: string; data: Buffer }
 ): Promise<AttachmentRow> {
   const db = tenantDb(ctx)
-  if (!(PHOTO_MIME_TYPES as readonly string[]).includes(file.type)) {
-    throw badRequest('Photos must be JPEG, PNG or WebP')
-  }
-  if (file.data.length === 0 || file.data.length > MAX_PHOTO_BYTES) {
+  const document = owner.document
+  const allowed: readonly string[] = document
+    ? [...PHOTO_MIME_TYPES, 'application/pdf']
+    : PHOTO_MIME_TYPES
+  if (!allowed.includes(file.type)) {
     throw badRequest(
-      `Photos must be under ${MAX_PHOTO_BYTES / (1024 * 1024)} MB`
+      document
+        ? 'Files must be JPEG, PNG, WebP or PDF'
+        : 'Photos must be JPEG, PNG or WebP'
     )
   }
-  const sniffed = sniffImageType(file.data)
+  const maxBytes = document?.maxBytes ?? MAX_PHOTO_BYTES
+  if (file.data.length === 0 || file.data.length > maxBytes) {
+    throw badRequest(`Files must be under ${maxBytes / (1024 * 1024)} MB`)
+  }
+  const sniffed = document
+    ? sniffFileType(file.data)
+    : sniffImageType(file.data)
   if (sniffed !== file.type) {
-    throw badRequest('That file is not a valid image')
+    throw badRequest('That file is not a valid image or PDF')
   }
 
   const existing = await db.attachment.findMany({
@@ -127,7 +175,7 @@ export async function storePhoto(
     existing.filter((row) => row.entityId === owner.entityId).length >=
     owner.maxPhotos
   ) {
-    throw badRequest(`At most ${owner.maxPhotos} photos here`)
+    throw badRequest(`At most ${owner.maxPhotos} files here`)
   }
   const usedBytes = existing.reduce((sum, row) => sum + row.sizeBytes, 0)
   const limitBytes = getPlanLimits(ctx.planTier).storageMb * 1024 * 1024
@@ -149,7 +197,7 @@ export async function storePhoto(
       fileName: file.name.slice(0, 200) || 'photo',
       mimeType: sniffed,
       sizeBytes: file.data.length,
-      kind: 'photo'
+      kind: document?.kind ?? 'photo'
     },
     select: attachmentSelect
   })
@@ -222,13 +270,10 @@ export async function deleteAttachment(
   await deleteBlob(row.blobPath)
   await db.attachment.deleteMany({ where: { id: attachmentId } })
   await recordAudit(ctx, {
-    action:
-      entityType === 'equipment'
-        ? 'equipment.photo_remove'
-        : 'recall.photo_remove',
-    entityType: entityType === 'equipment' ? 'equipment' : 'recall_sheet',
+    action: REMOVE_AUDIT[entityType].action,
+    entityType,
     entityId: row.entityId,
-    summary: 'Removed a photo'
+    summary: REMOVE_AUDIT[entityType].summary
   })
 }
 

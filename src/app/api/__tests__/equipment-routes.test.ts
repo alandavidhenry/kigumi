@@ -146,6 +146,8 @@ describe('/api/equipment/[equipmentId]', () => {
       model: 'B'
     })
     db.attachment.findMany.mockResolvedValue([])
+    db.warranty.findMany.mockResolvedValue([])
+    db.maintenanceLog.findMany.mockResolvedValue([])
     expect((await deleteItem(plain(), params(item))).status).toBe(204)
 
     signInAs(MemberRole.VIEWER)

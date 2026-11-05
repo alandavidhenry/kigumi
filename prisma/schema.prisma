@@ -118,6 +118,13 @@ model Organization {
   recallSheets           RecallSheet[]
   recallChannels         RecallChannel[]
   outboardRecalls        OutboardRecall[]
+  usageCounters          UsageCounter[]
+  maintenancePlans       MaintenancePlan[]
+  maintenanceTasks       MaintenanceTask[]
+  maintenanceLogs        MaintenanceLog[]
+  patTests               PatTest[]
+  warranties             Warranty[]
+  notifications          Notification[]
 
   @@map("organization")
 }
@@ -240,23 +247,29 @@ model EquipmentItem {
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
-  organisation    Organization     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  room            Room?            @relation(fields: [roomId], references: [id], onDelete: SetNull)
-  micUnit         MicrophoneUnit?
-  layoutItems     LayoutItem[]
-  outboardRecalls OutboardRecall[]
+  organisation     Organization      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  room             Room?             @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  micUnit          MicrophoneUnit?
+  layoutItems      LayoutItem[]
+  outboardRecalls  OutboardRecall[]
+  maintenancePlans MaintenancePlan[]
+  maintenanceTasks MaintenanceTask[]
+  maintenanceLogs  MaintenanceLog[]
+  patTests         PatTest[]
+  warranties       Warranty[]
+  usageCounter     UsageCounter?
 
   @@index([organisationId])
   @@index([organisationId, category])
   @@index([roomId])
 }
 
-// Files in Blob Storage (photos now; receipts and manuals in Phase 7). The
+// Files in Blob Storage (photos, receipts and service documents). The
 // entity is referenced polymorphically, so there is no foreign key to it.
 model Attachment {
   id             String   @id @default(cuid())
   organisationId String
-  entityType     String // 'equipment' | 'recall_sheet'
+  entityType     String // 'equipment' | 'recall_sheet' | 'warranty' | 'maintenance_log'
   entityId       String
   blobPath       String
   fileName       String
@@ -785,4 +798,149 @@ model OutboardRecall {
 
   @@index([organisationId])
   @@index([recallSheetId])
+}
+
+// ---------------------------------------------------------------------------
+// Maintenance, PAT testing, warranty and reminders (Phase 7, ADR 0018).
+// Plans are per item or per category; a task is the next occurrence of a plan
+// for one item and is rolled forward when it is completed.
+// ---------------------------------------------------------------------------
+
+model UsageCounter {
+  id              String   @id @default(cuid())
+  organisationId  String
+  equipmentItemId String   @unique
+  hours           Float
+  updatedAt       DateTime @updatedAt
+
+  organisation  Organization  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  equipmentItem EquipmentItem @relation(fields: [equipmentItemId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+}
+
+model MaintenancePlan {
+  id              String    @id @default(cuid())
+  organisationId  String
+  equipmentItemId String?
+  category        String?
+  title           String
+  notes           String?
+  intervalDays    Int?
+  intervalHours   Int?
+  leadDays        Int       @default(14)
+  active          Boolean   @default(true)
+  startsOn        DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  organisation  Organization      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  equipmentItem EquipmentItem?    @relation(fields: [equipmentItemId], references: [id], onDelete: Cascade)
+  tasks         MaintenanceTask[]
+
+  @@index([organisationId])
+  @@index([equipmentItemId])
+}
+
+model MaintenanceTask {
+  id              String    @id @default(cuid())
+  organisationId  String
+  planId          String
+  equipmentItemId String
+  dueAt           DateTime?
+  dueHours        Float?
+  lastDoneAt      DateTime?
+  createdAt       DateTime  @default(now())
+
+  organisation  Organization     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  plan          MaintenancePlan  @relation(fields: [planId], references: [id], onDelete: Cascade)
+  equipmentItem EquipmentItem    @relation(fields: [equipmentItemId], references: [id], onDelete: Cascade)
+  logs          MaintenanceLog[]
+
+  @@unique([planId, equipmentItemId])
+  @@index([organisationId, dueAt])
+  @@index([equipmentItemId])
+}
+
+model MaintenanceLog {
+  id              String   @id @default(cuid())
+  organisationId  String
+  equipmentItemId String
+  taskId          String?
+  title           String
+  performedAt     DateTime
+  performedById   String?
+  notes           String?
+  costMinor       Int?
+  hoursAtService  Float?
+  createdAt       DateTime @default(now())
+
+  organisation  Organization     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  equipmentItem EquipmentItem    @relation(fields: [equipmentItemId], references: [id], onDelete: Cascade)
+  task          MaintenanceTask? @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, performedAt])
+  @@index([equipmentItemId])
+}
+
+model PatTest {
+  id              String    @id @default(cuid())
+  organisationId  String
+  equipmentItemId String
+  testedAt        DateTime
+  testType        String // PatTestType
+  result          String // PatResult
+  testerName      String?
+  reference       String?
+  notes           String?
+  intervalMonths  Int
+  nextDueAt       DateTime?
+  createdAt       DateTime  @default(now())
+
+  organisation  Organization  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  equipmentItem EquipmentItem @relation(fields: [equipmentItemId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, nextDueAt])
+  @@index([equipmentItemId, testedAt])
+}
+
+model Warranty {
+  id              String    @id @default(cuid())
+  organisationId  String
+  equipmentItemId String
+  startsOn        DateTime?
+  endsOn          DateTime
+  provider        String?
+  reference       String?
+  terms           String?
+  leadDays        Int       @default(30)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  organisation  Organization  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  equipmentItem EquipmentItem @relation(fields: [equipmentItemId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, endsOn])
+  @@index([equipmentItemId])
+}
+
+// In-app reminders. (userId, dedupeKey) is unique so the daily job can run
+// any number of times without repeating a reminder.
+model Notification {
+  id             String    @id @default(cuid())
+  organisationId String
+  userId         String
+  kind           String // NotificationKind
+  title          String
+  body           String?
+  link           String?
+  dedupeKey      String
+  readAt         DateTime?
+  emailedAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  organisation Organization @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+  @@index([organisationId, userId, readAt])
 }

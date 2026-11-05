@@ -3,6 +3,7 @@
 import {
   AudioLines,
   Boxes,
+  FileCheck2,
   Building2,
   CalendarClock,
   Gauge,
@@ -13,7 +14,8 @@ import {
   SlidersHorizontal,
   ShieldCheck,
   Sparkles,
-  Users
+  Users,
+  Wrench
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -39,6 +41,8 @@ const ICONS: Record<NavIconName, ComponentType<{ className?: string }>> = {
   sessions: CalendarClock,
   templates: LayoutTemplate,
   consoles: SlidersHorizontal,
+  maintenance: Wrench,
+  warranty: FileCheck2,
   admin: ShieldCheck,
   members: Users,
   activity: History,

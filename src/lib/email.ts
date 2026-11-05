@@ -124,3 +124,31 @@ export async function sendInvitationEmail(
     text: `${inviterName} invited you to join ${organisationName} on Kigumi as ${role}: ${url}`
   })
 }
+
+export async function sendReminderDigestEmail(
+  to: string,
+  name: string,
+  organisationName: string,
+  items: Array<{ title: string; body: string }>,
+  url: string
+): Promise<void> {
+  const list = items
+    .map(
+      (item) =>
+        `<li><strong>${escapeHtml(item.title)}</strong><br>${escapeHtml(item.body)}</li>`
+    )
+    .join('')
+  await sendEmail({
+    to,
+    subject: `${items.length} ${items.length === 1 ? 'reminder' : 'reminders'} for ${organisationName} on Kigumi`,
+    html: layout(
+      'Studio reminders',
+      `<p>Hi ${escapeHtml(name)}, these need attention at <strong>${escapeHtml(organisationName)}</strong>:</p><ul>${list}</ul>`,
+      'Open reminders',
+      url
+    ),
+    text: `Hi ${name}, these need attention at ${organisationName}:\n\n${items
+      .map((item) => `- ${item.title}: ${item.body}`)
+      .join('\n')}\n\n${url}`
+  })
+}
