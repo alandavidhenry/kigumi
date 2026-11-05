@@ -7,3 +7,8 @@ output "application_insights_name" {
   description = "Application Insights resource name"
   value       = azurerm_application_insights.main.name
 }
+
+output "workspace_id" {
+  description = "Log Analytics workspace ID"
+  value       = azurerm_log_analytics_workspace.main.id
+}

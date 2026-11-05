@@ -123,3 +123,9 @@ variable "kv_deployer_object_id" {
   description = "Object ID of the CI/CD service principal granted Key Vault Secrets Officer. Set once; do not derive it from whoever runs Terraform."
   type        = string
 }
+
+variable "alert_emails" {
+  description = "Who receives Azure Monitor alerts; empty = no alerts"
+  type        = list(string)
+  default     = []
+}

@@ -33,3 +33,6 @@ kv_deployer_object_id = "7b1732f1-3e33-40b4-b134-0321b61a8444"
 extra_app_settings = {
   "AI_DAILY_REQUEST_CAP" = "100"
 }
+
+# Azure Monitor alerts (docs/operations.md). Development stays quiet.
+alert_emails = []

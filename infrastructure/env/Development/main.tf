@@ -19,4 +19,5 @@ module "kigumi" {
   platform_admin_emails = var.platform_admin_emails
   extra_app_settings    = var.extra_app_settings
   kv_deployer_object_id = var.kv_deployer_object_id
+  alert_emails          = var.alert_emails
 }

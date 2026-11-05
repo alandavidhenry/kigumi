@@ -1,6 +1,6 @@
 # Operations runbook
 
-How to watch, back up and restore Kigumi in production. Decisions behind this are in ADR [0019](decisions/0019-backups-and-restore.md) (backups), [0020](decisions/0020-observability.md) (observability) and [0021](decisions/0021-phase-8-security-hardening.md) (hardening). The pipeline and infrastructure are in ADR [0022](decisions/0022-deploy-pipeline-and-infrastructure.md); Azure Monitor alerts are still applied by hand.
+How to watch, back up and restore Kigumi in production. Decisions behind this are in ADR [0019](decisions/0019-backups-and-restore.md) (backups), [0020](decisions/0020-observability.md) (observability) and [0021](decisions/0021-phase-8-security-hardening.md) (hardening). The pipeline and infrastructure are in ADR [0022](decisions/0022-deploy-pipeline-and-infrastructure.md); Azure Monitor alerts come from Terraform (`alert_emails`).
 
 ## Deploying
 
@@ -36,7 +36,7 @@ All run from GitHub Actions and need repository secrets once the app is deployed
 
 Set `APPLICATIONINSIGHTS_CONNECTION_STRING` on the App Service to turn on tracing (requests, Postgres, Blob, HTTP dependencies, exceptions, Live Metrics). `OTEL_TRACES_SAMPLER_RATIO` (0 to 1, default 1) samples traces if volume grows. Logs are one JSON object per line on stdout/stderr, visible in the App Service log stream and, with telemetry on, in Application Insights.
 
-**Alerts to create** (Azure Monitor; move into Terraform later):
+**Alerts** (created by `infrastructure/modules/alerts` when `alert_emails` is set; the event alerts read App Service console logs, because only exceptions reach Application Insights. If an event alert never fires, check in Log Analytics that `AppServiceConsoleLogs` has rows after the first deploy). The backup and drill alerts are GitHub Actions notifications and stay manual:
 
 | Alert                  | Signal                                                                  | Severity |
 | ---------------------- | ----------------------------------------------------------------------- | -------- |

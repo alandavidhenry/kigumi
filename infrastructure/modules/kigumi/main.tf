@@ -186,6 +186,20 @@ module "app_service" {
   )
 }
 
+module "alerts" {
+  source = "../alerts"
+  count  = length(var.alert_emails) > 0 ? 1 : 0
+
+  project             = var.project
+  environment         = var.environment
+  location            = var.location
+  resource_group_name = module.resource_group.resource_group_name
+  app_service_id      = module.app_service.app_service_id
+  workspace_id        = module.monitoring.workspace_id
+  email_addresses     = var.alert_emails
+  tags                = local.common_tags
+}
+
 resource "azurerm_role_assignment" "kv_app_service" {
   scope                = module.key_vault.key_vault_id
   role_definition_name = "Key Vault Secrets User"

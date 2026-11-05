@@ -22,5 +22,5 @@ Phases 0 to 8 ran only on a laptop and in CI. Launch needs a repeatable way to c
 
 - A new environment is one `env/<Name>` folder plus a bootstrap for its state account.
 - Terraform state holds secrets; the state accounts are private and only the CI service principal and the owner can read them.
-- Azure Monitor alerts from `docs/operations.md` are still created by hand.
+- Azure Monitor alerts are Terraform too (`modules/alerts`), emailing `alert_emails`; Production only. They query App Service console logs because info and warn events never reach Application Insights (ADR 0020).
 - First-time setup is a checklist in `docs/operations.md` ("Deploying").

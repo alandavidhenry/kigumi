@@ -93,3 +93,8 @@ variable "extra_app_settings" {
 variable "kv_deployer_object_id" {
   type = string
 }
+
+variable "alert_emails" {
+  type    = list(string)
+  default = []
+}
