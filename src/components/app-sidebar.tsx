@@ -10,6 +10,7 @@ import {
   LayoutTemplate,
   Mic,
   Settings,
+  SlidersHorizontal,
   ShieldCheck,
   Sparkles,
   Users
@@ -37,6 +38,7 @@ const ICONS: Record<NavIconName, ComponentType<{ className?: string }>> = {
   recommendations: Sparkles,
   sessions: CalendarClock,
   templates: LayoutTemplate,
+  consoles: SlidersHorizontal,
   admin: ShieldCheck,
   members: Users,
   activity: History,

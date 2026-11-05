@@ -6,7 +6,7 @@ import {
   MAX_PHOTO_BYTES,
   PHOTO_MIME_TYPES
 } from '@/lib/equipment-types'
-import { badRequest, notFound } from '@/lib/errors'
+import { badRequest, forbidden, notFound } from '@/lib/errors'
 import { getPlanLimits } from '@/lib/plans'
 import {
   blobPathFor,
@@ -17,9 +17,20 @@ import {
 import { requirePermission } from '@/lib/tenant-context'
 import type { TenantContext } from '@/lib/tenant-context'
 import { tenantDb } from '@/lib/tenant-db'
-import { Permission } from '@/types/rbac'
+import { Permission, hasPermission } from '@/types/rbac'
 
-export type AttachmentEntity = 'equipment'
+export type AttachmentEntity = 'equipment' | 'recall_sheet'
+
+// Who may read and change an owner's attachments. Equipment photos follow the
+// inventory permissions, desk photos follow the session permissions.
+const VIEW_BY_ENTITY: Record<AttachmentEntity, Permission> = {
+  equipment: Permission.VIEW_INVENTORY,
+  recall_sheet: Permission.VIEW_SESSIONS
+}
+const MANAGE_BY_ENTITY: Record<AttachmentEntity, Permission> = {
+  equipment: Permission.MANAGE_INVENTORY,
+  recall_sheet: Permission.MANAGE_SESSIONS
+}
 
 export interface AttachmentRow {
   id: string
@@ -36,6 +47,17 @@ const attachmentSelect = {
   sizeBytes: true,
   kind: true
 } as const
+
+// Fails before any lookup when the role could not reach any owner type, so a
+// caller without access never learns whether an id exists.
+function requireAnyOf(ctx: TenantContext, permissions: Permission[]) {
+  if (!permissions.some((p) => hasPermission(ctx.role, p))) throw forbidden()
+}
+
+// Unknown owner types are treated as equipment.
+function entityOf(value: string): AttachmentEntity {
+  return value === 'recall_sheet' ? 'recall_sheet' : 'equipment'
+}
 
 const EXTENSIONS: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -68,10 +90,67 @@ export async function listAttachments(
   entityType: AttachmentEntity,
   entityId: string
 ): Promise<AttachmentRow[]> {
-  requirePermission(ctx, Permission.VIEW_INVENTORY)
+  requirePermission(ctx, VIEW_BY_ENTITY[entityType])
   return tenantDb(ctx).attachment.findMany({
     where: { entityType, entityId },
     orderBy: { createdAt: 'asc' },
+    select: attachmentSelect
+  })
+}
+
+// Validates and stores one image for an owner the caller has already checked.
+// Shared by equipment photos and desk photos so both get the same magic-byte
+// check, size cap, per-owner cap and storage-plan limit.
+export async function storePhoto(
+  ctx: TenantContext,
+  owner: { entityType: AttachmentEntity; entityId: string; maxPhotos: number },
+  file: { name: string; type: string; data: Buffer }
+): Promise<AttachmentRow> {
+  const db = tenantDb(ctx)
+  if (!(PHOTO_MIME_TYPES as readonly string[]).includes(file.type)) {
+    throw badRequest('Photos must be JPEG, PNG or WebP')
+  }
+  if (file.data.length === 0 || file.data.length > MAX_PHOTO_BYTES) {
+    throw badRequest(
+      `Photos must be under ${MAX_PHOTO_BYTES / (1024 * 1024)} MB`
+    )
+  }
+  const sniffed = sniffImageType(file.data)
+  if (sniffed !== file.type) {
+    throw badRequest('That file is not a valid image')
+  }
+
+  const existing = await db.attachment.findMany({
+    select: { entityId: true, sizeBytes: true }
+  })
+  if (
+    existing.filter((row) => row.entityId === owner.entityId).length >=
+    owner.maxPhotos
+  ) {
+    throw badRequest(`At most ${owner.maxPhotos} photos here`)
+  }
+  const usedBytes = existing.reduce((sum, row) => sum + row.sizeBytes, 0)
+  const limitBytes = getPlanLimits(ctx.planTier).storageMb * 1024 * 1024
+  if (usedBytes + file.data.length > limitBytes) {
+    throw badRequest("Your plan's storage limit has been reached")
+  }
+
+  const id = randomUUID()
+  const blobPath = blobPathFor(ctx.organisationId, id, EXTENSIONS[sniffed])
+  await uploadBlob(blobPath, file.data, sniffed)
+
+  return db.attachment.create({
+    data: {
+      id,
+      organisationId: ctx.organisationId,
+      entityType: owner.entityType,
+      entityId: owner.entityId,
+      blobPath,
+      fileName: file.name.slice(0, 200) || 'photo',
+      mimeType: sniffed,
+      sizeBytes: file.data.length,
+      kind: 'photo'
+    },
     select: attachmentSelect
   })
 }
@@ -90,52 +169,15 @@ export async function addEquipmentPhoto(
   })
   if (!item) throw notFound('Equipment')
 
-  if (!(PHOTO_MIME_TYPES as readonly string[]).includes(file.type)) {
-    throw badRequest('Photos must be JPEG, PNG or WebP')
-  }
-  if (file.data.length === 0 || file.data.length > MAX_PHOTO_BYTES) {
-    throw badRequest(
-      `Photos must be under ${MAX_PHOTO_BYTES / (1024 * 1024)} MB`
-    )
-  }
-  const sniffed = sniffImageType(file.data)
-  if (sniffed !== file.type) {
-    throw badRequest('That file is not a valid image')
-  }
-
-  const existing = await db.attachment.findMany({
-    select: { entityId: true, sizeBytes: true }
-  })
-  if (
-    existing.filter((row) => row.entityId === equipmentId).length >=
-    MAX_PHOTOS_PER_ITEM
-  ) {
-    throw badRequest(`At most ${MAX_PHOTOS_PER_ITEM} photos per item`)
-  }
-  const usedBytes = existing.reduce((sum, row) => sum + row.sizeBytes, 0)
-  const limitBytes = getPlanLimits(ctx.planTier).storageMb * 1024 * 1024
-  if (usedBytes + file.data.length > limitBytes) {
-    throw badRequest("Your plan's storage limit has been reached")
-  }
-
-  const id = randomUUID()
-  const blobPath = blobPathFor(ctx.organisationId, id, EXTENSIONS[sniffed])
-  await uploadBlob(blobPath, file.data, sniffed)
-
-  const row = await db.attachment.create({
-    data: {
-      id,
-      organisationId: ctx.organisationId,
+  const row = await storePhoto(
+    ctx,
+    {
       entityType: 'equipment',
       entityId: equipmentId,
-      blobPath,
-      fileName: file.name.slice(0, 200) || 'photo',
-      mimeType: sniffed,
-      sizeBytes: file.data.length,
-      kind: 'photo'
+      maxPhotos: MAX_PHOTOS_PER_ITEM
     },
-    select: attachmentSelect
-  })
+    file
+  )
   await recordAudit(ctx, {
     action: 'equipment.photo_add',
     entityType: 'equipment',
@@ -149,12 +191,13 @@ export async function getAttachmentFile(
   ctx: TenantContext,
   attachmentId: string
 ): Promise<{ data: Buffer; mimeType: string; fileName: string }> {
-  requirePermission(ctx, Permission.VIEW_INVENTORY)
+  requireAnyOf(ctx, Object.values(VIEW_BY_ENTITY))
   const row = await tenantDb(ctx).attachment.findFirst({
     where: { id: attachmentId },
-    select: { blobPath: true, mimeType: true, fileName: true }
+    select: { blobPath: true, mimeType: true, fileName: true, entityType: true }
   })
   if (!row) throw notFound('Attachment')
+  requirePermission(ctx, VIEW_BY_ENTITY[entityOf(row.entityType)])
   return {
     data: await downloadBlob(row.blobPath),
     mimeType: row.mimeType,
@@ -166,19 +209,24 @@ export async function deleteAttachment(
   ctx: TenantContext,
   attachmentId: string
 ): Promise<void> {
-  requirePermission(ctx, Permission.MANAGE_INVENTORY)
+  requireAnyOf(ctx, Object.values(MANAGE_BY_ENTITY))
   const db = tenantDb(ctx)
   const row = await db.attachment.findFirst({
     where: { id: attachmentId },
-    select: { id: true, blobPath: true, entityId: true }
+    select: { id: true, blobPath: true, entityId: true, entityType: true }
   })
   if (!row) throw notFound('Attachment')
+  const entityType = entityOf(row.entityType)
+  requirePermission(ctx, MANAGE_BY_ENTITY[entityType])
 
   await deleteBlob(row.blobPath)
   await db.attachment.deleteMany({ where: { id: attachmentId } })
   await recordAudit(ctx, {
-    action: 'equipment.photo_remove',
-    entityType: 'equipment',
+    action:
+      entityType === 'equipment'
+        ? 'equipment.photo_remove'
+        : 'recall.photo_remove',
+    entityType: entityType === 'equipment' ? 'equipment' : 'recall_sheet',
     entityId: row.entityId,
     summary: 'Removed a photo'
   })

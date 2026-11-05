@@ -4,7 +4,8 @@ import {
   addEquipmentPhoto,
   deleteAttachment,
   getAttachmentFile,
-  sniffImageType
+  sniffImageType,
+  storePhoto
 } from '@/lib/attachments'
 import { MAX_PHOTOS_PER_ITEM } from '@/lib/equipment-types'
 import { AppError } from '@/lib/errors'
@@ -192,5 +193,63 @@ describe('deleteAttachment', () => {
     expect(await code(deleteAttachment(owner, 'x'))).toBe('NOT_FOUND')
     expect(await code(deleteAttachment(viewer, 'a1'))).toBe('FORBIDDEN')
     expect(deleteBlob).not.toHaveBeenCalled()
+  })
+})
+
+describe('desk photos (recall_sheet owner)', () => {
+  const engineer = makeContext({ role: MemberRole.ENGINEER })
+
+  it('stores a photo against the recall sheet with the same checks', async () => {
+    db.attachment.findMany.mockResolvedValue([])
+    db.attachment.create.mockResolvedValue({ id: 'a1' })
+    await storePhoto(
+      engineer,
+      { entityType: 'recall_sheet', entityId: 'rs1', maxPhotos: 2 },
+      photo()
+    )
+    expect(db.attachment.create.mock.calls[0][0].data).toMatchObject({
+      entityType: 'recall_sheet',
+      entityId: 'rs1',
+      kind: 'photo'
+    })
+  })
+
+  it('rejects a fake image, an oversize file and a full sheet', async () => {
+    db.attachment.findMany.mockResolvedValue([
+      { entityId: 'rs1', sizeBytes: 10 },
+      { entityId: 'rs1', sizeBytes: 10 }
+    ])
+    const owner = { entityType: 'recall_sheet', entityId: 'rs1', maxPhotos: 2 }
+    expect(
+      await code(
+        storePhoto(
+          engineer,
+          owner as never,
+          photo({ data: Buffer.from('nope') })
+        )
+      )
+    ).toBe('BAD_REQUEST')
+    expect(await code(storePhoto(engineer, owner as never, photo()))).toBe(
+      'BAD_REQUEST'
+    )
+    expect(uploadBlob).not.toHaveBeenCalled()
+  })
+
+  it('serves and removes them under the session permissions', async () => {
+    db.attachment.findFirst.mockResolvedValue({
+      id: 'a1',
+      blobPath: 'org_1/a.png',
+      mimeType: 'image/png',
+      fileName: 'a.png',
+      entityId: 'rs1',
+      entityType: 'recall_sheet'
+    })
+    vi.mocked(downloadBlob).mockResolvedValue(png)
+    expect(await getAttachmentFile(viewer, 'a1')).toMatchObject({
+      mimeType: 'image/png'
+    })
+    expect(await code(deleteAttachment(viewer, 'a1'))).toBe('FORBIDDEN')
+    await deleteAttachment(engineer, 'a1')
+    expect(deleteBlob).toHaveBeenCalledWith('org_1/a.png')
   })
 })

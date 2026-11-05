@@ -89,7 +89,7 @@ Shapes below are the target. Each phase adds only the models it needs. Tenant-ow
 - `RecommendationRequest` / `RecommendationResult` / `RecommendationFeedback` (P4) — full request context (sources, intent, room, candidate list, rules output), result JSON, promptVersion, model; feedback (accepted / swapped(toUnitId) / rejected, rating, comment)
 - `Layout` / `LayoutItem` (P5, built) — session-owned copy or template; footprint snapshot, grid, snap, version; items: type, xMm, yMm, zMm, rotationDeg, pitchDeg, widthMm, depthMm, heightMm, label, equipmentItemId?, micUnitId?, patternSetting, showPattern (ADR [0016](decisions/0016-layouts-sessions-input-list.md); `scaleMmPerPx` dropped)
 - `RecordingSession` / `InputChannel` / `SessionShareLink` (P5, built; named `RecordingSession` because Better Auth owns `Session`) — start/end (UTC), roomId, client (free text), status, channelsAvailable, phantomMode; channels: number, kind, source, micUnitId, stand, preampInput, phantom, padDb, dawName, notes, layoutItemId?
-- `Console` / `ConsoleTemplate` / `RecallSheet` / `RecallChannel` / `OutboardRecall` (P6) — channel-strip definitions as JSON schemas; recall values as JSON per channel
+- `Console` / `ConsoleTemplate` / `RecallSheet` / `RecallChannel` / `OutboardRecall` (P6, built) — channel-strip definitions as JSON; recall values as JSON per channel; the sheet snapshots its strip (ADR [0017](decisions/0017-console-recall-sheets.md))
 - `MaintenancePlan` / `MaintenanceTask` / `MaintenanceLog` / `PatTest` (P7) — interval by time and/or usage hours; PAT test date, result, next due
 - `Warranty` (P7) — equipmentItemId, start, end, provider, terms
 - `Notification` (P7) — organisationId, userId, kind, title, link, readAt
@@ -209,7 +209,7 @@ Source of truth: `src/lib/plans.ts` (`PLAN_LIMITS`, `FEATURE_MINIMUM_TIER`, `PLA
 - **Phase 3 — AI layer (done):** AI service, mic summaries, comparison, caching, budgets/rate limits. See ADR [0013](decisions/0013-ai-service-layer.md).
 - **Phase 4 — Recommendations (built, awaiting approval):** rules engine (tests first), LLM ranking with validated structured output, feedback capture, free-text questions and the golden evaluation set. "If you were buying" suggestions are deferred. See ADR [0015](decisions/0015-recommendation-pipeline.md).
 - **Phase 5 — Layouts and sessions (built, awaiting approval):** 2D layout editor with grid, snapping and templates, sessions, auto-built input list with warnings, PDF export, read-only share link, DAW track-name export, apply a recommendation to a session. Recall sheet link and 3D wait for later phases. See ADR [0016](decisions/0016-layouts-sessions-input-list.md).
-- **Phase 6 — Recall sheets:** console templates, per-session recall sheet, outboard recall.
+- **Phase 6 — Recall sheets (built, awaiting approval):** console definitions with channel-strip templates (generic analogue desk shipped, your own supported), a per-session recall sheet pre-filled from the input list, outboard recall, desk photos, duplicate a previous session's recall, print/PDF. Shared console templates across organisations (Studio) wait for later. See ADR [0017](decisions/0017-console-recall-sheets.md).
 - **Phase 7 — Maintenance and warranty:** schedules, PAT testing, reminders, attachments, notifications, dashboard.
 - **Phase 8 — Hardening:** accessibility, performance, security review (tenant-isolation authz tests, upload handling, prompt injection), observability, backups, Terraform + deploy workflows.
 

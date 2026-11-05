@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { deleteAttachmentsFor } from '@/lib/attachments'
 import { AppError } from '@/lib/errors'
 import { PlanTier } from '@/lib/plans'
 import prisma from '@/lib/prisma'
@@ -27,6 +28,7 @@ import { MemberRole } from '@/types/rbac'
 
 vi.mock('@/lib/tenant-db', () => ({ tenantDb: vi.fn() }))
 vi.mock('@/lib/audit', () => ({ recordAudit: vi.fn() }))
+vi.mock('@/lib/attachments', () => ({ deleteAttachmentsFor: vi.fn() }))
 vi.mock('@/lib/prisma', () => ({
   default: {
     sessionShareLink: { findUnique: vi.fn(), update: vi.fn() },
@@ -363,6 +365,17 @@ describe('updateSession and deleteSession', () => {
     expect(recordAudit).toHaveBeenCalledWith(
       owner,
       expect.objectContaining({ action: 'session.delete' })
+    )
+  })
+
+  it('removes the desk photos of its recall sheet before deleting', async () => {
+    db.recordingSession.findFirst.mockResolvedValue({ name: 'Drum day' })
+    db.recallSheet.findFirst.mockResolvedValue({ id: 'rs1' })
+    await deleteSession(owner, 's1')
+    expect(deleteAttachmentsFor).toHaveBeenCalledWith(
+      owner,
+      'recall_sheet',
+      'rs1'
     )
   })
 

@@ -90,7 +90,7 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Multi-select, group move/rotate and alignment tools** in the editor. `groupId` is stored (stereo pairs from a recommendation) but the editor doesn't yet move a group together.
 - **Real-time co-editing:** saves are whole-layout with an optimistic version, so two people editing get a 409 and reload.
 - **Touch polish on a real tablet:** pinch zoom and pan are implemented but were not exercised on a physical device here. Palette is tap-to-add or drag (desktop); there is no touch drag-in.
-- **Console and preamp channel data (Phase 6):** `channelsAvailable` is typed by hand today; the recall sheet should link to the input list and supply real channel counts and preamp inputs.
+- **Console and preamp channel data:** `channelsAvailable` is still typed by hand. Phase 6 added consoles with a channel count, but a session does not take its channel count from the console it recalls on, and there is no preamp or interface inventory model.
 - **Duplicate a session fully:** a copy keeps layout and microphones but not the stand, preamp, phantom overrides or notes on each channel.
 - **Share links:** one live link per session with optional expiry (API only; the UI creates non-expiring links). No view counts beyond `lastViewedAt`, and no per-link password.
 - **PDF polish:** fonts are the built-in Helvetica; labels over the layout are placed text, so heavily overlapping labels can collide. A multi-page layout or A3 option is not offered.
@@ -99,6 +99,17 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Free-plan E2E for the template upgrade prompt:** covered by route and service tests (403 `FEATURE_NOT_IN_PLAN`) but not by a Playwright run with a Free organisation.
 - **E2E specs that fail under full-suite load:** `inventory.spec.ts` ("can add, edit, search and delete an item", the known S/N flake above) and `mics.spec.ts` ("platform admin reviews a new mic through to publication") failed in all three full parallel dev-server runs during Phase 5 and pass when run on their own. Both time out at the default 5 s right after a save plus `router.refresh()` against the dev server. They don't touch Phase 5 code, but they need stabilising (longer expect timeouts or waiting on the save response).
 
+## Deferred from Phase 6
+
+- **Desk channels with no input** (buses, returns, masters) cannot be added to a sheet yet; a sheet only has strips for inputs. A manual "add strip" and bus strips (a second template per console) are the next step.
+- **Recall strips are not kept in step with the input list.** "Add new inputs" appends missing strips; renaming, renumbering or removing an input does not move or remove a strip, so the engineer's written values are never touched.
+- **Shared console templates (Studio, PLAN §6):** templates are per organisation. Sharing or publishing templates across organisations (and a community library of desks) is not built. `Feature.SHARED_CONSOLE_TEMPLATES` exists but gates nothing.
+- **Only one shipped desk.** A digital-desk starter (scene-style) and a few popular analogue consoles would help; they must be transcribed from manufacturer documentation, not guessed.
+- **Recall diff:** comparing two sessions' sheets (what changed since last time) is not offered.
+- **No public share link for recall,** and no browser print stylesheet: Print/PDF is the PDF.
+- **Template editing UI is basic:** no reordering of sections or controls, and control keys cannot be renamed after creation (by design).
+- **Pre-existing E2E failures:** `ai.spec.ts` ("mic page offers an AI summary...", no "Generate AI summary" button) and `mics.spec.ts` ("browses the catalogue...", `getByText('40 Hz')` matches two elements) fail on the Phase 5 code too (checked by stashing the Phase 6 changes). They need fixing separately.
+
 ## Later phases (summary)
 
-Recommendations (P4, built), layouts and sessions (P5, built), recall sheets (P6), maintenance and warranty (P7), hardening (P8). See `docs/PLAN.md`.
+Recommendations (P4, built), layouts and sessions (P5, built), recall sheets (P6, built), maintenance and warranty (P7), hardening (P8). See `docs/PLAN.md`.
