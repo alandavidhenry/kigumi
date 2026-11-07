@@ -6,6 +6,7 @@ import type { TenantContext } from '@/lib/tenant-context'
 import { tenantDb } from '@/lib/tenant-db'
 import { Permission } from '@/types/rbac'
 
+import { controlsOf } from './desk-layout'
 import { recallLines } from './format'
 import { getRecallSheet } from './service'
 
@@ -29,6 +30,8 @@ export interface RecallPrintView {
   roomName: string | null
   client: string | null
   consoleName: string
+  // Recorded master-area values, one line per panel.
+  master: RecallLine[]
   organisationName: string
   branded: boolean
   channels: RecallPrintChannel[]
@@ -51,6 +54,7 @@ export async function getRecallPrintView(
     roomName: header.roomName,
     client: header.client,
     consoleName: sheet.consoleName,
+    master: recallLines(controlsOf(sheet.layout, 'master'), sheet.masterValues),
     organisationName: ctx.organisationName,
     branded: !hasFeature(ctx.planTier, Feature.UNBRANDED_EXPORTS),
     channels: sheet.channels.map((c) => ({

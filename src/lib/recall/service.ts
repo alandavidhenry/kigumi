@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { deleteAttachmentsFor } from '@/lib/attachments'
 import { recordAudit } from '@/lib/audit'
 import { badRequest, conflict, notFound } from '@/lib/errors'
+import { toJsonValue } from '@/lib/prisma-json'
 import {
   channelSelect,
   loadUnitInfos,
@@ -14,7 +15,9 @@ import type { TenantContext } from '@/lib/tenant-context'
 import { tenantDb } from '@/lib/tenant-db'
 import { Permission } from '@/types/rbac'
 
-import { readStrip } from './consoles'
+import { readDefaults, readLayout } from './consoles'
+import { controlsOf, pickKnown } from './desk-layout'
+import { reconcileValues } from './desk-reconcile'
 import { prefillChannels } from './prefill'
 import {
   outboardInputSchema,
@@ -27,6 +30,7 @@ import {
 } from './schemas'
 import { MAX_OUTBOARD_UNITS } from './types'
 
+import type { DeskLayout } from './desk-types'
 import type { OutboardSetting, RecallValues, StripDefinition } from './types'
 
 // Per-session recall sheets (PLAN §4.7, ADR 0017). One sheet per session,
@@ -62,7 +66,11 @@ export interface RecallSheetView {
   consoleId: string | null
   consoleName: string
   channelCount: number
+  // The desk as it was when the sheet was made (ADR 0017 §4, ADR 0023).
+  layout: DeskLayout
+  // Its channel-strip controls grouped by panel, for the list view.
   strip: StripDefinition
+  masterValues: RecallValues
   notes: string | null
   channels: RecallChannelView[]
   outboard: OutboardView[]
@@ -97,10 +105,23 @@ async function requireSheet(db: Db, sessionId: string) {
   await assertSession(db, sessionId)
   const sheet = await db.recallSheet.findFirst({
     where: { sessionId },
-    select: { id: true, strip: true }
+    select: {
+      id: true,
+      strip: true,
+      channelCount: true,
+      stripDefaults: true
+    }
   })
   if (!sheet) throw notFound('Recall sheet')
-  return { id: sheet.id, strip: readStrip(sheet.strip) }
+  const layout = readLayout(sheet.strip)
+  return {
+    id: sheet.id,
+    channelCount: sheet.channelCount,
+    layout,
+    strip: controlsOf(layout, 'strip'),
+    master: controlsOf(layout, 'master'),
+    stripDefaults: pickKnown(layout, 'strip', readValues(sheet.stripDefaults))
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -121,6 +142,7 @@ export async function getRecallSheet(
       consoleName: true,
       channelCount: true,
       strip: true,
+      masterValues: true,
       notes: true,
       channels: {
         orderBy: { stripNumber: 'asc' },
@@ -147,6 +169,7 @@ export async function getRecallSheet(
     }
   })
   if (!sheet) return null
+  const layout = readLayout(sheet.strip)
   const photos = await db.attachment.findMany({
     where: { entityType: 'recall_sheet', entityId: sheet.id },
     orderBy: { createdAt: 'asc' },
@@ -158,7 +181,9 @@ export async function getRecallSheet(
     consoleId: sheet.consoleId,
     consoleName: sheet.consoleName,
     channelCount: sheet.channelCount,
-    strip: readStrip(sheet.strip),
+    layout,
+    strip: controlsOf(layout, 'strip'),
+    masterValues: pickKnown(layout, 'master', readValues(sheet.masterValues)),
     notes: sheet.notes,
     channels: sheet.channels.map((c) => ({
       ...c,
@@ -233,6 +258,8 @@ export async function createRecallSheet(
         consoleName: true,
         channelCount: true,
         strip: true,
+        stripDefaults: true,
+        masterValues: true,
         notes: true,
         channels: {
           select: {
@@ -267,6 +294,8 @@ export async function createRecallSheet(
           consoleName: source.consoleName,
           channelCount: source.channelCount,
           strip: source.strip as never,
+          stripDefaults: toJsonValue(source.stripDefaults),
+          masterValues: toJsonValue(source.masterValues),
           notes: source.notes,
           createdById: ctx.userId
         }
@@ -310,13 +339,24 @@ export async function createRecallSheet(
         id: true,
         name: true,
         channelCount: true,
-        template: { select: { strip: true } }
+        template: { select: { strip: true, defaultValues: true } }
       }
     })
     if (!desk) throw notFound('Console')
-    const strip = readStrip(desk.template.strip)
+    const layout = readLayout(desk.template.strip)
+    // The studio's own saved home values, then what the input list says on
+    // top. Nothing else is filled in (ADR 0017 §5, ADR 0023).
+    const defaults = reconcileValues(
+      null,
+      layout,
+      readDefaults(desk.template.defaultValues)
+    ).values
     const inputs = await loadPrefillInputs(db, sessionId)
-    const filled = prefillChannels(strip, desk.channelCount, inputs)
+    const filled = prefillChannels(
+      controlsOf(layout, 'strip'),
+      desk.channelCount,
+      inputs
+    )
     skipped = filled.skipped.length
 
     await db.$transaction(async (tx) => {
@@ -328,7 +368,9 @@ export async function createRecallSheet(
           consoleId: desk.id,
           consoleName: desk.name,
           channelCount: desk.channelCount,
-          strip: strip as never,
+          strip: layout as never,
+          stripDefaults: toJsonValue(defaults.strip),
+          masterValues: toJsonValue(defaults.master),
           createdById: ctx.userId
         }
       })
@@ -342,7 +384,7 @@ export async function createRecallSheet(
             inputChannelId: c.inputChannelId,
             label: c.label,
             micName: c.micName,
-            values: c.values as never,
+            values: { ...defaults.strip, ...c.values } as never,
             notes: c.notes
           }))
         })
@@ -374,12 +416,8 @@ export async function addMissingRecallChannels(
     select: { stripNumber: true }
   })
   const taken = new Set(existing.map((c) => c.stripNumber))
-  const desk = await db.recallSheet.findFirst({
-    where: { id: sheet.id },
-    select: { channelCount: true }
-  })
   const inputs = await loadPrefillInputs(db, sessionId)
-  const filled = prefillChannels(sheet.strip, desk?.channelCount ?? 0, inputs)
+  const filled = prefillChannels(sheet.strip, sheet.channelCount, inputs)
   const fresh = filled.channels.filter((c) => !taken.has(c.stripNumber))
   if (fresh.length > 0) {
     await db.recallChannel.createMany({
@@ -391,7 +429,7 @@ export async function addMissingRecallChannels(
         inputChannelId: c.inputChannelId,
         label: c.label,
         micName: c.micName,
-        values: c.values as never,
+        values: { ...sheet.stripDefaults, ...c.values } as never,
         notes: c.notes
       }))
     })
@@ -417,15 +455,84 @@ export async function updateRecallSheet(
   const data = recallSheetUpdateSchema.parse(input)
   const db = tenantDb(ctx)
   const sheet = await requireSheet(db, sessionId)
-  await db.recallSheet.updateMany({
-    where: { id: sheet.id },
-    data: { ...(data.notes !== undefined && { notes: data.notes }) }
+
+  // Everything is checked against the sheet's own desk before anything is
+  // written, so a bad value in strip 12 leaves strips 1 to 11 untouched too.
+  if (data.masterValues) {
+    const problem = validateValues(sheet.master, data.masterValues)
+    if (problem) throw badRequest(`Master: ${problem}`)
+  }
+  for (const row of data.channels ?? []) {
+    if (row.stripNumber > sheet.channelCount) {
+      throw badRequest(
+        `This desk has ${sheet.channelCount} channel${sheet.channelCount === 1 ? '' : 's'}`
+      )
+    }
+    if (row.values) {
+      const problem = validateValues(sheet.strip, row.values)
+      if (problem) throw badRequest(`Strip ${row.stripNumber}: ${problem}`)
+    }
+  }
+
+  const channels = data.channels ?? []
+  const existing = channels.length
+    ? await db.recallChannel.findMany({
+        where: {
+          recallSheetId: sheet.id,
+          stripNumber: { in: channels.map((c) => c.stripNumber) }
+        },
+        select: { stripNumber: true }
+      })
+    : []
+  const present = new Set(existing.map((c) => c.stripNumber))
+
+  await db.$transaction(async (tx) => {
+    if (data.notes !== undefined || data.masterValues !== undefined) {
+      await tx.recallSheet.updateMany({
+        where: { id: sheet.id },
+        data: {
+          ...(data.notes !== undefined && { notes: data.notes }),
+          ...(data.masterValues !== undefined && {
+            masterValues: toJsonValue(data.masterValues)
+          })
+        }
+      })
+    }
+    for (const row of channels) {
+      if (present.has(row.stripNumber)) {
+        await tx.recallChannel.updateMany({
+          where: { recallSheetId: sheet.id, stripNumber: row.stripNumber },
+          data: {
+            ...(row.label !== undefined && { label: row.label }),
+            ...(row.values !== undefined && { values: row.values }),
+            ...(row.notes !== undefined && { notes: row.notes })
+          }
+        })
+      } else {
+        // A desk channel with no input on it yet (a return, a spare strip).
+        await tx.recallChannel.create({
+          data: {
+            id: randomUUID(),
+            organisationId: ctx.organisationId,
+            recallSheetId: sheet.id,
+            stripNumber: row.stripNumber,
+            label: row.label ?? `Ch ${row.stripNumber}`,
+            values: (row.values ?? {}) as never,
+            notes: row.notes ?? null
+          }
+        })
+      }
+    }
   })
   await recordAudit(ctx, {
     action: 'recall.update',
     entityType: 'session',
     entityId: sessionId,
-    summary: 'Updated the recall sheet notes'
+    summary:
+      channels.length || data.masterValues
+        ? `Updated the recall sheet (${channels.length} strip${channels.length === 1 ? '' : 's'}${data.masterValues ? ' and the master area' : ''})`
+        : 'Updated the recall sheet notes',
+    metadata: { fields: Object.keys(data), strips: channels.length }
   })
 }
 

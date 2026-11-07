@@ -154,7 +154,7 @@ A session links a date, room, layout, input list, recall sheet and notes. The in
 
 ### 4.7 Mixing desk tracking / recall sheet (Phase 6)
 
-Console definitions with channel-strip templates (generic analogue desk shipped, user-defined supported). A recall sheet per session, pre-filled from the input list. Outboard recall entries and desk photos. Duplicate a previous recall. Print/PDF.
+Console definitions with visual desk templates (ADR 0023): drag faders, knobs, switches, selector buttons, labels and panels onto one channel strip and a master area; set the template's home values by dragging, as in a soft synth, or by typing. The generic analogue desk is shipped and user-defined desks are supported. A recall sheet per session, shown as the desk, starts from the home values and is pre-filled from the input list. Outboard recall entries and desk photos. Duplicate a previous recall. Print/PDF.
 
 ### 4.8 Maintenance schedules and reminders (Phase 7)
 

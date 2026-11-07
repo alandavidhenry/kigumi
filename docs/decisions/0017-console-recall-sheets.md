@@ -1,6 +1,6 @@
 # 0017: Console definitions and recall sheets
 
-**Status:** Accepted (2026-11-05). Builds on [0016](0016-layouts-sessions-input-list.md).
+**Status:** Accepted (2026-11-05). Builds on [0016](0016-layouts-sessions-input-list.md). §1 and §3 superseded, §4 and §5 refined, by [0023](0023-visual-desk-templates.md) (visual desk templates).
 
 ## Context
 

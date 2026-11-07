@@ -115,6 +115,17 @@ const foreignCalls: Array<[string, () => Promise<Response>]> = [
     'PATCH recall',
     () => patchRecall(jsonRequest('PATCH', { notes: 'n' }), sid)
   ],
+  [
+    'PATCH recall desk (strips and master)',
+    () =>
+      patchRecall(
+        jsonRequest('PATCH', {
+          masterValues: {},
+          channels: [{ stripNumber: 1, values: {} }]
+        }),
+        sid
+      )
+  ],
   ['DELETE recall', () => deleteRecall(get(), sid)],
   ['POST recall sync', () => postRecallSync(get(), sid)],
   [
@@ -161,6 +172,14 @@ const foreignCalls: Array<[string, () => Promise<Response>]> = [
   [
     'PATCH template',
     () => patchTemplate(jsonRequest('PATCH', { name: 'N' }), tid)
+  ],
+  [
+    'PATCH template home values',
+    () =>
+      patchTemplate(
+        jsonRequest('PATCH', { defaultValues: { strip: {}, master: {} } }),
+        tid
+      )
   ],
   ['DELETE template', () => deleteTemplateRoute(get(), tid)],
   [
@@ -306,6 +325,45 @@ describe('validation', () => {
     )
     expect(response.status).toBe(400)
     expect(db.recallChannel.updateMany).not.toHaveBeenCalled()
+  })
+
+  it('400s a desk save with a value that does not fit, writing nothing', async () => {
+    db.recordingSession.findFirst.mockResolvedValue({ id: 's1', name: 'x' })
+    db.recallSheet.findFirst.mockResolvedValue({
+      id: 'rs1',
+      strip,
+      channelCount: 8,
+      stripDefaults: null
+    })
+    const response = await patchRecall(
+      jsonRequest('PATCH', {
+        channels: [
+          { stripNumber: 1, values: { gain: 3 } },
+          { stripNumber: 2, values: { gain: 'loud' } }
+        ]
+      }),
+      params({ sessionId: 's1' })
+    )
+    expect(response.status).toBe(400)
+    expect((await response.json()).error).toMatch(/Strip 2/)
+    expect(db.recallChannel.updateMany).not.toHaveBeenCalled()
+    expect(db.recallChannel.create).not.toHaveBeenCalled()
+  })
+
+  it('400s template home values for a control the desk does not have', async () => {
+    db.consoleTemplate.findFirst.mockResolvedValue({
+      name: 'T',
+      strip,
+      defaultValues: null
+    })
+    const response = await patchTemplate(
+      jsonRequest('PATCH', {
+        defaultValues: { strip: { nope: 1 }, master: {} }
+      }),
+      params({ templateId: 't1' })
+    )
+    expect(response.status).toBe(400)
+    expect(db.consoleTemplate.updateMany).not.toHaveBeenCalled()
   })
 
   it('409s a second recall sheet for a session', async () => {
