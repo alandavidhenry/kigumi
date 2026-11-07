@@ -6,6 +6,7 @@ import { useRef, useState } from 'react'
 
 import { FormError } from '@/components/auth/auth-card'
 import { ConfirmDeleteButton } from '@/components/confirm-delete-button'
+import { RecallDeskLoader } from '@/components/desk/desk-loader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -86,6 +87,42 @@ function ControlInput({
         <option value='on'>On</option>
         <option value='off'>Off</option>
       </NativeSelect>
+    )
+  }
+  if (control.type === 'select' && control.multi) {
+    const chosen = Array.isArray(value) ? value : []
+    return (
+      <fieldset
+        aria-label={label}
+        className='flex min-h-9 flex-wrap items-center gap-x-3 gap-y-1'
+        disabled={disabled}
+      >
+        {control.options?.map((o) => (
+          <label key={o} className='flex items-center gap-1.5 text-sm'>
+            <input
+              type='checkbox'
+              className='size-4 accent-[var(--brand)]'
+              checked={chosen.includes(o)}
+              onChange={(e) => {
+                const next = e.target.checked
+                  ? [...chosen, o]
+                  : chosen.filter((x) => x !== o)
+                onChange(control.options?.filter((x) => next.includes(x)))
+              }}
+            />
+            {o}
+          </label>
+        ))}
+        {value !== undefined && (
+          <button
+            type='button'
+            className='text-xs text-muted-foreground underline'
+            onClick={() => onChange(undefined)}
+          >
+            Not recorded
+          </button>
+        )}
+      </fieldset>
     )
   }
   if (control.type === 'select') {
@@ -190,8 +227,8 @@ function ChannelEditor({
             onChange={(e) => setLabel(e.target.value)}
           />
         </div>
-        {strip.sections.map((section) => (
-          <fieldset key={section.label} className='space-y-2'>
+        {strip.sections.map((section, index) => (
+          <fieldset key={`${index}:${section.label}`} className='space-y-2'>
             <legend className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
               {section.label}
             </legend>
@@ -493,6 +530,7 @@ export function RecallSheetEditor({
   const router = useRouter()
   const { error, busy, run } = useSaver()
   const [notes, setNotes] = useState(sheet.notes ?? '')
+  const [view, setView] = useState<'desk' | 'list'>('desk')
   const [uploading, setUploading] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
 
@@ -577,7 +615,7 @@ export function RecallSheetEditor({
       <FormError message={error} />
 
       <Card>
-        <CardHeader>
+        <CardHeader className='flex flex-row flex-wrap items-center justify-between gap-2 space-y-0'>
           <CardTitle className='text-base'>
             Channels{' '}
             <span className='font-normal text-muted-foreground'>
@@ -585,9 +623,37 @@ export function RecallSheetEditor({
               {sheet.channelCount} channels)
             </span>
           </CardTitle>
+          <div
+            role='group'
+            aria-label='Show the recall as'
+            className='inline-flex rounded-md border p-0.5'
+          >
+            {(['desk', 'list'] as const).map((v) => (
+              <button
+                key={v}
+                type='button'
+                aria-pressed={view === v}
+                onClick={() => setView(v)}
+                className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
+                  view === v
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-accent'
+                }`}
+              >
+                {v === 'desk' ? 'Desk' : 'List'}
+              </button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent className='space-y-2'>
-          {sheet.channels.length === 0 ? (
+          {view === 'desk' ? (
+            <RecallDeskLoader
+              key={JSON.stringify([sheet.channels, sheet.masterValues])}
+              sessionId={sessionId}
+              sheet={sheet}
+              canEdit={canEdit}
+            />
+          ) : sheet.channels.length === 0 ? (
             <p className='text-sm text-muted-foreground'>
               No channels yet. Add inputs to the session, then choose &quot;Add
               new inputs&quot;.

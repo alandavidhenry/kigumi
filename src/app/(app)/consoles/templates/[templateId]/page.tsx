@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 
+import { DeskEditorLoader } from '@/components/desk/desk-loader'
 import { PageHeader } from '@/components/page-header'
-import { TemplateEditor } from '@/components/recall/template-editor'
 import { isAppError } from '@/lib/errors'
 import { getConsoleTemplate } from '@/lib/recall/consoles'
 import { getTenantContext } from '@/lib/tenant-context'
@@ -27,13 +27,18 @@ export default async function TemplatePage({ params }: PageProps) {
     <div className='space-y-6'>
       <PageHeader
         title={template.name}
-        description='Changing a template affects new recall sheets only. Sheets already written keep the strip they were recorded on.'
+        description='Changing a template affects new recall sheets only. Sheets already written keep the desk they were recorded on.'
         backHref='/consoles'
         backLabel='Consoles & recall'
       />
-      <TemplateEditor
+      <DeskEditorLoader
         templateId={template.id}
-        initial={template}
+        initial={{
+          name: template.name,
+          description: template.description,
+          layout: template.layout,
+          defaultValues: template.defaultValues
+        }}
         canEdit={hasPermission(ctx.role, Permission.MANAGE_SESSIONS)}
       />
     </div>
