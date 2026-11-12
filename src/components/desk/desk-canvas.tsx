@@ -13,7 +13,7 @@ import {
 import { Group, Layer, Rect, Stage, Text, Transformer } from 'react-konva'
 
 import { componentSize, snap } from '@/lib/recall/desk-geometry'
-import { isValueKind } from '@/lib/recall/desk-layout'
+import { collidesAt, isValueKind } from '@/lib/recall/desk-layout'
 import { DESK_GRID_MM, RESIZABLE } from '@/lib/recall/desk-types'
 import type {
   DeskArea,
@@ -162,6 +162,7 @@ const AreaView = memo(function AreaView({
             showValue={showValues && !decor}
             canEdit={canEdit}
             bounds={bounds}
+            siblings={layout.components}
             onSelect={onSelect}
             onValue={onValue}
             onMove={onMove}
@@ -669,12 +670,35 @@ export const DeskCanvas = forwardRef<DeskCanvasHandle, DeskCanvasProps>(
                       ? ['top-center', 'bottom-center']
                       : ['middle-left', 'middle-right']
                 }
-                boundBoxFunc={(oldBox, newBox) =>
-                  Math.abs(newBox.width) < 5 * scale ||
-                  Math.abs(newBox.height) < 5 * scale
+                boundBoxFunc={(oldBox, newBox) => {
+                  if (
+                    Math.abs(newBox.width) < 5 * scale ||
+                    Math.abs(newBox.height) < 5 * scale
+                  ) {
+                    return oldBox
+                  }
+                  // Refuse a size that would overlap a neighbour. The box is
+                  // in screen pixels; the area's origin is the node's parent.
+                  const node = trRef.current?.nodes()[0]
+                  const parent = node?.getParent()
+                  if (!node || !parent || !selectedComponent || !selection) {
+                    return newBox
+                  }
+                  const origin = parent.getAbsolutePosition()
+                  const test = {
+                    ...selectedComponent,
+                    w: newBox.width / scale,
+                    h: newBox.height / scale
+                  }
+                  return collidesAt(
+                    layout[selection.area].components,
+                    test,
+                    (newBox.x - origin.x) / scale,
+                    (newBox.y - origin.y) / scale
+                  )
                     ? oldBox
                     : newBox
-                }
+                }}
                 onTransformEnd={() => {
                   const node = trRef.current?.nodes()[0]
                   if (!node || !selection || !selectedComponent) return
@@ -683,7 +707,7 @@ export const DeskCanvas = forwardRef<DeskCanvasHandle, DeskCanvasProps>(
                   const sy = node.scaleY()
                   node.scaleX(1)
                   node.scaleY(1)
-                  onResize?.(selection.area, selection.id, {
+                  const box = {
                     x: Math.max(0, snap(node.x(), DESK_GRID_MM)),
                     y: Math.max(0, snap(node.y(), DESK_GRID_MM)),
                     ...(resizable?.w && {
@@ -692,7 +716,23 @@ export const DeskCanvas = forwardRef<DeskCanvasHandle, DeskCanvasProps>(
                     ...(resizable?.h && {
                       h: Math.max(5, snap(h * sy, DESK_GRID_MM))
                     })
-                  })
+                  }
+                  // Snapping can round into a neighbour: put it back instead.
+                  if (
+                    collidesAt(
+                      layout[selection.area].components,
+                      { ...selectedComponent, ...box },
+                      box.x,
+                      box.y
+                    )
+                  ) {
+                    node.x(selectedComponent.x)
+                    node.y(selectedComponent.y)
+                    node.getLayer()?.batchDraw()
+                    trRef.current?.forceUpdate()
+                    return
+                  }
+                  onResize?.(selection.area, selection.id, box)
                 }}
               />
             )}

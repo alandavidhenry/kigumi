@@ -15,6 +15,7 @@ import {
   snap,
   toNorm
 } from '@/lib/recall/desk-geometry'
+import { collidesAt } from '@/lib/recall/desk-layout'
 import { DESK_GRID_MM } from '@/lib/recall/desk-types'
 import type { DeskArea, DeskComponent } from '@/lib/recall/desk-types'
 import type { RecallValue } from '@/lib/recall/types'
@@ -441,6 +442,8 @@ interface ShapeProps {
   readonly showValue: boolean
   readonly canEdit: boolean
   readonly bounds: { w: number; h: number }
+  // The area's components, so a drag can refuse to overlap one.
+  readonly siblings?: readonly DeskComponent[]
   readonly onSelect?: (selection: DeskSelection) => void
   readonly onValue?: (
     selection: DeskSelection,
@@ -463,6 +466,7 @@ export const DeskShape = memo(function DeskShape({
   showValue,
   canEdit,
   bounds,
+  siblings,
   onSelect,
   onValue,
   onMove,
@@ -472,6 +476,7 @@ export const DeskShape = memo(function DeskShape({
   // The value while a drag is in progress; committed on release.
   const [live, setLive] = useState<number | null>(null)
   const cleanup = useRef<(() => void) | null>(null)
+  const lastValid = useRef({ x: c.x, y: c.y })
   useEffect(() => () => cleanup.current?.(), [])
 
   const selection: DeskSelection = { area, id: c.id, channel }
@@ -562,14 +567,35 @@ export const DeskShape = memo(function DeskShape({
         if (mode === 'values' && canEdit && onValue)
           onValue(selection, undefined)
       }}
+      onDragStart={() => {
+        lastValid.current = { x: c.x, y: c.y }
+      }}
       onDragMove={(event) => {
         const node = event.target
-        node.x(
-          clamp(snap(node.x(), DESK_GRID_MM), 0, Math.max(0, bounds.w - w))
+        const nx = clamp(
+          snap(node.x(), DESK_GRID_MM),
+          0,
+          Math.max(0, bounds.w - w)
         )
-        node.y(
-          clamp(snap(node.y(), DESK_GRID_MM), 0, Math.max(0, bounds.h - h))
+        const ny = clamp(
+          snap(node.y(), DESK_GRID_MM),
+          0,
+          Math.max(0, bounds.h - h)
         )
+        const last = lastValid.current
+        const blocked = (x: number, y: number) =>
+          collidesAt(siblings ?? [], c, x, y)
+        // Stop at a neighbour, but slide along it when one axis is still free.
+        const next = !blocked(nx, ny)
+          ? { x: nx, y: ny }
+          : !blocked(nx, last.y)
+            ? { x: nx, y: last.y }
+            : !blocked(last.x, ny)
+              ? { x: last.x, y: ny }
+              : last
+        lastValid.current = next
+        node.x(next.x)
+        node.y(next.y)
       }}
       onDragEnd={(event) => {
         onMove?.(area, c.id, event.target.x(), event.target.y())

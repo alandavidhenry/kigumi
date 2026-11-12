@@ -355,6 +355,26 @@ const overlaps = (
   b: { x: number; y: number; w: number; h: number }
 ) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
 
+// Whether `component` placed at (x, y) would overlap another component. Boxes
+// may touch (shared edges are fine). Panels only collide with panels;
+// everything else collides with everything but panels.
+export function collidesAt(
+  components: readonly DeskComponent[],
+  component: DeskComponent,
+  x: number,
+  y: number
+): boolean {
+  const { w, h } = componentSize(component)
+  const isPanel = component.kind === 'panel'
+  const box = { x, y, w, h }
+  return components.some(
+    (o) =>
+      o.id !== component.id &&
+      (o.kind === 'panel') === isPanel &&
+      overlaps(box, { x: o.x, y: o.y, ...componentSize(o) })
+  )
+}
+
 // The first free spot, reading top-left to bottom-right, for a component added
 // without dropping it (click or keyboard). Panels only avoid other panels;
 // everything else avoids everything but panels. Null when the area is full.
@@ -386,6 +406,20 @@ export function updateComponent(
   id: string,
   patch: Partial<DeskComponent>
 ): DeskLayout {
+  // A change of position or size that would overlap a neighbour is refused.
+  const current = findComponent(layout, area, id)
+  if (
+    current &&
+    (patch.x !== undefined ||
+      patch.y !== undefined ||
+      patch.w !== undefined ||
+      patch.h !== undefined)
+  ) {
+    const moved = { ...current, ...patch }
+    if (collidesAt(layout[area].components, moved, moved.x, moved.y)) {
+      return layout
+    }
+  }
   return {
     ...layout,
     [area]: {
@@ -420,6 +454,7 @@ export function moveComponent(
   const dx = nx - target.x
   const dy = ny - target.y
   if (dx === 0 && dy === 0) return layout
+  if (collidesAt(layout[area].components, target, nx, ny)) return layout
   const panels = layout[area].components.filter((c) => c.kind === 'panel')
   const carried =
     target.kind === 'panel'

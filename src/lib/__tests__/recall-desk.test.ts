@@ -23,6 +23,7 @@ import {
   cannotAdd,
   emptyLayout,
   finaliseIds,
+  collidesAt,
   findFreeSpot,
   layoutFromStrip,
   moveComponent,
@@ -629,6 +630,29 @@ describe('editing a layout', () => {
     expect(clamped.strip.components[2]).toMatchObject({ x: 20, y: 275 })
     expect(moveComponent(base, 'strip', 'in', 5, 10)).toBe(base)
     expect(moveComponent(base, 'strip', 'nope', 5, 10)).toBe(base)
+  })
+
+  it('refuses a move that overlaps, but lets edges touch', () => {
+    // knob 'in' sits at (5,10); moving 'out' onto it is refused.
+    expect(moveComponent(base, 'strip', 'out', 5, 10)).toBe(base)
+    const { w, h } = componentSize(inside)
+    // Directly below 'in', touching its bottom edge.
+    const touching = moveComponent(base, 'strip', 'out', 5, 10 + h)
+    expect(touching).not.toBe(base)
+    expect(collidesAt(base.strip.components, outside, 5, 10 + h - 1)).toBe(true)
+    expect(collidesAt(base.strip.components, outside, 5 + w, 10)).toBe(false)
+    // A control may sit on a panel.
+    expect(collidesAt(base.strip.components, inside, 5, 20)).toBe(false)
+  })
+
+  it('refuses a resize that would overlap, but allows touching', () => {
+    const a = knob({ id: 'a', kind: 'fader', x: 0, y: 0, w: 10, h: 40 })
+    const b = knob({ id: 'b', kind: 'fader', x: 20, y: 0, w: 10, h: 40 })
+    const two = layoutWith([a, b])
+    expect(updateComponent(two, 'strip', 'a', { w: 25 })).toBe(two)
+    expect(
+      updateComponent(two, 'strip', 'a', { w: 20 }).strip.components[0]
+    ).toMatchObject({ w: 20 })
   })
 
   it('updates and removes without leaving undefined fields behind', () => {

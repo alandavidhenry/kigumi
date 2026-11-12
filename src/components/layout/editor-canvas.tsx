@@ -19,6 +19,8 @@ import {
   snapValue
 } from '@/lib/layout/geometry'
 import { patternOutline } from '@/lib/layout/pattern'
+import { itemShape } from '@/lib/layout/shapes'
+import type { ShapeTone } from '@/lib/layout/shapes'
 import { MIN_ITEM_SIZE_MM } from '@/lib/layout/types'
 import type { LayoutItemDoc } from '@/lib/layout/types'
 
@@ -57,6 +59,11 @@ interface Props {
   readonly onSelect: (id: string | null) => void
   readonly onChange: (id: string, patch: Partial<LayoutItemDoc>) => void
   readonly onDropNew: (type: string, at: { x: number; y: number }) => void
+}
+
+function partFill(tone: ShapeTone, colors: EditorColors): string {
+  if (tone === 'accent' || tone === 'beam') return colors.brand
+  return tone === 'detail' ? colors.card : colors.secondary
 }
 
 const ROTATION_SNAPS = Array.from({ length: 24 }, (_, i) => i * 15)
@@ -293,6 +300,7 @@ export const EditorCanvas = forwardRef<CanvasHandle, Props>(
             {items.map((item) => {
               const mic = item.type === 'mic'
               const shown = displaySize(item)
+              const shape = itemShape({ ...item, ...shown })
               const outside = !isInsideRoom(item, room)
               const fontSize = Math.max(110, Math.round(widthMm / 55))
               return (
@@ -362,33 +370,43 @@ export const EditorCanvas = forwardRef<CanvasHandle, Props>(
                       listening={false}
                     />
                   )}
+                  {/* Footprint: the whole shape when there is no symbol, else a
+                      transparent hit area that outlines on select / outside. */}
                   <Rect
                     x={-shown.widthMm / 2}
                     y={-shown.depthMm / 2}
                     width={shown.widthMm}
                     height={shown.depthMm}
-                    fill={mic ? colors.brand : colors.secondary}
+                    fill={shape ? 'transparent' : colors.secondary}
                     stroke={
                       outside
                         ? colors.destructive
                         : item.id === selectedId
                           ? colors.brand
-                          : colors.foreground
+                          : shape
+                            ? undefined
+                            : colors.foreground
                     }
                     strokeWidth={item.id === selectedId || outside ? 2.5 : 1.2}
                     strokeScaleEnabled={false}
-                    cornerRadius={mic ? shown.widthMm / 2 : 0}
+                    dash={shape && !outside ? [6, 4] : undefined}
                   />
-                  {mic && (
+                  {shape?.map((part, i) => (
                     <Line
-                      points={[0, 0, 0, -300]}
-                      stroke={colors.foreground}
-                      strokeWidth={2.5}
+                      key={i}
+                      points={part.points.flatMap((p) => [p.x, p.y])}
+                      closed
+                      fill={partFill(part.tone, colors)}
+                      opacity={part.tone === 'beam' ? 0.35 : 1}
+                      stroke={
+                        part.tone === 'beam' ? colors.brand : colors.foreground
+                      }
+                      strokeWidth={1.2}
                       strokeScaleEnabled={false}
-                      lineCap='round'
+                      lineJoin='round'
                       listening={false}
                     />
-                  )}
+                  ))}
                   {item.label && (
                     <Text
                       x={shown.widthMm / 2 + fontSize * 0.3}
