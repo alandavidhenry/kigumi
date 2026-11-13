@@ -683,6 +683,15 @@ function crossTenantCases(): Case[] {
     },
     {
       route: 'console-templates/[templateId]',
+      name: 'PATCH B template home values',
+      call: () =>
+        consoleTemplateId.PATCH(
+          send('PATCH', { defaultValues: { strip: {}, master: {} } }),
+          params({ templateId: b.consoleTemplate })
+        )
+    },
+    {
+      route: 'console-templates/[templateId]',
       name: 'DELETE B strip template',
       call: () =>
         consoleTemplateId.DELETE(
@@ -728,6 +737,18 @@ function crossTenantCases(): Case[] {
       call: () =>
         recall.PATCH(
           send('PATCH', { notes: 'x' }),
+          params({ sessionId: b.session })
+        )
+    },
+    {
+      route: 'sessions/[sessionId]/recall',
+      name: 'PATCH B sheet desk (strips and master)',
+      call: () =>
+        recall.PATCH(
+          send('PATCH', {
+            masterValues: {},
+            channels: [{ stripNumber: 1, values: {} }]
+          }),
           params({ sessionId: b.session })
         )
     },

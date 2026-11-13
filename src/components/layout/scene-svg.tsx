@@ -1,6 +1,14 @@
 import { PATTERN_NOTE } from '@/lib/layout/pattern'
 import type { Scene } from '@/lib/layout/scene'
+import type { ShapeTone } from '@/lib/layout/shapes'
 import { cn } from '@/lib/utils'
+
+const PART_CLASS: Record<ShapeTone, string> = {
+  body: 'fill-secondary stroke-foreground',
+  accent: 'fill-brand stroke-foreground',
+  detail: 'fill-card stroke-foreground',
+  beam: 'fill-brand/20 stroke-brand'
+}
 
 // Read-only plan view of a layout, as plain SVG (ADR 0016 decision 5). Used on
 // the session page and the public share page, so Konva only loads in the
@@ -63,15 +71,36 @@ export function SceneSvg({
                 strokeWidth={font / 25}
               />
             )}
-            <polygon
-              points={points(item.polygon)}
-              className={cn(
-                item.type === 'mic' ? 'fill-brand' : 'fill-secondary',
-                item.outsideRoom ? 'stroke-destructive' : 'stroke-foreground'
-              )}
-              strokeWidth={font / 18}
-            />
-            {item.arrow && (
+            {item.parts ? (
+              <>
+                {item.outsideRoom && (
+                  <polygon
+                    points={points(item.polygon)}
+                    className='fill-none stroke-destructive'
+                    strokeWidth={font / 18}
+                  />
+                )}
+                {item.parts.map((part, i) => (
+                  <polygon
+                    key={i}
+                    points={points(part.points)}
+                    className={PART_CLASS[part.tone]}
+                    strokeWidth={font / 25}
+                    strokeLinejoin='round'
+                  />
+                ))}
+              </>
+            ) : (
+              <polygon
+                points={points(item.polygon)}
+                className={cn(
+                  'fill-secondary',
+                  item.outsideRoom ? 'stroke-destructive' : 'stroke-foreground'
+                )}
+                strokeWidth={font / 18}
+              />
+            )}
+            {item.arrow && !item.parts && (
               <line
                 x1={item.arrow.from.x}
                 y1={item.arrow.from.y}

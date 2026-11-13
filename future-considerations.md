@@ -101,7 +101,8 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 
 ## Deferred from Phase 6
 
-- **Desk channels with no input** (buses, returns, masters) cannot be added to a sheet yet; a sheet only has strips for inputs. A manual "add strip" and bus strips (a second template per console) are the next step.
+- ~~**Desk channels with no input**~~ The desk view (ADR 0023) records any strip, creating its row on save, and the master area holds buses and masters. Still open: strip types other than the one repeated input strip (e.g. stereo returns between the inputs).
+- **Visual desk follow-ups (ADR 0023):** per-channel template home values (today one set for every channel); a desk drawing in the PDF (it prints lines); copy/paste and multi-select in the layout editor; touch drag from the library (click to add works on touch); the room layout editor keeps its own undo history; `src/components/desk/use-history.ts` could replace it.
 - **Recall strips are not kept in step with the input list.** "Add new inputs" appends missing strips; renaming, renumbering or removing an input does not move or remove a strip, so the engineer's written values are never touched.
 - **Shared console templates (Studio, PLAN §6):** templates are per organisation. Sharing or publishing templates across organisations (and a community library of desks) is not built. `Feature.SHARED_CONSOLE_TEMPLATES` exists but gates nothing.
 - **Only one shipped desk.** A digital-desk starter (scene-style) and a few popular analogue consoles would help; they must be transcribed from manufacturer documentation, not guessed.

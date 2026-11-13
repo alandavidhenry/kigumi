@@ -26,6 +26,13 @@ const LINE = '#d6d3d1'
 const ACCENT = '#a16207'
 const DANGER = '#b91c1c'
 
+const PART_FILL = {
+  body: '#e7e5e4',
+  accent: ACCENT,
+  detail: '#ffffff',
+  beam: ACCENT
+} as const
+
 const styles = StyleSheet.create({
   page: { padding: 28, fontSize: 9, color: INK, fontFamily: 'Helvetica' },
   title: { fontSize: 18, fontFamily: 'Helvetica-Bold' },
@@ -136,13 +143,36 @@ function SceneDrawing({
               strokeWidth={0.5}
             />
           )}
-          <Polygon
-            points={pts(item.polygon)}
-            fill={item.type === 'mic' ? ACCENT : '#e7e5e4'}
-            stroke={item.outsideRoom ? DANGER : INK}
-            strokeWidth={0.6}
-          />
-          {item.arrow && (
+          {item.parts ? (
+            <>
+              {item.outsideRoom && (
+                <Polygon
+                  points={pts(item.polygon)}
+                  fill='none'
+                  stroke={DANGER}
+                  strokeWidth={0.6}
+                />
+              )}
+              {item.parts.map((part, i) => (
+                <Polygon
+                  key={i}
+                  points={pts(part.points)}
+                  fill={PART_FILL[part.tone]}
+                  fillOpacity={part.tone === 'beam' ? 0.2 : 1}
+                  stroke={part.tone === 'beam' ? ACCENT : INK}
+                  strokeWidth={0.4}
+                />
+              ))}
+            </>
+          ) : (
+            <Polygon
+              points={pts(item.polygon)}
+              fill='#e7e5e4'
+              stroke={item.outsideRoom ? DANGER : INK}
+              strokeWidth={0.6}
+            />
+          )}
+          {item.arrow && !item.parts && (
             <Line
               x1={item.arrow.from.x * k}
               y1={item.arrow.from.y * k}

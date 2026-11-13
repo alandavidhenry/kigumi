@@ -46,6 +46,12 @@ test.describe('owner', () => {
     })
     await page.getByRole('button', { name: 'Create recall sheet' }).click()
 
+    // The desk view is the default; the list view is its keyboard twin.
+    await expect(page.getByTestId('desk-canvas')).toBeVisible({
+      timeout: 30_000
+    })
+    await page.getByRole('button', { name: 'List', exact: true }).click()
+
     // The strips come from the input list: strip 1 exists with its source.
     const strip = page.locator('details').first()
     await expect(strip).toBeVisible({ timeout: 30_000 })
@@ -63,6 +69,9 @@ test.describe('owner', () => {
     expect((await saved).status()).toBe(200)
 
     await page.reload()
+    await page
+      .getByRole('button', { name: 'List', exact: true })
+      .click({ timeout: 30_000 })
     await expect(page.locator('details').first()).toContainText('Gain 32 dB')
     await expect(page.locator('details').first()).toContainText('Fader -6 dB')
 
@@ -96,9 +105,10 @@ test.describe('owner', () => {
     })
     expect(copy.status()).toBe(201)
     await page.goto(`/sessions/${otherId}/recall`)
-    await expect(page.locator('details').first()).toContainText('Gain 32 dB', {
-      timeout: 30_000
-    })
+    await page
+      .getByRole('button', { name: 'List', exact: true })
+      .click({ timeout: 30_000 })
+    await expect(page.locator('details').first()).toContainText('Gain 32 dB')
     await expect(page.getByLabel('Outboard unit name for LA-2A')).toBeVisible()
     await expect(page.getByLabel('Setting 1 value for LA-2A')).toHaveValue('35')
 
@@ -137,6 +147,88 @@ test.describe('owner', () => {
 
     await request.delete(`/api/consoles/${created.id}`)
     await request.delete(`/api/console-templates/${created.templateId}`)
+  })
+})
+
+test.describe('visual desk templates', () => {
+  test.use({ storageState: OWNER_STATE })
+
+  test('builds a desk, sets a home value by dragging and typing, and warns before dropping it', async ({
+    page,
+    request
+  }) => {
+    const name = `Visual desk ${uniqueSuffix()}`
+    await page.goto('/consoles/templates/new')
+    await page
+      .getByLabel('Name', { exact: true })
+      .fill(name, { timeout: 30_000 })
+
+    // Click to add from the library; the inspector edits the new knob.
+    await page.getByRole('button', { name: 'Add a knob' }).click()
+    await page.getByLabel('Label', { exact: true }).fill('Drive')
+    await page.getByLabel('Max', { exact: true }).fill('10')
+    await page.getByRole('button', { name: 'Add a fader' }).click()
+    await page.getByRole('button', { name: 'Create template' }).click()
+    await page.waitForURL(/\/consoles\/templates\/(?!new)/, {
+      timeout: 30_000
+    })
+    const templateId = page.url().split('/').pop() as string
+
+    // A saved template with controls opens in values mode.
+    const canvas = page.getByTestId('desk-canvas')
+    await expect(canvas).toHaveAttribute('data-view', /,/, { timeout: 30_000 })
+    const [scale, vx, vy] = (await canvas.getAttribute('data-view'))!
+      .split(',')
+      .map(Number)
+    const box = (await canvas.boundingBox())!
+    // The knob sits top left of the strip: its centre is (10, 8.5) mm, below
+    // the 12 mm scribble strip.
+    const x = box.x + vx + 10 * scale
+    const y = box.y + vy + (12 + 8.5) * scale
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    await page.mouse.move(x, y - 50, { steps: 5 })
+    await page.mouse.move(x, y - 100, { steps: 5 })
+    await page.mouse.up()
+    // 100 px up is half of the 0 to 10 range.
+    const value = page.getByLabel('Value', { exact: true })
+    await expect(value).toHaveValue('5')
+
+    await value.fill('7')
+    await value.press('Enter')
+    const saved = page.waitForResponse(
+      (r) =>
+        r.url().includes(`/api/console-templates/${templateId}`) &&
+        r.request().method() === 'PATCH'
+    )
+    await page.getByRole('button', { name: 'Save template' }).click()
+    expect((await saved).status()).toBe(200)
+    let stored = await (
+      await request.get(`/api/console-templates/${templateId}`)
+    ).json()
+    expect(stored.template.defaultValues.strip).toEqual({ drive: 7 })
+
+    // Removing the knob in layout mode warns that its value goes.
+    await page.getByRole('button', { name: 'Layout', exact: true }).click()
+    await page.getByText('All components').click()
+    await page.getByRole('button', { name: /^Drive/ }).click()
+    await page.getByRole('button', { name: 'Remove' }).click()
+    await page.getByRole('button', { name: 'Save template' }).click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toContainText('Drive (7)')
+    await expect(dialog).toContainText('not affected')
+    await dialog.getByRole('button', { name: 'Save anyway' }).click()
+    await expect(dialog).toBeHidden()
+    await expect
+      .poll(async () => {
+        stored = await (
+          await request.get(`/api/console-templates/${templateId}`)
+        ).json()
+        return stored.template.defaultValues.strip
+      })
+      .toEqual({})
+
+    await request.delete(`/api/console-templates/${templateId}`)
   })
 })
 

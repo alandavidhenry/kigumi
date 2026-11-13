@@ -1,5 +1,12 @@
 import { z } from 'zod'
 
+import { layoutFromStrip } from './desk-layout'
+import {
+  DESK_COMPONENT_KINDS,
+  DESK_LIMITS,
+  DESK_TONES,
+  VALUE_KINDS
+} from './desk-types'
 import {
   CONTROL_TYPES,
   MAX_CONSOLE_CHANNELS,
@@ -83,16 +90,172 @@ export const stripSchema = z
     }
   })
 
+// ---------------------------------------------------------------------------
+// The visual desk (ADR 0023)
+
+const componentIdSchema = z
+  .string()
+  .trim()
+  .regex(/^[a-z][a-z0-9_]{0,39}$/, 'Keys are lower case letters, digits and _')
+const position = z.number().finite().min(0).max(3000)
+const extent = z.number().finite().min(5).max(1500)
+const isValueKind = (kind: string) =>
+  (VALUE_KINDS as readonly string[]).includes(kind)
+
+export const deskComponentSchema = z
+  .object({
+    id: componentIdSchema,
+    kind: z.enum(DESK_COMPONENT_KINDS),
+    x: position,
+    y: position,
+    w: extent.optional(),
+    h: extent.optional(),
+    label: text(40),
+    unit: text(10)
+      .optional()
+      .transform((v) => (v ? v : undefined)),
+    min: z.number().finite().optional(),
+    max: z.number().finite().optional(),
+    step: z.number().finite().positive().optional(),
+    centre: z.number().finite().optional(),
+    taper: z.enum(['linear', 'log']).optional(),
+    options: z.array(text(30).min(1)).max(DESK_LIMITS.options).optional(),
+    multi: z.boolean().optional(),
+    tone: z.enum(DESK_TONES).optional()
+  })
+  .superRefine((c, ctx) => {
+    if ((isValueKind(c.kind) || c.kind === 'label') && c.label === '') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['label'],
+        message: 'Every control needs a label'
+      })
+    }
+    if (c.kind === 'selector') {
+      if (!c.options?.length) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['options'],
+          message: 'A selector needs at least one option'
+        })
+      } else if (new Set(c.options).size !== c.options.length) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['options'],
+          message: 'Selector options must differ'
+        })
+      }
+    }
+    if (c.min !== undefined && c.max !== undefined && c.min > c.max) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['min'],
+        message: 'The minimum is above the maximum'
+      })
+    }
+    if (c.taper === 'log' && !(c.min !== undefined && c.min > 0)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['taper'],
+        message: 'A log taper needs a minimum above zero'
+      })
+    }
+    if (
+      c.centre !== undefined &&
+      ((c.min !== undefined && c.centre < c.min) ||
+        (c.max !== undefined && c.centre > c.max))
+    ) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['centre'],
+        message: 'The centre is outside the range'
+      })
+    }
+  })
+
+const areaSchema = (width: { min: number; max: number }) =>
+  z.object({
+    widthMm: z.number().finite().min(width.min).max(width.max),
+    components: z.array(deskComponentSchema).max(400)
+  })
+
+export const deskLayoutSchema = z
+  .object({
+    version: z.literal(2),
+    heightMm: z
+      .number()
+      .finite()
+      .min(DESK_LIMITS.heightMm.min)
+      .max(DESK_LIMITS.heightMm.max),
+    strip: areaSchema(DESK_LIMITS.stripWidthMm),
+    master: areaSchema(DESK_LIMITS.masterWidthMm)
+  })
+  .superRefine((layout, ctx) => {
+    const ids = [...layout.strip.components, ...layout.master.components].map(
+      (c) => c.id
+    )
+    if (new Set(ids).size !== ids.length) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Every control needs its own key'
+      })
+    }
+    const limits = {
+      strip: DESK_LIMITS.stripControls,
+      master: DESK_LIMITS.masterControls
+    }
+    for (const area of ['strip', 'master'] as const) {
+      const values = layout[area].components.filter((c) => isValueKind(c.kind))
+      const decor = layout[area].components.length - values.length
+      if (values.length > limits[area]) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [area],
+          message: `The ${area === 'strip' ? 'channel strip' : 'master area'} has at most ${limits[area]} controls`
+        })
+      }
+      if (decor > DESK_LIMITS.decorPerArea) {
+        ctx.addIssue({
+          code: 'custom',
+          path: [area],
+          message: `At most ${DESK_LIMITS.decorPerArea} labels and panels in each area`
+        })
+      }
+    }
+  })
+
+// A template accepts a visual desk, or a v1 strip (older clients and the API),
+// which is converted on the way in. Stored templates are always v2.
+export const layoutInputSchema = z.union([
+  deskLayoutSchema,
+  stripSchema.transform((strip) => layoutFromStrip(strip))
+])
+
+const valueSchema = z.union([
+  z.string().max(60),
+  z.number().finite(),
+  z.boolean(),
+  z.array(z.string().max(30)).max(DESK_LIMITS.options)
+])
+export const valuesSchema = z.record(z.string().max(40), valueSchema)
+
+export const defaultsSchema = z.object({
+  strip: valuesSchema.default({}),
+  master: valuesSchema.default({})
+})
+
 export const templateInputSchema = z.object({
   name: text(80).min(1),
   description: optionalText(300).optional(),
-  strip: stripSchema
+  strip: layoutInputSchema,
+  defaultValues: defaultsSchema.optional()
 })
 
 export const templateUpdateSchema = z.object({
   name: text(80).min(1).optional(),
   description: optionalText(300).optional(),
-  strip: stripSchema.optional()
+  strip: layoutInputSchema.optional(),
+  defaultValues: defaultsSchema.optional()
 })
 
 // A console uses one of your own templates, or copies a built-in one.
@@ -127,21 +290,32 @@ export const recallCreateSchema = z.object({
   fromSessionId: z.string().trim().min(1).max(64).optional()
 })
 
-const valueSchema = z.union([
-  z.string().max(60),
-  z.number().finite(),
-  z.boolean()
-])
-export const valuesSchema = z.record(z.string().max(40), valueSchema)
-
 export const recallChannelUpdateSchema = z.object({
   label: text(80).min(1).optional(),
   values: valuesSchema.optional(),
   notes: optionalText(500).optional()
 })
 
+// The desk view saves every changed strip and the master area in one go. A
+// strip with no row yet (no input on it) gets one.
 export const recallSheetUpdateSchema = z.object({
-  notes: optionalText(2000).optional()
+  notes: optionalText(2000).optional(),
+  masterValues: valuesSchema.optional(),
+  channels: z
+    .array(
+      z.object({
+        stripNumber: z.number().int().min(1).max(MAX_CONSOLE_CHANNELS),
+        label: text(80).min(1).optional(),
+        values: valuesSchema.optional(),
+        notes: optionalText(500).optional()
+      })
+    )
+    .max(MAX_CONSOLE_CHANNELS)
+    .refine(
+      (rows) => new Set(rows.map((r) => r.stripNumber)).size === rows.length,
+      'Each strip appears once'
+    )
+    .optional()
 })
 
 const settingSchema = z.object({
@@ -190,6 +364,15 @@ export function validateValues(
           return `${control.label} is at most ${control.max}`
         break
       case 'select':
+        if (control.multi) {
+          if (
+            !Array.isArray(value) ||
+            new Set(value).size !== value.length ||
+            !value.every((v) => control.options?.includes(v))
+          )
+            return `${control.label} is any of ${control.options?.join(', ')}`
+          break
+        }
         if (typeof value !== 'string' || !control.options?.includes(value))
           return `${control.label} must be one of ${control.options?.join(', ')}`
         break

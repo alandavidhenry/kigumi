@@ -24,6 +24,8 @@ import { toast } from '@/components/ui/use-toast'
 import { ApiError, apiFetch } from '@/lib/client-api'
 import { snapValue } from '@/lib/layout/geometry'
 import type { SaveLayoutResult } from '@/lib/layout/service'
+import { itemShape } from '@/lib/layout/shapes'
+import type { ShapeTone } from '@/lib/layout/shapes'
 import {
   GRID_CHOICES_MM,
   ITEM_TYPE_DEFAULTS,
@@ -592,6 +594,7 @@ export function LayoutEditor({
                     }
                     onClick={() => addItem(type)}
                   >
+                    <ShapeIcon type={type} />
                     {LAYOUT_ITEM_LABELS[type]}
                   </Button>
                 ))}
@@ -886,6 +889,43 @@ export function LayoutEditor({
         </div>
       </div>
     </div>
+  )
+}
+
+const ICON_CLASS: Record<ShapeTone, string> = {
+  body: 'fill-secondary stroke-foreground',
+  accent: 'fill-brand stroke-foreground',
+  detail: 'fill-card stroke-foreground',
+  beam: 'fill-brand/25 stroke-brand'
+}
+
+// A tiny drawing of the symbol the item will have on the plan.
+function ShapeIcon({ type }: { readonly type: LayoutItemType }) {
+  const defaults = ITEM_TYPE_DEFAULTS[type]
+  const parts = itemShape({ type, ...defaults })
+  if (!parts) return null
+  const all = parts.flatMap((p) => p.points)
+  const minX = Math.min(...all.map((p) => p.x))
+  const maxX = Math.max(...all.map((p) => p.x))
+  const minY = Math.min(...all.map((p) => p.y))
+  const maxY = Math.max(...all.map((p) => p.y))
+  const pad = Math.max(maxX - minX, maxY - minY) * 0.06
+  return (
+    <svg
+      viewBox={`${minX - pad} ${minY - pad} ${maxX - minX + pad * 2} ${maxY - minY + pad * 2}`}
+      className='size-5'
+      aria-hidden='true'
+      strokeWidth={Math.max(maxX - minX, maxY - minY) / 30}
+    >
+      {parts.map((part, i) => (
+        <polygon
+          key={i}
+          points={part.points.map((p) => `${p.x},${p.y}`).join(' ')}
+          className={ICON_CLASS[part.tone]}
+          strokeLinejoin='round'
+        />
+      ))}
+    </svg>
   )
 }
 
