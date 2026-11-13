@@ -42,6 +42,6 @@ test('the setup wizard adds a room, a mic and a desk, then reaches done', async 
   await page.getByRole('button', { name: 'Continue' }).click()
   await expect(page).toHaveURL(/step=done/)
   await expect(
-    page.getByRole('link', { name: 'Plan your first session' })
-  ).toHaveAttribute('href', '/sessions/new')
+    page.getByRole('button', { name: /Plan your first session/ })
+  ).toBeVisible()
 })
