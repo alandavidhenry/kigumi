@@ -10,6 +10,7 @@ import * as consoleTemplateId from '@/app/api/console-templates/[templateId]/rou
 import * as consoleTemplates from '@/app/api/console-templates/route'
 import * as consoleId from '@/app/api/consoles/[consoleId]/route'
 import * as consoles from '@/app/api/consoles/route'
+import * as dashboardLayout from '@/app/api/dashboard/layout/route'
 import * as equipmentPhotos from '@/app/api/equipment/[equipmentId]/photos/route'
 import * as equipmentId from '@/app/api/equipment/[equipmentId]/route'
 import * as equipmentUsage from '@/app/api/equipment/[equipmentId]/usage/route'
@@ -23,6 +24,7 @@ import * as layoutId from '@/app/api/layouts/[layoutId]/route'
 import * as templateId from '@/app/api/layouts/templates/[layoutId]/route'
 import * as templates from '@/app/api/layouts/templates/route'
 import * as lockerUnit from '@/app/api/locker/[unitId]/route'
+import * as lockerBulk from '@/app/api/locker/bulk/route'
 import * as locker from '@/app/api/locker/route'
 import * as logFiles from '@/app/api/maintenance/log/[logId]/files/route'
 import * as logId from '@/app/api/maintenance/log/[logId]/route'
@@ -44,6 +46,8 @@ import * as recommendationId from '@/app/api/recommendations/[recommendationId]/
 import * as preview from '@/app/api/recommendations/preview/route'
 import * as recommendations from '@/app/api/recommendations/route'
 import * as roomId from '@/app/api/rooms/[roomId]/route'
+import * as sessionTemplateId from '@/app/api/session-templates/[templateId]/route'
+import * as sessionTemplates from '@/app/api/session-templates/route'
 import * as applyRec from '@/app/api/sessions/[sessionId]/apply-recommendation/route'
 import * as channelId from '@/app/api/sessions/[sessionId]/channels/[channelId]/route'
 import * as channelOrder from '@/app/api/sessions/[sessionId]/channels/order/route'
@@ -61,6 +65,7 @@ import * as sessionId from '@/app/api/sessions/[sessionId]/route'
 import * as share from '@/app/api/sessions/[sessionId]/share/route'
 import * as sheet from '@/app/api/sessions/[sessionId]/sheet/route'
 import * as sessions from '@/app/api/sessions/route'
+import * as sessionWizard from '@/app/api/sessions/wizard/route'
 import * as studioRooms from '@/app/api/studios/[studioId]/rooms/route'
 import * as studioId from '@/app/api/studios/[studioId]/route'
 import * as studios from '@/app/api/studios/route'
@@ -120,6 +125,11 @@ vi.mock('@/lib/storage', async (importOriginal) => ({
 
 let A: SeededOrg
 let B: SeededOrg
+
+const stSource = {
+  name: 'x',
+  sources: [{ id: 's1', label: 'Vocal', kind: 'vocal_lead' }]
+}
 
 const params = <T>(value: T) => ({ params: Promise.resolve(value) })
 const get = (url = 'http://localhost/api') => new Request(url)
@@ -298,6 +308,17 @@ function crossTenantCases(): Case[] {
         locker.POST(send('POST', { micModelId: MIC_MODEL_ID, roomId: b.room }))
     },
     {
+      route: 'locker/bulk',
+      name: 'bulk add into B room',
+      call: () =>
+        lockerBulk.POST(
+          send('POST', {
+            roomId: b.room,
+            rows: [{ micModelId: MIC_MODEL_ID, quantity: 2 }]
+          })
+        )
+    },
+    {
       route: 'locker/[unitId]',
       name: 'PATCH B unit',
       call: () =>
@@ -394,6 +415,36 @@ function crossTenantCases(): Case[] {
           })
         )
     },
+    ...[
+      ['room', { details: { roomId: b.room } }],
+      ['console', { recall: { consoleId: b.console } }],
+      [
+        'layout template',
+        { layout: { kind: 'template', layoutId: b.templateLayout } }
+      ],
+      [
+        'recommendation result',
+        { picks: { mode: 'ai', resultId: b.recResult } }
+      ]
+    ].map(([what, override]) => ({
+      route: 'sessions/wizard',
+      name: `wizard with B ${what}`,
+      call: () => {
+        const { details, ...rest } = override as Record<
+          string,
+          Record<string, unknown>
+        >
+        return sessionWizard.POST(
+          send('POST', {
+            details: { name: 'x', startsAt: '2030-01-01T10:00', ...details },
+            sources: [{ id: 'a', label: 'Vocal', kind: 'vocal_lead' }],
+            picks: { mode: 'none' },
+            layout: { kind: 'blank' },
+            ...rest
+          })
+        )
+      }
+    })),
     {
       route: 'sessions/[sessionId]',
       name: 'GET B session',
@@ -630,6 +681,40 @@ function crossTenantCases(): Case[] {
         templateId.DELETE(get(), params({ layoutId: b.templateLayout }))
     },
 
+    {
+      route: 'session-templates',
+      name: 'create a session template on B layout',
+      call: () =>
+        sessionTemplates.POST(
+          send('POST', { ...stSource, layoutId: b.templateLayout })
+        )
+    },
+    {
+      route: 'session-templates',
+      name: 'create a session template on B console',
+      call: () =>
+        sessionTemplates.POST(
+          send('POST', { ...stSource, consoleId: b.console })
+        )
+    },
+    {
+      route: 'session-templates/[templateId]',
+      name: 'rename B session template',
+      call: () =>
+        sessionTemplateId.PATCH(
+          send('PATCH', { name: 'x' }),
+          params({ templateId: b.sessionTemplate })
+        )
+    },
+    {
+      route: 'session-templates/[templateId]',
+      name: 'DELETE B session template',
+      call: () =>
+        sessionTemplateId.DELETE(
+          get(),
+          params({ templateId: b.sessionTemplate })
+        )
+    },
     // Consoles and recall
     {
       route: 'consoles',
@@ -975,6 +1060,16 @@ function listCases(): Case[] {
       name: 'layout templates',
       call: () => templates.GET()
     },
+    {
+      route: 'session-templates',
+      name: 'session templates',
+      call: () => sessionTemplates.GET()
+    },
+    {
+      route: 'dashboard/layout',
+      name: 'dashboard layout',
+      call: () => dashboardLayout.GET()
+    },
     { route: 'consoles', name: 'consoles', call: () => consoles.GET() },
     {
       route: 'console-templates',
@@ -1057,6 +1152,7 @@ function listCases(): Case[] {
 // Writes with no foreign id in them; listed so the coverage check below sees
 // every route. Their isolation is the create-time scoping already exercised.
 const NO_FOREIGN_INPUT = new Set([
+  'setup/resolve',
   'equipment/import',
   'mics/[micId]/summary',
   'mics/compare'

@@ -14,6 +14,7 @@ import { applyRecommendationSchema } from './schemas'
 import { syncInputList } from './sync'
 
 import type { ApplyPlan } from './apply-recommendation'
+import type { Db } from './queries'
 
 // Applies a stored recommendation to a session's layout and input list
 // (PLAN §4.4). See apply-recommendation.ts for the rules; this wraps the plan
@@ -27,6 +28,104 @@ export interface ApplyResult {
 }
 
 const AI_NOTE_PREFIX = 'AI placement:'
+
+export interface ApplyPlanWrite {
+  sessionId: string
+  layoutId: string
+  plan: ApplyPlan
+  existingMaxSort: number
+}
+
+// Writes an apply plan (item updates and creates, input-list sync, AI notes and
+// line channels) inside the caller's transaction.
+export async function writeApplyPlanTx(
+  tx: Db,
+  ctx: TenantContext,
+  { sessionId, layoutId, plan, existingMaxSort }: ApplyPlanWrite
+): Promise<void> {
+  await tx.layout.updateMany({
+    where: { id: layoutId },
+    data: { version: { increment: 1 } }
+  })
+  for (const update of plan.update) {
+    const { id, ...data } = update
+    await tx.layoutItem.updateMany({
+      where: { id, layoutId: layoutId },
+      data
+    })
+  }
+  if (plan.create.length > 0) {
+    const maxSort = existingMaxSort
+    await tx.layoutItem.createMany({
+      data: plan.create.map((item, index) => ({
+        ...item,
+        type: 'mic',
+        rotationDeg: 0,
+        pitchDeg: 0,
+        sortOrder: maxSort + 1 + index,
+        id: randomUUID(),
+        layoutId: layoutId,
+        organisationId: ctx.organisationId
+      }))
+    })
+  }
+  await syncInputList(tx, ctx.organisationId, sessionId, layoutId)
+
+  // AI placement text goes in the channel's notes, never into coordinates.
+  const refs = Object.keys(plan.notes)
+  if (refs.length > 0) {
+    const items = await tx.layoutItem.findMany({
+      where: { layoutId: layoutId, recommendationRef: { in: refs } },
+      select: { id: true, recommendationRef: true }
+    })
+    for (const item of items) {
+      const note = item.recommendationRef
+        ? plan.notes[item.recommendationRef]
+        : undefined
+      if (!note) continue
+      const channel = await tx.inputChannel.findFirst({
+        where: { layoutItemId: item.id },
+        select: { id: true, notes: true }
+      })
+      if (!channel) continue
+      const current = channel.notes?.trim() ?? ''
+      if (current.includes(note)) continue
+      const next =
+        !current || current.startsWith(AI_NOTE_PREFIX)
+          ? note
+          : `${current}\n${note}`
+      await tx.inputChannel.updateMany({
+        where: { id: channel.id },
+        data: { notes: next.slice(0, 500) }
+      })
+    }
+  }
+
+  if (plan.lineChannels.length > 0) {
+    const existing = await tx.inputChannel.findMany({
+      where: { sessionId },
+      select: { number: true, kind: true, source: true }
+    })
+    const used = existing.map((c) => c.number)
+    for (const label of plan.lineChannels) {
+      if (existing.some((c) => c.kind === 'line' && c.source === label)) {
+        continue
+      }
+      const number = nextChannelNumber(used)
+      used.push(number)
+      await tx.inputChannel.create({
+        data: {
+          organisationId: ctx.organisationId,
+          sessionId,
+          number,
+          kind: 'line',
+          source: label,
+          phantom: false
+        }
+      })
+    }
+  }
+}
 
 export async function applyRecommendation(
   ctx: TenantContext,
@@ -141,91 +240,15 @@ export async function applyRecommendation(
   ]
 
   await db.$transaction(async (tx) => {
-    await tx.layout.updateMany({
-      where: { id: layout.id },
-      data: { version: { increment: 1 } }
-    })
-    for (const update of plan.update) {
-      const { id, ...data } = update
-      await tx.layoutItem.updateMany({
-        where: { id, layoutId: layout.id },
-        data
-      })
-    }
-    if (plan.create.length > 0) {
-      const maxSort = fullItems.reduce(
+    await writeApplyPlanTx(tx, ctx, {
+      sessionId,
+      layoutId: layout.id,
+      plan,
+      existingMaxSort: fullItems.reduce(
         (max, item) => Math.max(max, item.sortOrder),
         -1
       )
-      await tx.layoutItem.createMany({
-        data: plan.create.map((item, index) => ({
-          ...item,
-          type: 'mic',
-          rotationDeg: 0,
-          pitchDeg: 0,
-          sortOrder: maxSort + 1 + index,
-          id: randomUUID(),
-          layoutId: layout.id,
-          organisationId: ctx.organisationId
-        }))
-      })
-    }
-    await syncInputList(tx, ctx.organisationId, sessionId, layout.id)
-
-    // AI placement text goes in the channel's notes, never into coordinates.
-    const refs = Object.keys(plan.notes)
-    if (refs.length > 0) {
-      const items = await tx.layoutItem.findMany({
-        where: { layoutId: layout.id, recommendationRef: { in: refs } },
-        select: { id: true, recommendationRef: true }
-      })
-      for (const item of items) {
-        const note = item.recommendationRef
-          ? plan.notes[item.recommendationRef]
-          : undefined
-        if (!note) continue
-        const channel = await tx.inputChannel.findFirst({
-          where: { layoutItemId: item.id },
-          select: { id: true, notes: true }
-        })
-        if (!channel) continue
-        const current = channel.notes?.trim() ?? ''
-        if (current.includes(note)) continue
-        const next =
-          !current || current.startsWith(AI_NOTE_PREFIX)
-            ? note
-            : `${current}\n${note}`
-        await tx.inputChannel.updateMany({
-          where: { id: channel.id },
-          data: { notes: next.slice(0, 500) }
-        })
-      }
-    }
-
-    if (plan.lineChannels.length > 0) {
-      const existing = await tx.inputChannel.findMany({
-        where: { sessionId },
-        select: { number: true, kind: true, source: true }
-      })
-      const used = existing.map((c) => c.number)
-      for (const label of plan.lineChannels) {
-        if (existing.some((c) => c.kind === 'line' && c.source === label)) {
-          continue
-        }
-        const number = nextChannelNumber(used)
-        used.push(number)
-        await tx.inputChannel.create({
-          data: {
-            organisationId: ctx.organisationId,
-            sessionId,
-            number,
-            kind: 'line',
-            source: label,
-            phantom: false
-          }
-        })
-      }
-    }
+    })
   })
 
   await recordAudit(ctx, {

@@ -26,3 +26,5 @@ One short file per decision: `NNNN-title.md` with **Status**, **Context**, **Dec
 | 0020 | [Observability](0020-observability.md)                                             | Accepted |
 | 0021 | [Phase 8 security hardening](0021-phase-8-security-hardening.md)                   | Accepted |
 | 0023 | [Visual desk templates](0023-visual-desk-templates.md)                             | Accepted |
+| 0024 | [Setup and session wizards](0024-session-wizard.md)                                | Accepted |
+| 0025 | [Forced setup and customisable dashboard](0025-forced-setup-and-customisable-dashboard.md) | Accepted |

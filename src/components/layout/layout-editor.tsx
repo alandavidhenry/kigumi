@@ -112,6 +112,7 @@ export function LayoutEditor({
   const itemsRef = useRef(items)
   const versionRef = useRef(layout.version)
   const savingRef = useRef(false)
+  const refreshedTabs = useRef(false)
   const lastEdit = useRef<{ key: string; at: number } | null>(null)
   itemsRef.current = items
 
@@ -287,6 +288,12 @@ export function LayoutEditor({
         setFuture([])
       }
       setSaveState(itemsRef.current === sent ? 'saved' : 'dirty')
+      // Session tab ticks come from the server; refresh when the layout goes
+      // from empty to having items (once per mount).
+      if (!refreshedTabs.current && sent.length > 0 && !isTemplate) {
+        refreshedTabs.current = true
+        router.refresh()
+      }
     } catch (error) {
       setSaveState(
         error instanceof ApiError && error.status === 409 ? 'conflict' : 'error'
@@ -303,7 +310,7 @@ export function LayoutEditor({
     } finally {
       savingRef.current = false
     }
-  }, [canEdit, gridMm, layout.id, snapMm])
+  }, [canEdit, gridMm, isTemplate, layout.id, router, snapMm])
 
   useEffect(() => {
     if (saveState !== 'dirty' || !canEdit) return

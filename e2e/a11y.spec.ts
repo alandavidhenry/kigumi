@@ -71,6 +71,7 @@ test.describe('signed-in pages', () => {
     '/sessions',
     '/sessions/seed-session-tracking',
     '/sessions/seed-session-tracking/layout',
+    '/sessions/seed-session-tracking/inputs',
     '/layouts/templates',
     '/consoles',
     '/consoles/templates/new',

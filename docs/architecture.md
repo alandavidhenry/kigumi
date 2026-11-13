@@ -35,10 +35,11 @@ src/instrumentation.ts      # Azure Monitor telemetry when configured; onRequest
 src/app/
   page.tsx                  # landing (signed-in users → /dashboard)
   auth/                     # sign-in, sign-up, forgot/reset password, accept-invite/[invitationId]
-  onboarding/               # create organisation (+ optional first studio); ?new=1 for another org
+  onboarding/               # create organisation (+ optional first studio), then → /setup; ?new=1 for another org
   (app)/layout.tsx          # resolves TenantContext server-side → TenantProvider + AppShell;
                             #   UNAUTHORIZED → /auth/sign-in, NO_ACTIVE_ORGANISATION → /onboarding
-  (app)/dashboard           # usage vs plan, recent activity
+  (app)/dashboard           # customisable tiles (ADR 0025): guided wizards, upcoming sessions, care, activity; folded usage counts last
+  (app)/setup               # setup wizard: studio → rooms → microphones → desk → done (ADR 0024); forced on first run for owners and managers (ADR 0025), not in the sidebar
   (app)/studios             # studio list; [studioId] detail with room CRUD
   (app)/inventory           # equipment list (URL filters), [equipmentId] detail (photos, QR label), valuation report
   (app)/mics                # catalogue list (URL filters); [micSlug] detail: AI summary, specs with per-field source, FR chart, polar plot, locker, sources
@@ -46,10 +47,13 @@ src/app/
   (app)/locker              # mic locker: matched groups, condition, availability, add/edit/remove
   (app)/recommendations     # source list or question; free rules-based check; "Rank and explain with AI"; history
   (app)/recommendations/[recommendationId]  # stored result: picks, rule warnings, placement, alternatives, feedback, apply to a session
-  (app)/sessions            # upcoming/past/all; new-session dialog (blank, starter template, own template, previous session)
-  (app)/sessions/[sessionId]  # checks, SVG layout, details, input list, share link, PDF, DAW export, apply a recommendation
-  (app)/sessions/[sessionId]/layout  # the 2D editor (react-konva, client only)
-  (app)/layouts/templates   # starter templates (free); your own (Pro, upgrade prompt on lower tiers)
+  (app)/sessions            # upcoming/past/all; new-session dialog (blank, starter template, own template, previous session) and "Use the guided wizard"
+  (app)/sessions/new        # session wizard: details → ensemble → mics → layout → recall → review (ADR 0024); ?step=, ?preset=, ?template=
+  (app)/sessions/[sessionId]/layout.tsx  # segment layout: session header and tabs (Overview, Layout, Inputs & mics, Recall); ticks from getSessionProgress
+  (app)/sessions/[sessionId]  # Overview: checks, SVG layout, details, share link, PDF, DAW export, apply a recommendation
+  (app)/sessions/[sessionId]/inputs  # input list plus the recommendation workbench (replaces the old header links)
+  (app)/sessions/[sessionId]/layout/page  # the 2D editor (react-konva, client only)
+  (app)/layouts/templates   # starter templates (free); your own layouts and session templates (Pro, upgrade prompt on lower tiers)
   (app)/consoles            # consoles and desk templates (free); templates/new and templates/[templateId] are the visual desk editor (layout and values modes)
   (app)/sessions/[sessionId]/recall  # the session recall sheet: create (from the input list or a previous session), strips, outboard, desk photos, PDF
   share/[token]             # PUBLIC read-only session view (token is the authorisation; noindex, no-referrer)
@@ -70,6 +74,9 @@ src/app/
   api/mics/compare                    # GET ?mics= cached AI comparison, POST { mics } generate
   api/ai/usage                        # this month's AI requests vs the plan
   api/locker, api/locker/[unitId]    # tenant mic locker
+  api/locker/bulk                    # POST quick add: up to 24 rows / 48 units, one transaction (ADR 0024)
+  api/sessions/wizard                # POST the session wizard: one create call (ADR 0024)
+  api/session-templates, api/session-templates/[templateId]  # your session templates (GET, POST, PATCH, DELETE; Pro)
   api/recommendations/preview         # POST rules-only recommendation (free, stores nothing)
   api/recommendations                 # GET history, POST generate (optional `regenerate`)
   api/recommendations/[recommendationId], .../feedback  # GET one; PUT your verdict on a source
@@ -95,7 +102,12 @@ Server components read data by calling lib functions directly with the tenant co
 
 - **Design tokens:** `src/app/globals.css`, Tailwind v4 `@theme` over OKLCH semantic tokens, dark by default (anti-FOUC script in `src/app/layout.tsx`). Same token names as Minato, with a warm timber brand (hue 65) in place of Minato's green. Success stays green (155) and warning moves to hue 95 so neither reads as the brand.
 - **Shell:** `src/components/app-shell.tsx`: hover/expanded/collapsed sidebar (`sidebar-control.tsx`, persisted in `localStorage`) plus a 48px top bar (breadcrumbs, command palette, theme toggle, user menu with organisation switcher). A drawer below `md`.
-- **Navigation model:** `src/lib/navigation.ts` (`buildNavGroups(can)`), rendered by `app-sidebar.tsx` and reused by `command-palette.tsx` (⌘K/Ctrl+K, which also lists studios).
+- **Navigation model:** `src/lib/navigation.ts` (`buildNavGroups(can)`), rendered by `app-sidebar.tsx` and reused by `command-palette.tsx` (⌘K/Ctrl+K, which also lists studios). Groups in order: Dashboard (no label), Plan (Sessions, Recommendations, Layout templates), Gear (Inventory, Mic locker, Mic catalogue, Consoles & recall), Studio (Studios & rooms), Care (Maintenance, Warranties), Organisation (Members, Activity, Settings), then Platform for platform admins. A group with no visible items is omitted, so a viewer sees fewer groups rather than disabled links.
+- **Guided wizards (ADR 0024):** `/setup` (`src/components/setup/setup-wizard.tsx`) and `/sessions/new` (`src/components/sessions/session-wizard.tsx`, steps in `src/components/sessions/wizard/`) are client components. Step state lives in `useState`; the current step is mirrored in `?step=` with `window.history.replaceState`, so moving between steps does not re-run the server page. Each step has Back, Next and Skip. Setup saves after each step through the normal APIs (studio, rooms, `MicQuickAdd`, console templates), so it can be re-run safely. The session wizard makes one `POST api/sessions/wizard` at Review, and its layout step previews the placed scene with `SceneSvg`. Ensemble presets are read-only data (`src/lib/sessions/ensembles.ts`); saving a session as your own template is a Pro feature (`UpgradeNotice` on lower tiers).
+- **Forced setup (ADR 0025):** `isSetupRequired(ctx)` (`src/lib/setup.ts`) is true for owners and managers while `Organization.setupResolvedAt` is null. The dashboard page redirects to `/setup` and `SetupGate` (`src/components/setup/setup-gate.tsx`, in the `(app)` layout) redirects every other app page. "Skip setup for now" and the Done step call `POST api/setup/resolve`, then leave with a full page load. Afterwards setup is reached from the dashboard's Guided wizards tile and Settings → Organisation.
+- **Dashboard tiles (ADR 0025):** `DashboardGrid` (`src/components/dashboard/dashboard-grid.tsx`) renders the tiles the page built on the server. Customise → drag (HTML5) or arrows → hide/show → Save (`PUT api/dashboard/layout`), Cancel or Reset (`DELETE`). Ordering rules are pure in `src/lib/dashboard/tiles.ts`. The Getting started card has no dismiss; hide the tile instead.
+- **Quick add mics:** `MicQuickAdd` (`src/components/mics/mic-quick-add.tsx`) searches the catalogue with a debounced `/api/mics?q=`, takes a quantity per model and a matched-pair toggle, and posts to `api/locker/bulk`. It is used by setup and by the `/locker` quick-add dialog (`locker-quick-add-dialog.tsx`), so it can be re-run at any time.
+- **Session tabs:** `src/app/(app)/sessions/[sessionId]/layout.tsx` exports `SessionSegmentLayout`, which loads the session header and `getSessionProgress` once for every page under the session. `SessionTabs` (`src/components/sessions/session-tabs.tsx`) reads the active tab with `useSelectedLayoutSegment()`. The `layout/` folder keeps the editor's route name; the component is named so it does not clash with it. The layout editor calls `router.refresh()` after saving, so the tick updates.
 - **Client permissions:** `useTenant().can(Permission.X)` from `TenantProvider`. This is for affordances only; the server re-checks.
 - **Upgrade prompts:** `UpgradeNotice` (`src/components/upgrade-notice.tsx`) wherever a limit or paid feature stops the user, linking to the plan comparison (`PlanComparison` on `/settings/organisation#plans`, generated from `plans.ts`). `upgradeTierFor(tier, resource, count)` names the cheapest plan that lifts a limit. Paid pages stay in the nav and render the prompt instead of the content.
 - **Destructive actions:** `ConfirmDeleteButton` (an in-app dialog, never `window.confirm`).

@@ -39,19 +39,21 @@ export function OnboardingForm({
 
     await authClient.organization.setActive({ organizationId: data.id })
 
-    // The first studio is optional; carry on to the dashboard either way.
+    // The first studio is optional; carry on to the setup wizard either way.
+    let createdStudio = false
     if (studioName.trim()) {
       try {
         await apiFetch('/api/studios', {
           method: 'POST',
           body: { name: studioName.trim() }
         })
+        createdStudio = true
       } catch {
         // Surfaced on the studios page instead.
       }
     }
 
-    router.push('/dashboard')
+    router.push(createdStudio ? '/setup?step=rooms' : '/setup')
     router.refresh()
   }
 

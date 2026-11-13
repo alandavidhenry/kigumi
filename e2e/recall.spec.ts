@@ -41,7 +41,9 @@ test.describe('owner', () => {
     const sessionId = await sessionWithInputs(request)
 
     await page.goto(`/sessions/${sessionId}/recall`)
-    await expect(page.getByRole('heading', { name: /^Recall:/ })).toBeVisible({
+    await expect(
+      page.getByRole('heading', { name: 'Recall sheet', exact: true })
+    ).toBeVisible({
       timeout: 30_000
     })
     await page.getByRole('button', { name: 'Create recall sheet' }).click()
