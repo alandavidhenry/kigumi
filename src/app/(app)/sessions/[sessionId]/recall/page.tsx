@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 
 import { BreadcrumbLabel } from '@/components/mics/breadcrumb-label'
-import { PageHeader } from '@/components/page-header'
 import { CreateRecall } from '@/components/recall/create-recall'
 import { RecallSheetEditor } from '@/components/recall/recall-sheet-editor'
 import { listEquipment } from '@/lib/equipment'
@@ -9,7 +8,6 @@ import { isAppError } from '@/lib/errors'
 import { listConsoles } from '@/lib/recall/consoles'
 import { getRecallSheet, listRecallSources } from '@/lib/recall/service'
 import { getSession } from '@/lib/sessions/service'
-import { formatSessionTime } from '@/lib/sessions/time'
 import { getTenantContext } from '@/lib/tenant-context'
 import { Permission, hasPermission } from '@/types/rbac'
 
@@ -45,16 +43,12 @@ export default async function RecallPage({ params }: PageProps) {
   return (
     <div className='space-y-6'>
       <BreadcrumbLabel href={`/sessions/${session.id}/recall`} label='Recall' />
-      <PageHeader
-        title={`Recall: ${session.name}`}
-        description={`${formatSessionTime(
-          new Date(session.startsAt),
-          new Date(session.endsAt),
-          session.timeZone
-        )}${sheet ? ` · ${sheet.consoleName}` : ''}`}
-        backHref={`/sessions/${session.id}`}
-        backLabel='Session'
-      />
+      <div>
+        <h2 className='text-base font-medium'>Recall sheet</h2>
+        {sheet && (
+          <p className='text-sm text-muted-foreground'>{sheet.consoleName}</p>
+        )}
+      </div>
       {sheet ? (
         <RecallSheetEditor
           sessionId={session.id}

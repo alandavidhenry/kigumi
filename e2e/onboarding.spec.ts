@@ -29,8 +29,20 @@ test('a new user can set up their organisation, studio and first room', async ({
   await page.getByLabel('First studio (optional)').fill('Garden studio')
   await page.getByRole('button', { name: 'Continue' }).click()
 
+  // A studio was created, so the setup wizard opens on the rooms step.
+  await page.waitForURL(/\/setup\?step=rooms$/)
+  await expect(
+    page.getByRole('heading', { name: 'Set up your studio' })
+  ).toBeVisible()
+
+  // First-run setup is forced: other pages send them back until it is
+  // finished or skipped.
+  await page.goto('/dashboard')
+  await page.waitForURL(/\/setup/)
+  await page.getByRole('button', { name: 'Skip setup for now' }).click()
   await page.waitForURL(/\/dashboard$/)
   await expect(page.getByText(`Studio ${suffix} · Free plan`)).toBeVisible()
+  await expect(page.getByText('Getting started')).toBeVisible()
 
   await page.goto('/studios')
   await page.getByRole('link', { name: /Garden studio/ }).click()
@@ -82,6 +94,8 @@ test.describe('Free plan upgrade prompts', () => {
     await page.waitForURL(/\/onboarding$/)
     await page.getByLabel('Organisation name').fill(`Solo ${suffix}`)
     await page.getByRole('button', { name: 'Continue' }).click()
+    await page.waitForURL(/\/setup$/)
+    await page.getByRole('button', { name: 'Skip setup for now' }).click()
     await page.waitForURL(/\/dashboard$/)
 
     // The activity log is a Studio feature: visible, but as an upgrade prompt.

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -115,6 +116,13 @@ export function NewSessionDialog({
               Times are in the timezone of the room&apos;s studio.
             </DialogDescription>
           </DialogHeader>
+          <p className='rounded-md border border-brand-border bg-brand-tint/40 px-3 py-2 text-sm'>
+            Want mic picks, a generated layout and an input list too?{' '}
+            <Link href='/sessions/new' className='font-medium underline'>
+              Use the guided wizard
+            </Link>
+            .
+          </p>
           <div className='space-y-1'>
             <Label htmlFor='s-name'>Name</Label>
             <Input

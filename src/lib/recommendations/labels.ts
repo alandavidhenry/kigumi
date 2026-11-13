@@ -1,3 +1,5 @@
+import { expandPreset, getEnsemblePreset } from '@/lib/sessions/ensembles'
+
 import { SOURCE_PROFILES } from './profiles'
 import { FEEDBACK_REASONS } from './schemas'
 import { TECHNIQUE_RULES } from './techniques'
@@ -68,47 +70,33 @@ export function techniqueLabel(technique: Technique): string {
 }
 
 // Starting points for the source list. Labels are what a person would type, so
-// the classifier is exercised the same way as for typed input.
+// the classifier is exercised the same way as for typed input. Derived from the
+// ensemble presets (src/lib/sessions/ensembles.ts) so there is one source of
+// truth; only the kind is carried over, and the screen defaults to mono.
 export interface Preset {
   name: string
   sources: Array<{ label: string; kind?: SourceKind; technique?: Technique }>
 }
 
-export const PRESETS: readonly Preset[] = [
-  {
-    name: 'Singer-songwriter',
-    sources: [{ label: 'Lead vocal' }, { label: 'Acoustic guitar' }]
-  },
-  {
-    name: 'Drums: 4 mics',
-    sources: [
-      { label: 'Kick in' },
-      { label: 'Snare top' },
-      { label: 'Drum overheads' },
-      { label: 'Drum room' }
-    ]
-  },
-  {
-    name: 'Drums: close-miked kit',
-    sources: [
-      { label: 'Kick in' },
-      { label: 'Kick out' },
-      { label: 'Snare top' },
-      { label: 'Snare bottom' },
-      { label: 'Hi-hat' },
-      { label: 'Tom 1' },
-      { label: 'Tom 2' },
-      { label: 'Tom 3' },
-      { label: 'Drum overheads' }
-    ]
-  },
-  {
-    name: 'Rock band basics',
-    sources: [
-      { label: 'Lead vocal' },
-      { label: 'Guitar amp' },
-      { label: 'Bass amp' },
-      { label: 'Bass DI' }
+const RECOMMENDATION_PRESET_IDS = [
+  'singer-songwriter',
+  'drums-four-mics',
+  'drums-close-miked',
+  'rock-band-basics'
+] as const
+
+export const PRESETS: readonly Preset[] = RECOMMENDATION_PRESET_IDS.flatMap(
+  (id) => {
+    const preset = getEnsemblePreset(id)
+    if (!preset) return []
+    return [
+      {
+        name: preset.name,
+        sources: expandPreset(preset).map(({ label, kind }) => ({
+          label,
+          kind
+        }))
+      }
     ]
   }
-]
+)

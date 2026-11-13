@@ -106,6 +106,9 @@ model Organization {
   createdAt DateTime @default(now())
   metadata  String?
   planTier  String   @default("free") // PlanTier in src/lib/plans.ts
+  // Set when first-run setup is finished or skipped (ADR 0025); null = the
+  // owners and managers are still sent to /setup.
+  setupResolvedAt DateTime?
 
   members                Member[]
   invitations            Invitation[]
@@ -122,6 +125,8 @@ model Organization {
   recordingSessions      RecordingSession[]
   layouts                Layout[]
   layoutItems            LayoutItem[]
+  sessionTemplates       SessionTemplate[]
+  dashboardPreferences   DashboardPreference[]
   inputChannels          InputChannel[]
   sessionShareLinks      SessionShareLink[]
   consoleTemplates       ConsoleTemplate[]
@@ -633,10 +638,11 @@ model Layout {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organisation Organization      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  session      RecordingSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  room         Room?             @relation(fields: [roomId], references: [id], onDelete: SetNull)
-  items        LayoutItem[]
+  organisation    Organization      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  session         RecordingSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  room            Room?             @relation(fields: [roomId], references: [id], onDelete: SetNull)
+  items           LayoutItem[]
+  sessionTemplate SessionTemplate?
 
   @@index([organisationId, isTemplate])
 }
@@ -760,9 +766,10 @@ model Console {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  organisation Organization    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  template     ConsoleTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
-  recallSheets RecallSheet[]
+  organisation     Organization      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  template         ConsoleTemplate   @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  recallSheets     RecallSheet[]
+  sessionTemplates SessionTemplate[]
 
   @@index([organisationId])
   @@index([templateId])
@@ -974,4 +981,42 @@ model Notification {
 
   @@unique([userId, dedupeKey])
   @@index([organisationId, userId, readAt])
+}
+
+// A studio's own session template (Pro, ADR 0024): the wizard's sources plus
+// an optional template Layout and console.
+model SessionTemplate {
+  id                String   @id @default(cuid())
+  organisationId    String
+  name              String
+  description       String?
+  presetId          String?
+  sources           Json // WizardSource[]
+  layoutId          String?  @unique
+  consoleId         String?
+  channelsAvailable Int?
+  phantomMode       String   @default("per_channel") // PhantomMode
+  createdById       String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organisation Organization @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  layout       Layout?      @relation(fields: [layoutId], references: [id], onDelete: SetNull)
+  console      Console?     @relation(fields: [consoleId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId])
+  @@index([consoleId])
+}
+
+// One person's dashboard arrangement in one organisation (ADR 0025).
+model DashboardPreference {
+  id             String   @id @default(cuid())
+  organisationId String
+  userId         String
+  layout         Json
+  updatedAt      DateTime @updatedAt
+
+  organisation Organization @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, userId])
 }

@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   Sparkles,
   Users,
+  Wand2,
   Wrench
 } from 'lucide-react'
 import Link from 'next/link'
@@ -34,6 +35,7 @@ import { cn } from '@/lib/utils'
 const ICONS: Record<NavIconName, ComponentType<{ className?: string }>> = {
   dashboard: Gauge,
   studios: Building2,
+  setup: Wand2,
   inventory: Boxes,
   mics: AudioLines,
   locker: Mic,

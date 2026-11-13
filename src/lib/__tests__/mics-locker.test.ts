@@ -3,13 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppError } from '@/lib/errors'
 import {
   addUnit,
+  addUnits,
   listLocker,
   listUnitsForModel,
   listUnlinkedMicrophones,
   removeUnit,
   updateUnit
 } from '@/lib/mics/locker'
-import { PlanTier } from '@/lib/plans'
+import { PlanTier, getPlanLimits } from '@/lib/plans'
 import prisma from '@/lib/prisma'
 import { tenantDb } from '@/lib/tenant-db'
 import { makeContext, makeFakeDb, type FakeDb } from '@/test/fixtures'
@@ -307,5 +308,122 @@ describe('removeUnit', () => {
     db.microphoneUnit.findFirst.mockResolvedValue(null)
     await expectAppError(removeUnit(owner, 'other_unit'), 'NOT_FOUND')
     await expectAppError(removeUnit(viewer, 'unit_1'), 'FORBIDDEN')
+  })
+})
+
+describe('addUnits', () => {
+  beforeEach(() => {
+    db.equipmentItem.count.mockResolvedValue(0)
+    db.microphoneUnit.findMany.mockResolvedValue([])
+    let n = 0
+    db.equipmentItem.create.mockImplementation(async () => ({
+      id: `eq_${++n}`
+    }))
+    db.microphoneUnit.create.mockImplementation(async () => ({
+      id: `unit_${++n}`
+    }))
+  })
+
+  it('creates every unit in one transaction with one audit row', async () => {
+    db.room.findFirst.mockResolvedValue({ id: 'room_1' })
+    const result = await addUnits(owner, {
+      roomId: 'room_1',
+      rows: [{ micModelId: 'model_1', quantity: 3 }]
+    })
+    expect(result.unitIds).toHaveLength(3)
+    expect(db.$transaction).toHaveBeenCalledTimes(1)
+    expect(db.equipmentItem.create).toHaveBeenCalledTimes(3)
+    expect(db.equipmentItem.create.mock.calls[0][0]!.data).toMatchObject({
+      roomId: 'room_1',
+      make: 'Shure'
+    })
+    expect(recordAudit).toHaveBeenCalledTimes(1)
+  })
+
+  it('gives matched rows a unique group name', async () => {
+    db.microphoneUnit.findMany.mockResolvedValue([
+      { matchedPairGroup: 'Shure SM57 set 1' }
+    ])
+    await addUnits(owner, {
+      rows: [{ micModelId: 'model_1', quantity: 2, matched: true }]
+    })
+    const groups = db.microphoneUnit.create.mock.calls.map(
+      (call) =>
+        (call[0] as { data: { matchedPairGroup: string } }).data
+          .matchedPairGroup
+    )
+    expect(groups).toEqual(['Shure SM57 set 2', 'Shure SM57 set 2'])
+  })
+
+  it('rejects matched rows outside 2 to 3 and oversize requests', async () => {
+    for (const rows of [
+      [{ micModelId: 'model_1', quantity: 1, matched: true }],
+      [{ micModelId: 'model_1', quantity: 4, matched: true }],
+      [{ micModelId: 'model_1', quantity: 13 }],
+      Array.from({ length: 5 }, () => ({
+        micModelId: 'model_1',
+        quantity: 12
+      })),
+      []
+    ]) {
+      await expect(addUnits(owner, { rows })).rejects.toThrow()
+    }
+    expect(db.$transaction).not.toHaveBeenCalled()
+  })
+
+  it('creates nothing when any model is unknown or unpublished', async () => {
+    await expectAppError(
+      addUnits(owner, {
+        rows: [
+          { micModelId: 'model_1', quantity: 1 },
+          { micModelId: 'gone', quantity: 1 }
+        ]
+      }),
+      'NOT_FOUND'
+    )
+    expect(db.$transaction).not.toHaveBeenCalled()
+    expect(db.equipmentItem.create).not.toHaveBeenCalled()
+  })
+
+  it('checks the inventory limit for the whole batch up front', async () => {
+    const free = makeContext({ planTier: PlanTier.FREE })
+    db.equipmentItem.count.mockResolvedValue(
+      getPlanLimits(free.planTier).inventoryItems - 1
+    )
+    await expectAppError(
+      addUnits(free, { rows: [{ micModelId: 'model_1', quantity: 2 }] }),
+      'PLAN_LIMIT'
+    )
+    expect(db.equipmentItem.create).not.toHaveBeenCalled()
+  })
+
+  it('404s a room from another organisation', async () => {
+    db.room.findFirst.mockResolvedValue(null)
+    await expectAppError(
+      addUnits(owner, {
+        roomId: 'other',
+        rows: [{ micModelId: 'model_1', quantity: 1 }]
+      }),
+      'NOT_FOUND'
+    )
+    expect(db.$transaction).not.toHaveBeenCalled()
+  })
+
+  it('propagates a failure mid-transaction so the caller rolls back', async () => {
+    db.microphoneUnit.create
+      .mockReset()
+      .mockResolvedValueOnce({ id: 'u1' })
+      .mockRejectedValueOnce(new Error('boom'))
+    await expect(
+      addUnits(owner, { rows: [{ micModelId: 'model_1', quantity: 2 }] })
+    ).rejects.toThrow('boom')
+    expect(recordAudit).not.toHaveBeenCalled()
+  })
+
+  it('forbids viewers', async () => {
+    await expectAppError(
+      addUnits(viewer, { rows: [{ micModelId: 'model_1', quantity: 1 }] }),
+      'FORBIDDEN'
+    )
   })
 })
