@@ -96,7 +96,7 @@ export default async function LockerPage() {
   )
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title='Mic locker'
         description={`${units.length} microphone${units.length === 1 ? '' : 's'} linked to the catalogue. Available means in service; booking by session date arrives with sessions.`}
@@ -120,7 +120,7 @@ export default async function LockerPage() {
         <div className='space-y-4'>
           {groups.map(([name, members]) => (
             <Card key={name} className='overflow-hidden p-0'>
-              <div className='border-b bg-muted/30 px-4 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground'>
+              <div className='border-b bg-muted px-4 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground'>
                 Matched group · {name}
               </div>
               <div className='divide-y'>{members.map(row)}</div>

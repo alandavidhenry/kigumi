@@ -40,17 +40,17 @@ export default async function Home() {
         </Button>
       }
     >
-      <section className='mx-auto flex w-full max-w-4xl flex-1 flex-col justify-center gap-10 px-4 py-16'>
-        <div className='space-y-4'>
-          <h1 className='text-3xl font-semibold tracking-tight md:text-4xl'>
+      <section className='mx-auto flex w-full max-w-5xl flex-1 flex-col justify-center gap-14 px-4 py-20'>
+        <div className='space-y-6'>
+          <h1 className='max-w-3xl text-4xl font-semibold tracking-tight md:text-display lg:text-6xl lg:leading-[1.02]'>
             Plan sessions around the gear you actually own.
           </h1>
-          <p className='max-w-2xl text-base text-muted-foreground'>
+          <p className='max-w-2xl text-lg text-muted-foreground'>
             Kigumi brings your studio&apos;s rooms, equipment and microphone
             locker together, so every session plan starts from what&apos;s on
             your shelves.
           </p>
-          <div className='flex gap-2'>
+          <div className='flex flex-wrap gap-2'>
             <Button asChild size='lg'>
               <Link href='/auth/sign-up'>Create your studio</Link>
             </Button>
@@ -59,16 +59,34 @@ export default async function Home() {
             </Button>
           </div>
         </div>
-        <ul className='grid gap-4 sm:grid-cols-2'>
-          {FEATURES.map(({ icon: Icon, title, body }) => (
+        <ul className='grid gap-5 sm:grid-cols-2'>
+          {FEATURES.map(({ icon: Icon, title, body }, index) => (
             <li
               key={title}
-              className='flex gap-3 rounded-lg border bg-card p-4'
+              className={
+                index === 1
+                  ? 'flex gap-3 rounded-xl bg-highlight p-5 text-highlight-foreground'
+                  : 'flex gap-3 rounded-xl border border-card-border bg-card p-5 shadow-card'
+              }
             >
-              <Icon className='mt-0.5 h-5 w-5 shrink-0 text-brand' />
+              <Icon
+                className={
+                  index === 1
+                    ? 'mt-0.5 h-5 w-5 shrink-0'
+                    : 'mt-0.5 h-5 w-5 shrink-0 text-brand'
+                }
+              />
               <div className='space-y-1'>
                 <p className='font-medium'>{title}</p>
-                <p className='text-muted-foreground'>{body}</p>
+                <p
+                  className={
+                    index === 1
+                      ? 'text-highlight-foreground/80'
+                      : 'text-muted-foreground'
+                  }
+                >
+                  {body}
+                </p>
               </div>
             </li>
           ))}

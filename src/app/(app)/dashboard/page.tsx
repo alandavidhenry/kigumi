@@ -15,6 +15,7 @@ import type { DashboardTile } from '@/components/dashboard/dashboard-grid'
 import { GettingStartedCard } from '@/components/dashboard/getting-started-card'
 import { StateBadge } from '@/components/maintenance/shared'
 import { PageHeader } from '@/components/page-header'
+import { StatTile } from '@/components/stat-tile'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -132,10 +133,10 @@ export default async function DashboardPage() {
 
   if (wizards.length > 0) {
     nodes.wizards = (
-      <Card className='border-brand-border bg-brand-tint/20'>
+      <Card className='border-transparent bg-highlight text-highlight-foreground shadow-none'>
         <CardHeader className='space-y-1'>
           <CardTitle>Guided wizards</CardTitle>
-          <CardDescription>
+          <CardDescription className='text-highlight-foreground/80'>
             The quickest way to get something done.
           </CardDescription>
         </CardHeader>
@@ -145,7 +146,7 @@ export default async function DashboardPage() {
               <li key={href}>
                 <Link
                   href={href}
-                  className='flex h-full flex-col gap-1 rounded-md border bg-card p-3 transition-colors hover:border-brand focus-visible:ring-2 focus-visible:ring-ring'
+                  className='flex h-full flex-col gap-1 rounded-lg bg-card p-3 text-card-foreground transition-colors hover:bg-card/90 hover:shadow-card focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring'
                 >
                   <span className='flex items-center gap-2 text-sm font-medium'>
                     <Icon className='size-4 text-brand' />
@@ -165,13 +166,12 @@ export default async function DashboardPage() {
 
   if (care.unreadNotifications > 0) {
     nodes.reminders = (
-      <Link href='/notifications' className='block'>
-        <Card className='border-brand-border bg-brand-tint/30 transition-colors hover:border-brand'>
-          <CardContent className='py-3 text-sm'>
-            You have {care.unreadNotifications} unread{' '}
-            {care.unreadNotifications === 1 ? 'reminder' : 'reminders'}.
-          </CardContent>
-        </Card>
+      <Link
+        href='/notifications'
+        className='block rounded-xl border border-brand-border bg-brand-tint/50 px-5 py-3 text-sm transition-colors hover:border-brand focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring'
+      >
+        You have {care.unreadNotifications} unread{' '}
+        {care.unreadNotifications === 1 ? 'reminder' : 'reminders'}.
       </Link>
     )
   }
@@ -385,8 +385,8 @@ export default async function DashboardPage() {
 
   // Counts matter least, so they sit last and stay folded until opened.
   nodes.usage = (
-    <details className='group rounded-lg border bg-card'>
-      <summary className='flex min-h-9 cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-medium'>
+    <details className='group rounded-xl border border-card-border bg-card shadow-card'>
+      <summary className='flex min-h-9 cursor-pointer list-none items-center justify-between px-5 py-3 text-sm font-medium'>
         <span>
           {TILE_TITLES.usage}
           <span className='ml-2 font-normal text-muted-foreground'>
@@ -395,22 +395,17 @@ export default async function DashboardPage() {
         </span>
         <ChevronDown className='size-4 transition-transform group-open:rotate-180' />
       </summary>
-      <div className='grid gap-4 border-t p-4 sm:grid-cols-3'>
-        {stats.map(({ label, value, limit, icon: Icon, href }) => (
-          <Link
+      <div className='grid gap-3 border-t border-card-border p-5 sm:grid-cols-3'>
+        {stats.map(({ label, value, limit, icon, href }) => (
+          <StatTile
             key={label}
+            label={label}
+            value={value}
+            hint={`of ${formatLimit(limit)} on your plan`}
+            icon={icon}
             href={href}
-            className='rounded-md border p-3 transition-colors hover:border-border-strong'
-          >
-            <span className='flex items-center justify-between text-sm text-muted-foreground'>
-              {label}
-              <Icon className='size-4' />
-            </span>
-            <span className='block text-2xl font-semibold'>{value}</span>
-            <span className='block text-xs text-muted-foreground'>
-              of {formatLimit(limit)} on your plan
-            </span>
-          </Link>
+            className='border-0 bg-muted shadow-none'
+          />
         ))}
       </div>
     </details>
@@ -421,7 +416,7 @@ export default async function DashboardPage() {
   )
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title={`Welcome back, ${ctx.userName.split(' ')[0]}`}
         description={`${ctx.organisationName} · ${PLAN_LABELS[ctx.planTier]} plan`}

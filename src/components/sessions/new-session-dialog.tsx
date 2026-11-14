@@ -116,7 +116,7 @@ export function NewSessionDialog({
               Times are in the timezone of the room&apos;s studio.
             </DialogDescription>
           </DialogHeader>
-          <p className='rounded-md border border-brand-border bg-brand-tint/40 px-3 py-2 text-sm'>
+          <p className='rounded-lg border border-brand-border bg-brand-tint/50 px-3 py-2 text-sm'>
             Want mic picks, a generated layout and an input list too?{' '}
             <Link href='/sessions/new' className='font-medium underline'>
               Use the guided wizard

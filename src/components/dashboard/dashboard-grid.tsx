@@ -97,7 +97,7 @@ export function DashboardGrid({ tiles, initial }: Props) {
   }
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-5'>
       <div className='flex flex-wrap items-center justify-end gap-2'>
         {editing ? (
           <>
@@ -108,7 +108,6 @@ export function DashboardGrid({ tiles, initial }: Props) {
             <Button
               type='button'
               variant='surface'
-              className='min-h-9'
               disabled={saving}
               onClick={reset}
             >
@@ -117,18 +116,12 @@ export function DashboardGrid({ tiles, initial }: Props) {
             <Button
               type='button'
               variant='surface'
-              className='min-h-9'
               disabled={saving}
               onClick={() => setDraft(null)}
             >
               Cancel
             </Button>
-            <Button
-              type='button'
-              className='min-h-9'
-              disabled={saving}
-              onClick={save}
-            >
+            <Button type='button' disabled={saving} onClick={save}>
               Save
             </Button>
           </>
@@ -136,7 +129,6 @@ export function DashboardGrid({ tiles, initial }: Props) {
           <Button
             type='button'
             variant='surface'
-            className='min-h-9'
             onClick={() => setDraft(layout)}
           >
             Customise dashboard
@@ -144,7 +136,7 @@ export function DashboardGrid({ tiles, initial }: Props) {
         )}
       </div>
 
-      <div className='grid gap-4 lg:grid-cols-2'>
+      <div className='grid gap-5 lg:grid-cols-2'>
         {shown.visible.map((id, index) => {
           const tile = byId.get(id)
           if (!tile) return null
@@ -170,7 +162,7 @@ export function DashboardGrid({ tiles, initial }: Props) {
                 }
               }}
               className={cn(
-                'rounded-lg border border-dashed border-border-strong p-2',
+                'rounded-xl border border-dashed border-border-strong p-2',
                 span,
                 dragging === id && 'opacity-50'
               )}
@@ -224,7 +216,7 @@ export function DashboardGrid({ tiles, initial }: Props) {
       </div>
 
       {editing && shown.hidden.length > 0 && (
-        <div className='space-y-2 rounded-lg border p-3'>
+        <div className='space-y-2 rounded-xl border border-card-border bg-card p-4'>
           <h2 className='text-sm font-medium'>Hidden tiles</h2>
           <ul className='flex flex-wrap gap-2'>
             {shown.hidden.map((id) => (

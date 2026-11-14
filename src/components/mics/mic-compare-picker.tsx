@@ -45,7 +45,7 @@ export function MicComparePicker({
           {selected.map((slug) => (
             <li
               key={slug}
-              className='flex items-center gap-1 rounded-md border bg-card py-1 pl-3 pr-1 text-sm'
+              className='flex items-center gap-1 rounded-full border border-input bg-card py-1 pl-3 pr-1 text-sm'
             >
               {labelOf(slug)}
               <Button

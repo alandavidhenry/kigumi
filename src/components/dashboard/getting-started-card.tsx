@@ -45,7 +45,7 @@ export function GettingStartedCard({
           className='h-2 overflow-hidden rounded-full bg-muted'
         >
           <div
-            className='h-full bg-brand transition-all'
+            className='h-full rounded-full bg-primary transition-all'
             style={{ width: `${(doneCount / ITEMS.length) * 100}%` }}
           />
         </div>
@@ -61,8 +61,8 @@ export function GettingStartedCard({
                   <span
                     className={
                       done
-                        ? 'flex size-5 items-center justify-center rounded-full bg-brand text-brand-foreground'
-                        : 'size-5 rounded-full border'
+                        ? 'flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground'
+                        : 'size-5 rounded-full border border-input'
                     }
                   >
                     {done && <Check className='size-3' />}

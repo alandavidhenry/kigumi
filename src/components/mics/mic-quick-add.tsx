@@ -149,7 +149,7 @@ export function MicQuickAdd({
           onChange={(event) => setQuery(event.target.value)}
         />
         {results.length > 0 && (
-          <ul className='divide-y overflow-hidden rounded-md border bg-card'>
+          <ul className='divide-y overflow-hidden rounded-lg border bg-card'>
             {results.map((mic) => {
               const added = rows.some((row) => row.micModelId === mic.id)
               return (

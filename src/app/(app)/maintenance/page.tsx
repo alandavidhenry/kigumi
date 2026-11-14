@@ -24,7 +24,7 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
   const tasks = await listTasks(ctx, { scope })
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-8'>
       <PageHeader
         title='Maintenance'
         description='Recurring jobs by time or usage hours, what is due, and what has been done.'
@@ -62,7 +62,7 @@ export default async function MaintenancePage({ searchParams }: PageProps) {
       </div>
 
       <Card>
-        <CardContent className='pt-6'>
+        <CardContent className='pt-5 md:pt-6'>
           <TaskList
             tasks={tasks}
             canManage={canManage}

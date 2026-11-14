@@ -18,7 +18,7 @@ export default async function LogPage() {
   ])
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-8'>
       <PageHeader
         title='Service log'
         description='Everything that has been done, with cost and invoices.'
@@ -26,7 +26,7 @@ export default async function LogPage() {
       />
       <MaintenanceTabs current='/maintenance/log' />
       <Card>
-        <CardContent className='pt-6'>
+        <CardContent className='pt-5 md:pt-6'>
           <LogList entries={entries} canManage={canManage} />
         </CardContent>
       </Card>

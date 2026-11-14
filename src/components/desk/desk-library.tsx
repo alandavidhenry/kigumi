@@ -96,7 +96,7 @@ export function DeskLibrary({
           Add to
         </p>
         <div
-          className='grid grid-cols-2 gap-1 rounded-md border p-0.5'
+          className='grid grid-cols-2 gap-1 rounded-full bg-muted p-0.5'
           role='group'
           aria-label='Area to add components to'
         >
@@ -108,10 +108,10 @@ export function DeskLibrary({
               disabled={area === 'master' && !hasMaster}
               onClick={() => onTarget(area)}
               className={cn(
-                'rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50',
+                'rounded-full px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50',
                 target === area
                   ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent'
+                  : 'text-muted-foreground hover:text-foreground'
               )}
             >
               {area === 'strip' ? 'Channel strip' : 'Master'}
@@ -125,7 +125,7 @@ export function DeskLibrary({
             <Button
               type='button'
               variant='surface'
-              className='h-auto w-full cursor-grab flex-col gap-1 px-1 py-2 text-xs active:cursor-grabbing'
+              className='h-auto w-full cursor-grab flex-col gap-1 whitespace-normal rounded-lg px-1 py-2 text-center text-xs leading-tight active:cursor-grabbing'
               draggable
               aria-label={`Add a ${DESK_KIND_LABELS[kind].toLowerCase()}`}
               onDragStart={(event) => {

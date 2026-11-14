@@ -5,6 +5,7 @@ import { MicComparisonAi } from '@/components/mics/mic-comparison-ai'
 import { PolarSection } from '@/components/mics/polar-section'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Notice } from '@/components/ui/notice'
 import type { MicComparisonResult } from '@/lib/mics/ai'
 import type { MicDetail } from '@/lib/mics/catalogue'
 import { overlayCurves } from '@/lib/mics/compare'
@@ -35,24 +36,21 @@ export function MicCompareView({
   })
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       {warnings.length > 0 && (
-        <div
-          role='alert'
-          className='space-y-1 rounded-lg border border-warning/30 bg-warning/15 p-3 text-sm'
-        >
+        <Notice variant='warning' role='alert' className='space-y-1'>
           {warnings.map((warning) => (
             <p key={warning.id}>
               <span className='font-medium'>{warning.name}:</span>{' '}
               {warning.text}
             </p>
           ))}
-        </div>
+        </Notice>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Specifications</CardTitle>
+          <CardTitle>Specifications</CardTitle>
           <div className='text-sm text-muted-foreground'>
             Rows marked <Badge variant='info'>Differs</Badge> are not the same
             on every microphone. Values are as the manufacturer states them;
@@ -128,7 +126,7 @@ export function MicCompareView({
 
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Frequency response</CardTitle>
+          <CardTitle>Frequency response</CardTitle>
         </CardHeader>
         <CardContent className='space-y-3'>
           {curves.length > 0 ? (
@@ -157,7 +155,7 @@ export function MicCompareView({
           {mics.map((mic) => (
             <Card key={mic.id}>
               <CardHeader>
-                <CardTitle className='text-base'>{nameOf(mic)}</CardTitle>
+                <CardTitle>{nameOf(mic)}</CardTitle>
               </CardHeader>
               <CardContent>
                 <PolarSection

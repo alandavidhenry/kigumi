@@ -26,7 +26,7 @@ export default async function PatPage() {
     : [[], []]
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-8'>
       <PageHeader
         title='PAT testing'
         description='UK portable appliance testing register: the latest test for each item, and when the next is due.'
@@ -35,7 +35,7 @@ export default async function PatPage() {
       <MaintenanceTabs current='/maintenance/pat' />
       {allowed ? (
         <Card>
-          <CardContent className='pt-6'>
+          <CardContent className='pt-5 md:pt-6'>
             <PatTable tests={tests} items={items} canManage={canManage} />
           </CardContent>
         </Card>

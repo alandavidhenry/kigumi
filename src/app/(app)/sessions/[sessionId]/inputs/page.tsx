@@ -44,10 +44,10 @@ export default async function SessionInputsPage({ params }: PageProps) {
   const flagged = new Set(session.warnings.flatMap((w) => w.channelIds))
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Checks</CardTitle>
+          <CardTitle>Checks</CardTitle>
         </CardHeader>
         <CardContent>
           <WarningsPanel warnings={session.warnings} />
@@ -56,7 +56,7 @@ export default async function SessionInputsPage({ params }: PageProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>
+          <CardTitle>
             Input list{' '}
             <span className='font-normal text-muted-foreground'>
               ({session.channels.length}
@@ -80,7 +80,7 @@ export default async function SessionInputsPage({ params }: PageProps) {
 
       {canEdit && (
         <section className='space-y-3' aria-labelledby='recs-heading'>
-          <h2 id='recs-heading' className='text-base font-medium'>
+          <h2 id='recs-heading' className='text-base font-semibold'>
             Mic recommendations
           </h2>
           <RecommendationWorkbench

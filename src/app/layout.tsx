@@ -31,20 +31,19 @@ export const viewport: Viewport = {
 }
 
 /*
-  Applies the stored theme class before first paint. Without this the provider
-  would only resolve the theme in an effect, flashing the light palette on every
-  load now that dark is the default.
+  Applies the theme class before first paint: the stored choice if there is
+  one, otherwise the system setting. Without this the provider would only
+  resolve the theme in an effect, flashing the wrong palette on load.
 */
 const themeScript = `
+var t = null
 try {
-  var t = localStorage.getItem('theme') || 'dark'
-  if (t === 'system') {
-    t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  }
-  document.documentElement.classList.add(t === 'light' ? 'light' : 'dark')
-} catch (e) {
-  document.documentElement.classList.add('dark')
+  t = localStorage.getItem('theme')
+} catch (e) {}
+if (t !== 'light' && t !== 'dark') {
+  t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
+document.documentElement.classList.add(t)
 `.trim()
 
 export default function RootLayout({

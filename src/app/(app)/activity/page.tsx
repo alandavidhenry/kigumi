@@ -33,7 +33,7 @@ export default async function ActivityPage() {
   // Below Studio, history is still recorded but shown only after upgrading.
   if (!hasFeature(ctx.planTier, Feature.AUDIT_LOG)) {
     return (
-      <div className='space-y-6'>
+      <div className='space-y-8'>
         <PageHeader
           title='Activity'
           description='Changes to studios, rooms, members and settings.'
@@ -50,7 +50,7 @@ export default async function ActivityPage() {
   const entries = await listAuditLog(ctx, { limit: 200 })
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title='Activity'
         description='Changes to studios, rooms, members and settings.'

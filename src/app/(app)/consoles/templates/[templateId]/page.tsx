@@ -24,7 +24,7 @@ export default async function TemplatePage({ params }: PageProps) {
     throw error
   }
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title={template.name}
         description='Changing a template affects new recall sheets only. Sheets already written keep the desk they were recorded on.'

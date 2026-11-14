@@ -20,14 +20,14 @@ export default async function WarrantiesPage() {
   ])
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-8'>
       <PageHeader
         title='Warranties'
         description='Cover dates, providers and receipts. Soonest to expire first.'
         actions={canManage && <AddWarrantyButton items={items} />}
       />
       <Card>
-        <CardContent className='pt-6'>
+        <CardContent className='pt-5 md:pt-6'>
           <WarrantyList
             warranties={warranties}
             items={items}

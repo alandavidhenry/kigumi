@@ -23,8 +23,10 @@ export function UpgradeNotice({
     <div
       role='status'
       className={cn(
-        'flex gap-3 rounded-lg border border-brand-border bg-brand-tint/40',
-        compact ? 'items-center px-3 py-2' : 'flex-col p-5 sm:flex-row',
+        'flex gap-3 rounded-xl border border-brand-border bg-brand-tint/50',
+        compact
+          ? 'items-center px-4 py-2.5'
+          : 'flex-col p-5 sm:flex-row md:p-6',
         className
       )}
     >

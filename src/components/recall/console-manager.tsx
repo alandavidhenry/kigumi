@@ -218,7 +218,7 @@ export function ConsoleRowActions({
         builtIn={builtIn}
         templates={templates}
         trigger={
-          <Button variant='ghost' size='icon' aria-label={`Edit ${row.name}`}>
+          <Button variant='surface' size='icon' aria-label={`Edit ${row.name}`}>
             <Pencil />
           </Button>
         }

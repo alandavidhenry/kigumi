@@ -166,9 +166,9 @@ export function RecommendationWorkbench({
   const tooMany = mode === 'sources' && filled.length > MAX_AI_SOURCES
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       {session && (
-        <p className='rounded-md border border-brand-border bg-brand-tint/40 px-3 py-2 text-sm'>
+        <p className='rounded-xl bg-brand-tint px-4 py-3 text-sm'>
           Planning for <strong>{session.name}</strong>. Its room and channel
           count are filled in, and microphones booked in overlapping sessions
           are left out.
@@ -176,7 +176,7 @@ export function RecommendationWorkbench({
       )}
       <Card>
         <CardHeader className='space-y-3'>
-          <CardTitle className='text-base'>What are you recording?</CardTitle>
+          <CardTitle>What are you recording?</CardTitle>
           <div className='flex gap-1' role='tablist' aria-label='Request type'>
             {(
               [

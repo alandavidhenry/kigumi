@@ -63,8 +63,10 @@ function Option({
   return (
     <label
       className={cn(
-        'flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border bg-card p-3 text-sm hover:border-border-strong has-focus-visible:ring-2 has-focus-visible:ring-ring',
-        checked && 'border-brand bg-brand-tint/40'
+        'flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm has-focus-visible:ring-2 has-focus-visible:ring-ring',
+        checked
+          ? 'border-transparent bg-primary text-primary-foreground'
+          : 'border-input bg-card hover:border-border-strong'
       )}
     >
       <input
