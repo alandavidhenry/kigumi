@@ -520,7 +520,7 @@ export function DeskEditor({
   }
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-5'>
       <Card>
         <CardContent className='grid gap-3 pt-6 sm:grid-cols-2'>
           <div className='space-y-1'>
@@ -550,7 +550,7 @@ export function DeskEditor({
         <div
           role='group'
           aria-label='Editing mode'
-          className='inline-flex rounded-md border p-0.5'
+          className='inline-flex rounded-full bg-muted p-0.5'
         >
           {(['layout', 'values'] as const).map((m) => (
             <button
@@ -558,10 +558,10 @@ export function DeskEditor({
               type='button'
               aria-pressed={mode === m}
               onClick={() => switchMode(m)}
-              className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
+              className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
                 mode === m
                   ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {m === 'layout' ? 'Layout' : 'Values'}
@@ -569,7 +569,7 @@ export function DeskEditor({
           ))}
         </div>
         <Button
-          variant='ghost'
+          variant='surface'
           size='icon'
           aria-label='Undo'
           disabled={!canUndo}
@@ -578,7 +578,7 @@ export function DeskEditor({
           <Undo2 />
         </Button>
         <Button
-          variant='ghost'
+          variant='surface'
           size='icon'
           aria-label='Redo'
           disabled={!canRedo}
@@ -587,7 +587,7 @@ export function DeskEditor({
           <Redo2 />
         </Button>
         <Button
-          variant='ghost'
+          variant='surface'
           size='icon'
           aria-label='Zoom out'
           onClick={() => canvas.current?.zoomBy(1 / 1.25)}
@@ -595,7 +595,7 @@ export function DeskEditor({
           <ZoomOut />
         </Button>
         <Button
-          variant='ghost'
+          variant='surface'
           size='icon'
           aria-label='Zoom in'
           onClick={() => canvas.current?.zoomBy(1.25)}
@@ -603,7 +603,7 @@ export function DeskEditor({
           <ZoomIn />
         </Button>
         <Button
-          variant='ghost'
+          variant='surface'
           size='icon'
           aria-label='Fit the desk'
           onClick={() => canvas.current?.fit()}
@@ -611,7 +611,7 @@ export function DeskEditor({
           <Maximize />
         </Button>
         <Button
-          variant='ghost'
+          variant='surface'
           size='sm'
           aria-pressed={showValues}
           onClick={() => setShowValues((v) => !v)}
@@ -649,7 +649,7 @@ export function DeskEditor({
       </div>
       <FormError message={error} />
 
-      <div className='grid gap-4 lg:grid-cols-[11rem_minmax(0,1fr)_17rem]'>
+      <div className='grid gap-5 lg:grid-cols-[11rem_minmax(0,1fr)_17rem]'>
         <aside aria-label='Component library'>
           {editable ? (
             <DeskLibrary
@@ -698,7 +698,7 @@ export function DeskEditor({
           </p>
         </div>
 
-        <aside aria-label='Inspector' className='space-y-4'>
+        <aside aria-label='Inspector' className='space-y-5'>
           {mode === 'layout' ? (
             selected && selection ? (
               <LayoutInspector

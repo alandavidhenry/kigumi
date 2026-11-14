@@ -49,12 +49,21 @@ function Choice({
       aria-pressed={selected}
       onClick={onSelect}
       className={cn(
-        'min-h-16 rounded-lg border bg-card p-3 text-left text-sm transition-colors hover:border-border-strong focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
-        selected && 'border-brand bg-brand-tint/40'
+        'min-h-16 rounded-lg border p-3 text-left text-sm transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
+        selected
+          ? 'border-transparent bg-primary text-primary-foreground'
+          : 'border-input bg-card hover:border-border-strong'
       )}
     >
       <span className='block font-medium'>{title}</span>
-      <span className='block text-xs text-muted-foreground'>{description}</span>
+      <span
+        className={cn(
+          'block text-xs',
+          selected ? 'text-primary-foreground/80' : 'text-muted-foreground'
+        )}
+      >
+        {description}
+      </span>
     </button>
   )
 }

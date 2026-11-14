@@ -73,14 +73,14 @@ export function SidebarNav({ expanded, onNavigate }: SidebarNavProps) {
   const activeHref = findActiveHref(groups, pathname)
 
   return (
-    <nav className='flex flex-col gap-2 p-2' aria-label='Main'>
+    <nav className='flex flex-col gap-2 px-3 py-2' aria-label='Main'>
       {groups.map((group) => (
         <div key={group.id} className='flex flex-col gap-0.5'>
           {group.label && (
             <p
               aria-hidden={!expanded}
               className={cn(
-                'flex h-5 items-center overflow-hidden whitespace-nowrap px-2 font-mono text-xs font-medium uppercase tracking-wide text-muted-foreground transition-opacity duration-150',
+                'flex h-6 items-center overflow-hidden whitespace-nowrap px-3 text-[11px] font-medium tracking-wide text-muted-foreground transition-opacity duration-150',
                 expanded ? 'opacity-100' : 'opacity-0'
               )}
             >
@@ -121,9 +121,9 @@ function SidebarLink({
       onClick={onNavigate}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'flex h-9 items-center gap-3 rounded-md px-[11px] transition-colors md:h-8',
+        'flex h-10 items-center gap-3 rounded-full px-[11px] md:h-9 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
         active
-          ? 'bg-sidebar-accent text-foreground'
+          ? 'bg-highlight font-medium text-highlight-foreground'
           : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground'
       )}
     >

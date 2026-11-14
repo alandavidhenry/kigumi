@@ -85,7 +85,7 @@ export function LogEntryDialog({
           onChange={(event) => setTitle(event.target.value)}
         />
       </FormField>
-      <div className='grid gap-4 sm:grid-cols-2'>
+      <div className='grid gap-5 sm:grid-cols-2'>
         <FormField label='Done on' htmlFor='log-date'>
           <Input
             id='log-date'

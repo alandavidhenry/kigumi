@@ -57,7 +57,7 @@ export function StudioDetail({
   ) : null
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title={studio.name}
         description={[studio.address, studio.timezone]

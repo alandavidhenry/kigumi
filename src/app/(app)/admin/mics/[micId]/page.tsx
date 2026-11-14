@@ -35,7 +35,7 @@ export default async function MicReviewPage({ params }: PageProps) {
   const { publish, ...mic } = await load(micId)
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <MicAdminPanel mic={mic} publish={publish} />
       <MicDetailView
         mic={mic}

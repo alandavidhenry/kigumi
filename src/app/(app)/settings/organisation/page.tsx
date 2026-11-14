@@ -55,7 +55,7 @@ export default async function OrganisationSettingsPage() {
   ]
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader title='Organisation' description={ctx.organisationName} />
 
       <OrganisationForm
@@ -73,7 +73,7 @@ export default async function OrganisationSettingsPage() {
               Add a studio, rooms, microphones or your desk step by step. Safe
               to run again.
             </p>
-            <Button asChild variant='surface' className='min-h-9'>
+            <Button asChild variant='surface'>
               <Link href='/setup'>Open setup wizard</Link>
             </Button>
           </CardContent>
@@ -85,7 +85,7 @@ export default async function OrganisationSettingsPage() {
           <CardTitle>{PLAN_LABELS[ctx.planTier]} plan usage</CardTitle>
         </CardHeader>
         <CardContent className='p-0'>
-          <dl className='divide-y border-t'>
+          <dl className='divide-y border-t border-border'>
             {rows.map(({ label, used, limit }) => (
               <div
                 key={label}

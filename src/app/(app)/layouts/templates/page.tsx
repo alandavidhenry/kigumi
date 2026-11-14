@@ -30,14 +30,14 @@ export default async function TemplatesPage() {
   const canManage = hasPermission(ctx.role, Permission.MANAGE_SESSIONS)
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title='Layout templates'
         description='Start a session from a ready-made room layout. Starter templates are free; saving your own is a Pro feature.'
       />
 
-      <section className='space-y-2'>
-        <h2 className='text-sm font-medium'>Starter templates</h2>
+      <section className='space-y-3'>
+        <h2 className='text-base font-semibold'>Starter templates</h2>
         <Card className='divide-y overflow-hidden p-0'>
           {BUILT_IN_TEMPLATES.map((template) => (
             <div key={template.id} className='px-4 py-3'>
@@ -51,8 +51,8 @@ export default async function TemplatesPage() {
         </Card>
       </section>
 
-      <section className='space-y-2'>
-        <h2 className='text-sm font-medium'>Your templates</h2>
+      <section className='space-y-3'>
+        <h2 className='text-base font-semibold'>Your templates</h2>
         {!unlocked ? (
           <UpgradeNotice
             title={`${FEATURE_LABELS[Feature.TEMPLATES]} is a paid feature.`}
@@ -85,8 +85,8 @@ export default async function TemplatesPage() {
         )}
       </section>
 
-      <section className='space-y-2'>
-        <h2 className='text-sm font-medium'>Session templates</h2>
+      <section className='space-y-3'>
+        <h2 className='text-base font-semibold'>Session templates</h2>
         {!unlocked ? (
           <UpgradeNotice
             title={`${FEATURE_LABELS[Feature.TEMPLATES]} is a paid feature.`}

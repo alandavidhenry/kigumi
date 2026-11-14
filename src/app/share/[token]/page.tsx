@@ -58,9 +58,7 @@ export default async function SharedSessionPage({ params }: PageProps) {
       {view.warnings.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>
-              Check before the session
-            </CardTitle>
+            <CardTitle>Check before the session</CardTitle>
           </CardHeader>
           <CardContent>
             <WarningsPanel warnings={view.warnings} />
@@ -70,7 +68,7 @@ export default async function SharedSessionPage({ params }: PageProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Input list</CardTitle>
+          <CardTitle>Input list</CardTitle>
         </CardHeader>
         <CardContent className='overflow-x-auto'>
           <table className='w-full min-w-[560px] text-sm'>
@@ -116,7 +114,7 @@ export default async function SharedSessionPage({ params }: PageProps) {
       {view.scene && (
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>Layout</CardTitle>
+            <CardTitle>Layout</CardTitle>
           </CardHeader>
           <CardContent>
             <SceneSvg scene={view.scene} />

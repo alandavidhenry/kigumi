@@ -53,7 +53,7 @@ export default async function RecommendationsPage({ searchParams }: PageProps) {
   }
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title='Mic recommendations'
         description='Which of the microphones you own suit each source? The check is free and uses only your locker; the AI can then rank the options and explain its choice.'
@@ -72,7 +72,7 @@ export default async function RecommendationsPage({ searchParams }: PageProps) {
       {history.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle className='flex items-center gap-2 text-base'>
+            <CardTitle className='flex items-center gap-2'>
               <History className='h-4 w-4' aria-hidden='true' />
               Earlier recommendations
             </CardTitle>

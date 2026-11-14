@@ -42,7 +42,7 @@ export function SessionTabs({
                 className={cn(
                   'flex min-h-11 items-center gap-2 border-b-2 px-3 text-sm whitespace-nowrap',
                   active
-                    ? 'border-primary font-medium text-foreground'
+                    ? 'border-foreground font-medium text-foreground'
                     : 'border-transparent text-muted-foreground hover:text-foreground'
                 )}
               >
@@ -51,8 +51,8 @@ export function SessionTabs({
                     className={cn(
                       'flex h-5 w-5 items-center justify-center rounded-full border text-xs',
                       done
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'text-muted-foreground'
+                        ? 'border-highlight bg-highlight text-highlight-foreground'
+                        : 'border-input text-muted-foreground'
                     )}
                   >
                     {done ? (

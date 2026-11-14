@@ -17,9 +17,8 @@ interface PageHeaderProps {
 }
 
 /*
-  The single page-title treatment. Supabase sizes page titles modestly — the
-  section nav already says where you are — so this is text-xl, not the
-  text-3xl font-bold that each page used to re-implement.
+  The single page-title treatment: the `text-title` step from globals.css
+  (26px semibold, tight tracking), so no page sets its own title size.
 */
 export function PageHeader({
   title,
@@ -30,7 +29,7 @@ export function PageHeader({
   className
 }: PageHeaderProps) {
   return (
-    <div className={cn('space-y-2 pb-1', className)}>
+    <div className={cn('space-y-3 pb-2', className)}>
       {backHref && (
         <Link
           href={backHref}
@@ -42,15 +41,15 @@ export function PageHeader({
       )}
       <div className='flex flex-wrap items-start justify-between gap-3'>
         <div className='min-w-0 space-y-1'>
-          <h1 className='truncate text-xl font-medium tracking-tight'>
-            {title}
-          </h1>
+          <h1 className='truncate text-title font-semibold'>{title}</h1>
           {description && (
             <p className='text-sm text-muted-foreground'>{description}</p>
           )}
         </div>
         {actions && (
-          <div className='flex shrink-0 items-center gap-2'>{actions}</div>
+          <div className='flex shrink-0 flex-wrap items-center gap-2'>
+            {actions}
+          </div>
         )}
       </div>
     </div>

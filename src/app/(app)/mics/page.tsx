@@ -39,7 +39,7 @@ export default async function MicCataloguePage({
   const mics = await listMics(ctx, filter)
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title='Mic catalogue'
         description='Reviewed specifications for common studio microphones, with the source of every value.'

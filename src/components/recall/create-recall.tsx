@@ -59,10 +59,10 @@ export function CreateRecall({
   }
 
   return (
-    <div className='grid gap-6 md:grid-cols-2'>
+    <div className='grid gap-5 md:grid-cols-2'>
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Fill from the input list</CardTitle>
+          <CardTitle>Fill from the input list</CardTitle>
         </CardHeader>
         <CardContent className='space-y-3'>
           {consoles.length === 0 ? (
@@ -106,7 +106,7 @@ export function CreateRecall({
 
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Copy an earlier session</CardTitle>
+          <CardTitle>Copy an earlier session</CardTitle>
         </CardHeader>
         <CardContent className='space-y-3'>
           {sources.length === 0 ? (

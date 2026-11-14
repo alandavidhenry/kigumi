@@ -134,7 +134,7 @@ export function LayoutInspector({
   const disabled = !canEdit
 
   return (
-    <div className='space-y-3'>
+    <div className='space-y-3 rounded-xl border border-card-border bg-card p-4 shadow-card'>
       <div className='flex items-baseline justify-between gap-2'>
         <h3 className='text-sm font-semibold'>
           {DESK_KIND_LABELS[c.kind]}
@@ -355,7 +355,7 @@ export function AreaSettings({
   ) => void
 }) {
   return (
-    <div className='space-y-3'>
+    <div className='space-y-3 rounded-xl border border-card-border bg-card p-4 shadow-card'>
       <h3 className='text-sm font-semibold'>Desk</h3>
       <div className='grid grid-cols-2 gap-2'>
         <NumberField
@@ -415,7 +415,7 @@ export function ComponentList({
   readonly describe?: (area: DeskArea, c: DeskComponent) => string | null
 }) {
   return (
-    <details className='rounded-md border text-sm'>
+    <details className='rounded-xl border border-card-border bg-card shadow-card text-sm'>
       <summary className='cursor-pointer px-3 py-2 text-xs font-medium uppercase tracking-wide text-muted-foreground'>
         All components
       </summary>
@@ -441,7 +441,7 @@ export function ComponentList({
                         type='button'
                         aria-current={active ? 'true' : undefined}
                         onClick={() => onSelect(area, c.id)}
-                        className={`flex w-full justify-between gap-2 rounded px-2 py-1 text-left hover:bg-accent ${active ? 'bg-accent font-medium' : ''}`}
+                        className={`flex w-full justify-between gap-2 rounded-md px-2 py-1 text-left hover:bg-accent ${active ? 'bg-primary font-medium text-primary-foreground hover:bg-primary' : ''}`}
                       >
                         <span className='truncate'>
                           {c.label || DESK_KIND_LABELS[c.kind]}
@@ -516,7 +516,7 @@ export function ValueInspector({
               .join(' ') || 'a number'
 
   return (
-    <div className='space-y-3'>
+    <div className='space-y-3 rounded-xl border border-card-border bg-card p-4 shadow-card'>
       <div>
         <h3 className='text-sm font-semibold'>{c.label}</h3>
         <p className='text-xs text-muted-foreground'>{context}</p>

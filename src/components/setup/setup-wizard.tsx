@@ -147,9 +147,9 @@ function WizardInner(props: Props) {
   )
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       {props.firstRun && (
-        <div className='flex flex-wrap items-center justify-between gap-2 rounded-md border bg-brand-tint/30 px-4 py-3 text-sm'>
+        <div className='flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-border bg-brand-tint/50 px-4 py-3 text-sm'>
           <span>
             Welcome to Kigumi. These few steps take about a minute and you can
             change everything later.
@@ -173,17 +173,19 @@ function WizardInner(props: Props) {
               onClick={() => go(s.id)}
               aria-current={s.id === step ? 'step' : undefined}
               className={cn(
-                'flex min-h-9 items-center gap-2 rounded-full border px-3 text-sm transition-colors',
+                'flex min-h-9 items-center gap-2 rounded-full px-3 text-sm transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring',
                 s.id === step
-                  ? 'border-brand bg-brand-tint/40 font-medium'
-                  : 'border-border hover:border-border-strong'
+                  ? 'bg-highlight font-medium text-highlight-foreground'
+                  : done[s.id]
+                    ? 'text-foreground hover:bg-accent'
+                    : 'text-muted-foreground hover:bg-accent'
               )}
             >
               <span
                 className={cn(
                   'flex size-5 items-center justify-center rounded-full text-xs',
                   done[s.id]
-                    ? 'bg-brand text-brand-foreground'
+                    ? 'bg-primary text-primary-foreground'
                     : 'bg-muted text-muted-foreground'
                 )}
               >
@@ -380,7 +382,7 @@ function StudioStep({
             </div>
           </form>
         ) : (
-          <div className='flex flex-wrap items-center justify-between gap-2 rounded-md border p-3'>
+          <div className='flex flex-wrap items-center justify-between gap-2 rounded-lg bg-muted p-3'>
             <div className='min-w-0'>
               <p className='font-medium'>{studio.name}</p>
               <p className='text-xs text-muted-foreground'>
@@ -539,7 +541,7 @@ function RoomsStep({
           </div>
         )}
         {studio.rooms.length > 0 && (
-          <ul className='divide-y rounded-md border'>
+          <ul className='divide-y rounded-lg bg-muted'>
             {studio.rooms.map((room) => (
               <li key={room.id} className='px-3 py-2 text-sm'>
                 <span className='font-medium'>{room.name}</span>
@@ -694,7 +696,7 @@ function DeskStep({
           generic analogue desk is a good start.
         </p>
         {consoles.length > 0 && (
-          <ul className='divide-y rounded-md border'>
+          <ul className='divide-y rounded-lg bg-muted'>
             {consoles.map((c) => (
               <li key={c.id} className='px-3 py-2 text-sm'>
                 <span className='font-medium'>{c.name}</span>
@@ -825,7 +827,7 @@ function DoneStep({
         <CardTitle>You’re set up</CardTitle>
       </CardHeader>
       <CardContent className='space-y-4'>
-        <ul className='divide-y rounded-md border text-sm'>
+        <ul className='divide-y rounded-lg bg-muted text-sm'>
           {rows.map(([label, count]) => (
             <li key={label} className='flex justify-between px-3 py-2'>
               <span>{label}</span>
@@ -842,7 +844,7 @@ function DoneStep({
                   type='button'
                   disabled={leaving}
                   onClick={() => onFinish(item.to)}
-                  className='h-full w-full rounded-md border p-3 text-left transition-colors hover:border-brand focus-visible:ring-2 focus-visible:ring-ring'
+                  className='h-full w-full rounded-lg bg-muted p-3 text-left transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring'
                 >
                   <span className='block text-sm font-medium'>
                     {item.title}

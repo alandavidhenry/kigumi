@@ -24,7 +24,7 @@ export default async function PlansPage() {
   ])
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-8'>
       <PageHeader
         title='Maintenance plans'
         description='A plan covers one item or every item in a category.'
@@ -45,7 +45,7 @@ export default async function PlansPage() {
       />
       <MaintenanceTabs current='/maintenance/plans' />
       <Card>
-        <CardContent className='pt-6'>
+        <CardContent className='pt-5 md:pt-6'>
           <PlansTable
             plans={plans}
             items={items}

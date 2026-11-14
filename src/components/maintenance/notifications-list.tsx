@@ -58,7 +58,7 @@ export function NotificationsList({
           Mark all as read
         </Button>
       )}
-      <ul className='divide-y rounded-lg border'>
+      <ul className='divide-y overflow-hidden rounded-xl border border-card-border bg-card shadow-card'>
         {notifications.map((notification) => (
           <li
             key={notification.id}

@@ -20,19 +20,25 @@ import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { UserMenu } from '@/components/user-menu'
+import { PLAN_LABELS } from '@/lib/plans'
 import { cn } from '@/lib/utils'
 
 function OrganisationName({ visible }: { readonly visible: boolean }) {
-  const { organisationName } = useTenant()
+  const { organisationName, planTier } = useTenant()
   return (
     <span
       aria-hidden={!visible}
       className={cn(
-        'min-w-0 truncate whitespace-nowrap font-semibold transition-opacity duration-150',
+        'flex min-w-0 flex-col whitespace-nowrap transition-opacity duration-150',
         visible ? 'opacity-100' : 'opacity-0'
       )}
     >
-      {organisationName}
+      <span className='truncate font-semibold leading-tight'>
+        {organisationName}
+      </span>
+      <span className='truncate text-xs text-muted-foreground'>
+        {`${PLAN_LABELS[planTier]} plan`}
+      </span>
     </span>
   )
 }
@@ -48,7 +54,7 @@ export function AppShell({
   readonly unreadNotifications?: number
 }) {
   const pathname = usePathname() ?? ''
-  const [mode, setMode] = useState<SidebarMode>('hover')
+  const [mode, setMode] = useState<SidebarMode>('expanded')
   const [hovering, setHovering] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -81,7 +87,7 @@ export function AppShell({
         <div
           className={cn(
             'relative hidden shrink-0 transition-[width] duration-150 md:block',
-            mode === 'expanded' ? 'w-56' : 'w-14'
+            mode === 'expanded' ? 'w-60' : 'w-16'
           )}
         >
           <aside
@@ -93,12 +99,12 @@ export function AppShell({
               setHovering(false)
             }}
             className={cn(
-              'absolute inset-y-0 left-0 z-40 flex h-full flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-150',
-              expanded ? 'w-56' : 'w-14',
-              overlaying && 'shadow-lg'
+              'absolute inset-y-0 left-0 z-40 flex h-full flex-col bg-sidebar transition-[width] duration-150',
+              expanded ? 'w-60' : 'w-16',
+              overlaying && 'rounded-r-2xl shadow-pop'
             )}
           >
-            <div className='flex h-12 shrink-0 items-center gap-2 overflow-hidden px-[14px]'>
+            <div className='flex h-14 shrink-0 items-center gap-3 overflow-hidden px-4'>
               <Link href='/dashboard' aria-label='Kigumi home'>
                 <BrandMark />
               </Link>
@@ -109,7 +115,7 @@ export function AppShell({
               <SidebarNav expanded={expanded} />
             </div>
 
-            <div className='shrink-0 px-3 py-2'>
+            <div className='shrink-0 px-3 py-3'>
               <SidebarControl
                 mode={mode}
                 onModeChange={onModeChange}
@@ -128,9 +134,9 @@ export function AppShell({
               onClick={() => setMobileOpen(false)}
               aria-label='Close menu'
             />
-            <div className='animate-in slide-in-from-left absolute inset-y-0 left-0 flex w-64 flex-col bg-sidebar shadow-lg'>
-              <div className='flex h-12 items-center justify-between gap-2 border-b border-sidebar-border px-3'>
-                <span className='flex min-w-0 items-center gap-2'>
+            <div className='animate-in slide-in-from-left absolute inset-y-0 left-0 flex w-72 flex-col rounded-r-2xl bg-sidebar shadow-pop'>
+              <div className='flex h-14 items-center justify-between gap-2 px-4'>
+                <span className='flex min-w-0 items-center gap-3'>
                   <BrandMark />
                   <OrganisationName visible />
                 </span>
@@ -151,7 +157,7 @@ export function AppShell({
         )}
 
         <div className='flex min-w-0 flex-1 flex-col'>
-          <header className='flex h-12 shrink-0 items-center gap-2 border-b px-4'>
+          <header className='flex h-14 shrink-0 items-center gap-2 px-4 md:px-8'>
             <Button
               variant='ghost'
               size='icon'
@@ -175,7 +181,7 @@ export function AppShell({
                 >
                   <Bell className='h-4 w-4' />
                   {unreadNotifications > 0 && (
-                    <span className='absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full border border-brand-border bg-brand-tint px-1 text-[10px] font-medium leading-none text-foreground'>
+                    <span className='absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-highlight px-1 text-[10px] font-medium leading-none text-highlight-foreground'>
                       {unreadNotifications > 99 ? '99+' : unreadNotifications}
                     </span>
                   )}
@@ -193,7 +199,9 @@ export function AppShell({
             tabIndex={0}
             className='outline-none min-w-0 flex-1 overflow-y-auto'
           >
-            <div className='mx-auto max-w-6xl p-4 md:p-6'>{children}</div>
+            <div className='mx-auto max-w-6xl px-4 pb-12 pt-2 md:px-8 md:pt-4'>
+              {children}
+            </div>
           </main>
         </div>
       </div>

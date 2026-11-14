@@ -5,22 +5,22 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 
 /*
-  Button vocabulary follows Supabase Studio: every variant carries a border, no
-  variant carries a shadow, and the emphasised action is a deep brand-green tint
-  with a green border and normal foreground text rather than a bright green
-  plate. `default` stays the emphasised action so existing call sites keep their
-  meaning; `surface` is the quieter neutral button Supabase uses as its own
-  default.
+  Button vocabulary: `default` is a solid ink pill, the standard action.
+  `highlight` is solid amber and is reserved for the single most important call
+  to action on a screen. `surface` is the quiet neutral button. Every button is
+  a full pill; the other variants keep their existing meaning.
 */
 const buttonVariants = cva(
-  'inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md border text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+  'inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full border text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
         default:
-          'border-brand-border bg-brand-tint text-foreground hover:border-brand hover:bg-brand-tint/80',
+          'border-transparent bg-primary text-primary-foreground hover:bg-primary/85',
+        highlight:
+          'border-transparent bg-highlight text-highlight-foreground hover:bg-highlight/85',
         surface:
-          'border-input bg-card text-foreground hover:border-border-strong hover:bg-popover',
+          'border-input bg-card text-foreground hover:border-border-strong hover:bg-accent',
         destructive:
           'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90',
         warning:
@@ -36,10 +36,10 @@ const buttonVariants = cva(
         link: 'border-transparent text-brand underline-offset-4 hover:underline'
       },
       size: {
-        default: 'h-8 px-3 py-1',
-        sm: 'h-7 rounded-md px-2.5 text-xs',
-        lg: 'h-9 rounded-md px-4',
-        icon: 'h-8 w-8'
+        default: 'h-9 px-4',
+        sm: 'h-8 px-3 text-xs',
+        lg: 'h-10 px-5',
+        icon: 'h-9 w-9'
       }
     },
     defaultVariants: {

@@ -9,7 +9,7 @@ export const metadata = { title: 'New desk template' }
 export default async function NewTemplatePage() {
   const ctx = await getTenantContext()
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title='New desk template'
         description='Drag faders, knobs, switches and buttons onto one channel strip and the master area. The strip repeats for every channel of the console.'

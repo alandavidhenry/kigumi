@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Notice } from '@/components/ui/notice'
 import type { RoomOption } from '@/lib/equipment'
 import type { MicSummaryResult } from '@/lib/mics/ai'
 import type { MicDetail } from '@/lib/mics/catalogue'
@@ -119,21 +120,17 @@ export function MicDetailView({
       />
 
       {warning && (
-        <div
-          role='alert'
-          className='flex gap-2 rounded-lg border border-warning/30 bg-warning/15 p-3 text-sm'
-        >
-          <AlertTriangle className='mt-0.5 h-4 w-4 shrink-0 text-warning' />
+        <Notice variant='warning' role='alert' icon={AlertTriangle}>
           <p>{warning}</p>
-        </div>
+        </Notice>
       )}
 
       {unverified && (
-        <div className='rounded-lg border border-warning/30 bg-warning/15 p-3 text-sm'>
+        <Notice variant='warning'>
           Some of these values have not yet been checked against a manufacturer
           source. Check the manufacturer&rsquo;s spec sheet before relying on
           them.
-        </div>
+        </Notice>
       )}
 
       {ai && (
@@ -148,7 +145,7 @@ export function MicDetailView({
       <div className='grid gap-6 lg:grid-cols-2'>
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>Specifications</CardTitle>
+            <CardTitle>Specifications</CardTitle>
           </CardHeader>
           <CardContent>
             <dl className='divide-y text-sm'>
@@ -192,7 +189,7 @@ export function MicDetailView({
         <div className='space-y-6'>
           <Card>
             <CardHeader>
-              <CardTitle className='text-base'>Frequency response</CardTitle>
+              <CardTitle>Frequency response</CardTitle>
             </CardHeader>
             <CardContent>
               {frCurves.length > 0 ? (
@@ -208,7 +205,7 @@ export function MicDetailView({
 
           <Card>
             <CardHeader>
-              <CardTitle className='text-base'>Polar pattern</CardTitle>
+              <CardTitle>Polar pattern</CardTitle>
             </CardHeader>
             <CardContent>
               <PolarSection
@@ -222,7 +219,7 @@ export function MicDetailView({
 
       <Card>
         <CardHeader className='flex-row items-center justify-between space-y-0'>
-          <CardTitle className='text-base'>In your locker</CardTitle>
+          <CardTitle>In your locker</CardTitle>
           {canManageLocker && (
             <LockerAddDialog
               micModelId={mic.id}
@@ -278,7 +275,7 @@ export function MicDetailView({
 
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Sources</CardTitle>
+          <CardTitle>Sources</CardTitle>
         </CardHeader>
         <CardContent className='space-y-3 text-sm'>
           {mic.provenance.length === 0 ? (

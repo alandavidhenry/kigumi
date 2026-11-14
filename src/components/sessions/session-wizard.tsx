@@ -320,7 +320,7 @@ export function SessionWizard({
   }
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <nav aria-label='Wizard steps'>
         <ol className='flex flex-wrap gap-1'>
           {STEPS.map((s, i) => {
@@ -333,14 +333,16 @@ export function SessionWizard({
                   aria-current={s.id === step ? 'step' : undefined}
                   onClick={() => goTo(s.id)}
                   className={cn(
-                    'flex min-h-9 items-center gap-1.5 rounded-md border px-3 text-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default',
+                    'flex min-h-9 items-center gap-1.5 rounded-full px-3 text-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default',
                     s.id === step
-                      ? 'border-brand-border bg-brand-tint font-medium'
-                      : 'border-transparent text-muted-foreground enabled:hover:bg-accent'
+                      ? 'bg-highlight font-medium text-highlight-foreground'
+                      : done
+                        ? 'text-foreground enabled:hover:bg-accent'
+                        : 'text-muted-foreground enabled:hover:bg-accent'
                   )}
                 >
                   {done ? (
-                    <Check className='h-4 w-4 text-brand' aria-hidden='true' />
+                    <Check className='h-4 w-4' aria-hidden='true' />
                   ) : (
                     <span className='text-xs'>{i + 1}</span>
                   )}
@@ -427,7 +429,7 @@ export function SessionWizard({
 
       <FormError message={error} />
 
-      <div className='flex flex-wrap items-center justify-between gap-2 border-t pt-4'>
+      <div className='flex flex-wrap items-center justify-between gap-2 border-t border-border pt-5'>
         <Button
           type='button'
           size='lg'

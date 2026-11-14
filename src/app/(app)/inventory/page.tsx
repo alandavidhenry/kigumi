@@ -86,7 +86,7 @@ export default async function InventoryPage({
   ) : null
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title='Inventory'
         description={`${total} of ${formatLimit(getPlanLimits(ctx.planTier).inventoryItems)} items on your plan`}

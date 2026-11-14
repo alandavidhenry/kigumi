@@ -13,7 +13,7 @@ export default async function NotificationsPage() {
   const emailAllowed = hasFeature(ctx.planTier, Feature.EMAIL_REMINDERS)
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-8'>
       <PageHeader
         title='Reminders'
         description='Due maintenance, PAT tests and expiring warranties.'
