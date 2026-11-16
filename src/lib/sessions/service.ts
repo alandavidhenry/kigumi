@@ -29,12 +29,13 @@ import { formatLocalInput, localToUtc } from './time'
 import { MAX_CHANNELS } from './types'
 
 import type { SessionOverview } from './overview'
+import type { Db } from './queries'
 import type { StartFrom } from './schemas'
 import type { SessionStatus } from './types'
 
 // Sessions, their layouts and their input lists (PLAN §4.6, ADR 0016).
 
-const DEFAULT_ROOM = { widthMm: 6000, lengthMm: 5000, heightMm: null }
+export const DEFAULT_ROOM = { widthMm: 6000, lengthMm: 5000, heightMm: null }
 
 export interface SessionSummary {
   id: string
@@ -159,13 +160,13 @@ export async function getSession(
 // ---------------------------------------------------------------------------
 // Create
 
-type NewItem = Record<string, unknown>
+export type NewItem = Record<string, unknown>
 
 function scale(value: number, from: number, to: number): number {
   return from > 0 ? Math.round((value * to) / from) : value
 }
 
-async function itemsForStart(
+export async function itemsForStart(
   ctx: TenantContext,
   startFrom: StartFrom,
   target: { widthMm: number; lengthMm: number }
@@ -210,7 +211,7 @@ async function itemsForStart(
   }))
 }
 
-async function resolveRoom(
+export async function resolveRoom(
   ctx: TenantContext,
   roomId: string | null | undefined
 ) {
@@ -230,7 +231,7 @@ async function resolveRoom(
   return room
 }
 
-function parseTimes(
+export function parseTimes(
   starts: string,
   ends: string,
   timeZone: string
@@ -241,6 +242,72 @@ function parseTimes(
   if (endsAt <= startsAt)
     throw badRequest('The session must end after it starts')
   return { startsAt, endsAt }
+}
+
+export interface NewSessionData {
+  id: string
+  roomId: string | null
+  name: string
+  client: string | null
+  startsAt: Date
+  endsAt: Date
+  status: SessionStatus
+  channelsAvailable: number | null
+  phantomMode: string
+  notes: string | null
+  dims: { widthMm: number; lengthMm: number; heightMm: number | null }
+}
+
+// Inserts the session, its layout and the layout items inside the caller's
+// transaction and returns the layout id. The caller syncs the input list.
+export async function insertSessionTx(
+  tx: Db,
+  ctx: TenantContext,
+  data: NewSessionData,
+  items: readonly NewItem[]
+): Promise<string> {
+  await tx.recordingSession.create({
+    data: {
+      id: data.id,
+      organisationId: ctx.organisationId,
+      roomId: data.roomId,
+      name: data.name,
+      client: data.client,
+      startsAt: data.startsAt,
+      endsAt: data.endsAt,
+      status: data.status,
+      channelsAvailable: data.channelsAvailable,
+      phantomMode: data.phantomMode,
+      notes: data.notes,
+      createdById: ctx.userId
+    } as never
+  })
+  const layout = await tx.layout.create({
+    data: {
+      organisationId: ctx.organisationId,
+      sessionId: data.id,
+      isTemplate: false,
+      roomId: data.roomId,
+      name: data.name,
+      widthMm: data.dims.widthMm,
+      lengthMm: data.dims.lengthMm,
+      heightMm: data.dims.heightMm,
+      createdById: ctx.userId
+    },
+    select: { id: true }
+  })
+  if (items.length > 0) {
+    await tx.layoutItem.createMany({
+      data: items.map((item, index) => ({
+        sortOrder: index,
+        ...item,
+        id: randomUUID(),
+        layoutId: layout.id,
+        organisationId: ctx.organisationId
+      })) as never
+    })
+  }
+  return layout.id
 }
 
 export async function createSession(
@@ -259,10 +326,11 @@ export async function createSession(
 
   const sessionId = randomUUID()
   await db.$transaction(async (tx) => {
-    await tx.recordingSession.create({
-      data: {
+    const layoutId = await insertSessionTx(
+      tx,
+      ctx,
+      {
         id: sessionId,
-        organisationId: ctx.organisationId,
         roomId: room?.id ?? null,
         name: data.name,
         client: data.client ?? null,
@@ -272,35 +340,11 @@ export async function createSession(
         channelsAvailable: data.channelsAvailable ?? null,
         phantomMode: data.phantomMode,
         notes: data.notes ?? null,
-        createdById: ctx.userId
-      }
-    })
-    const layout = await tx.layout.create({
-      data: {
-        organisationId: ctx.organisationId,
-        sessionId,
-        isTemplate: false,
-        roomId: room?.id ?? null,
-        name: data.name,
-        widthMm: dims.widthMm,
-        lengthMm: dims.lengthMm,
-        heightMm: dims.heightMm,
-        createdById: ctx.userId
+        dims
       },
-      select: { id: true }
-    })
-    if (items.length > 0) {
-      await tx.layoutItem.createMany({
-        data: items.map((item, index) => ({
-          sortOrder: index,
-          ...item,
-          id: randomUUID(),
-          layoutId: layout.id,
-          organisationId: ctx.organisationId
-        })) as never
-      })
-    }
-    await syncInputList(tx, ctx.organisationId, sessionId, layout.id)
+      items
+    )
+    await syncInputList(tx, ctx.organisationId, sessionId, layoutId)
   })
 
   await recordAudit(ctx, {

@@ -2,9 +2,6 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 
 import { SceneSvg } from '@/components/layout/scene-svg'
-import { BreadcrumbLabel } from '@/components/mics/breadcrumb-label'
-import { PageHeader } from '@/components/page-header'
-import { InputListTable } from '@/components/sessions/input-list-table'
 import { SessionActions } from '@/components/sessions/session-actions'
 import { SessionDetailsForm } from '@/components/sessions/session-details-form'
 import { WarningsPanel } from '@/components/sessions/warnings-panel'
@@ -16,10 +13,7 @@ import { isAppError } from '@/lib/errors'
 import { buildLayoutScene } from '@/lib/layout/scene'
 import { Feature, hasFeature } from '@/lib/plans'
 import { listRecommendations } from '@/lib/recommendations/service'
-import { listEditorUnits } from '@/lib/sessions/editor-data'
 import { getSession } from '@/lib/sessions/service'
-import { formatSessionTime } from '@/lib/sessions/time'
-import { SESSION_STATUS_LABELS } from '@/lib/sessions/types'
 import { getTenantContext } from '@/lib/tenant-context'
 import { Permission, hasPermission } from '@/types/rbac'
 
@@ -44,8 +38,7 @@ export default async function SessionPage({ params }: PageProps) {
   }
 
   const canEdit = hasPermission(ctx.role, Permission.MANAGE_SESSIONS)
-  const [units, rooms, recommendations] = await Promise.all([
-    listEditorUnits(ctx),
+  const [rooms, recommendations] = await Promise.all([
     canEdit ? listRoomOptions(ctx) : [],
     canEdit ? listRecommendations(ctx, 20) : []
   ])
@@ -53,36 +46,10 @@ export default async function SessionPage({ params }: PageProps) {
   const blocking = session.warnings.filter((w) => w.severity === 'blocking')
 
   return (
-    <div className='space-y-6'>
-      <BreadcrumbLabel
-        href={`/sessions/${session.id}`}
-        label={
-          session.name.length > 40
-            ? `${session.name.slice(0, 37)}…`
-            : session.name
-        }
-      />
-      <PageHeader
-        title={
-          <span className='flex items-center gap-2'>
-            {session.name}
-            <Badge variant='secondary'>
-              {SESSION_STATUS_LABELS[session.status]}
-            </Badge>
-          </span>
-        }
-        description={`${formatSessionTime(
-          new Date(session.startsAt),
-          new Date(session.endsAt),
-          session.timeZone
-        )}${session.roomName ? ` · ${session.roomName}` : ''}`}
-        backHref='/sessions'
-        backLabel='Sessions'
-      />
-
+    <div className='space-y-8'>
       <Card>
         <CardHeader>
-          <CardTitle className='flex items-center gap-2 text-base'>
+          <CardTitle className='flex items-center gap-2'>
             Checks
             {blocking.length > 0 && (
               <Badge variant='destructive'>
@@ -96,10 +63,10 @@ export default async function SessionPage({ params }: PageProps) {
         </CardContent>
       </Card>
 
-      <div className='grid gap-6 lg:grid-cols-[1fr_1fr]'>
+      <div className='grid gap-5 lg:grid-cols-[1fr_1fr]'>
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>Layout</CardTitle>
+            <CardTitle>Layout</CardTitle>
           </CardHeader>
           <CardContent>
             {session.layout ? (
@@ -111,7 +78,7 @@ export default async function SessionPage({ params }: PageProps) {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>Details</CardTitle>
+            <CardTitle>Details</CardTitle>
           </CardHeader>
           <CardContent>
             <SessionDetailsForm
@@ -137,40 +104,20 @@ export default async function SessionPage({ params }: PageProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>
-            Input list{' '}
-            <span className='font-normal text-muted-foreground'>
-              ({session.channels.length}
-              {session.channelsAvailable
-                ? ` of ${session.channelsAvailable}`
-                : ''}
-              )
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <InputListTable
-            sessionId={session.id}
-            channels={session.channels}
-            units={units}
-            canEdit={canEdit}
-            channelIdsWithWarnings={flagged}
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className='text-base'>Recall sheet</CardTitle>
+          <CardTitle>Input list</CardTitle>
         </CardHeader>
         <CardContent className='flex flex-wrap items-center gap-3'>
           <p className='text-sm text-muted-foreground'>
-            Record desk settings and outboard for this session, pre-filled from
-            the input list.
+            {session.channels.length}
+            {session.channelsAvailable
+              ? ` of ${session.channelsAvailable}`
+              : ''}{' '}
+            input{session.channels.length === 1 ? '' : 's'}
+            {flagged.size > 0 ? `, ${flagged.size} with warnings` : ''}.
           </p>
           <Button asChild variant='surface'>
-            <Link href={`/sessions/${session.id}/recall`}>
-              Open recall sheet
+            <Link href={`/sessions/${session.id}/inputs`}>
+              Open inputs &amp; mics
             </Link>
           </Button>
         </CardContent>
@@ -178,12 +125,11 @@ export default async function SessionPage({ params }: PageProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Share and export</CardTitle>
+          <CardTitle>Share and export</CardTitle>
         </CardHeader>
         <CardContent>
           <SessionActions
             sessionId={session.id}
-            layoutId={session.layout?.id ?? null}
             canEdit={canEdit}
             canUseTemplates={hasFeature(ctx.planTier, Feature.TEMPLATES)}
             share={session.share}

@@ -32,7 +32,9 @@ export const TENANT_MODELS: ReadonlySet<string> = new Set([
   'MaintenanceLog',
   'PatTest',
   'Warranty',
-  'Notification'
+  'Notification',
+  'SessionTemplate',
+  'DashboardPreference'
 ])
 
 type Args = Record<string, unknown> | undefined

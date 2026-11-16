@@ -87,6 +87,18 @@ export function RecallDocument({ view }: { view: RecallPrintView }) {
           </View>
         ))}
 
+        {view.master.length > 0 && (
+          <View wrap={false}>
+            <Text style={styles.h2}>Master section</Text>
+            {view.master.map((l, i) => (
+              <View key={`${l.section}-${i}`} style={styles.line}>
+                <Text style={styles.section}>{l.section}</Text>
+                <Text style={styles.text}>{l.text}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
         {view.outboard.length > 0 && (
           <View>
             <Text style={styles.h2}>Outboard</Text>

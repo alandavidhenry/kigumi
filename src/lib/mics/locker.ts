@@ -7,7 +7,11 @@ import type { TenantContext } from '@/lib/tenant-context'
 import { tenantDb } from '@/lib/tenant-db'
 import { Permission } from '@/types/rbac'
 
-import { lockerUnitInputSchema, lockerUnitUpdateSchema } from './schemas'
+import {
+  lockerBulkInputSchema,
+  lockerUnitInputSchema,
+  lockerUnitUpdateSchema
+} from './schemas'
 
 import type { MicCondition, MicTransducerType } from './types'
 
@@ -272,6 +276,105 @@ export async function addUnit(
     summary: `Added ${model.manufacturer} ${model.model} to the mic locker`
   })
   return toUnit(row, model)
+}
+
+// Quick add: many units in one transaction (all or nothing). Each unit gets a
+// new inventory item, as in addUnit without a linked item.
+export async function addUnits(
+  ctx: TenantContext,
+  input: unknown
+): Promise<{ unitIds: string[] }> {
+  requirePermission(ctx, Permission.MANAGE_MIC_LOCKER)
+  const data = lockerBulkInputSchema.parse(input)
+  const total = data.rows.reduce((sum, row) => sum + row.quantity, 0)
+
+  const modelIds = [...new Set(data.rows.map((row) => row.micModelId))]
+  const models = await prisma.microphoneModel.findMany({
+    where: { id: { in: modelIds }, status: 'published' },
+    select: modelSelect
+  })
+  const byId = new Map(models.map((model) => [model.id, model]))
+  if (modelIds.some((id) => !byId.has(id))) throw notFound('Microphone')
+
+  const db = tenantDb(ctx)
+  const count = await db.equipmentItem.count()
+  if (count + total > getPlanLimits(ctx.planTier).inventoryItems) {
+    throw planLimit(
+      'inventory items',
+      getPlanLimits(ctx.planTier).inventoryItems
+    )
+  }
+  if (data.roomId) {
+    const room = await db.room.findFirst({
+      where: { id: data.roomId },
+      select: { id: true }
+    })
+    if (!room) throw notFound('Room')
+  }
+
+  // Unique group names: "<Model> set N", skipping numbers already in use.
+  const taken = new Set<string>(
+    (
+      await db.microphoneUnit.findMany({
+        where: { matchedPairGroup: { not: null } },
+        select: { matchedPairGroup: true }
+      })
+    ).flatMap((unit) => (unit.matchedPairGroup ? [unit.matchedPairGroup] : []))
+  )
+  const nextGroup = (label: string) => {
+    const base = label.slice(0, 50)
+    for (let n = 1; ; n++) {
+      const name = `${base} set ${n}`
+      if (!taken.has(name)) {
+        taken.add(name)
+        return name
+      }
+    }
+  }
+
+  const unitIds = await db.$transaction(async (tx) => {
+    const ids: string[] = []
+    for (const row of data.rows) {
+      const model = byId.get(row.micModelId)!
+      const group = row.matched
+        ? nextGroup(`${model.manufacturer} ${model.model}`)
+        : null
+      for (let i = 0; i < row.quantity; i++) {
+        const item = await tx.equipmentItem.create({
+          data: {
+            organisationId: ctx.organisationId,
+            category: 'microphone',
+            make: model.manufacturer,
+            model: model.model,
+            roomId: data.roomId ?? null,
+            tags: []
+          },
+          select: { id: true }
+        })
+        const unit = await tx.microphoneUnit.create({
+          data: {
+            organisationId: ctx.organisationId,
+            micModelId: model.id,
+            equipmentItemId: item.id,
+            condition: row.condition,
+            matchedPairGroup: group
+          },
+          select: { id: true }
+        })
+        ids.push(unit.id)
+      }
+    }
+    return ids
+  })
+
+  await recordAudit(ctx, {
+    action: 'mic_unit.bulk_create',
+    entityType: 'mic_unit',
+    entityId: unitIds[0],
+    summary: `Quick-added ${unitIds.length} microphones to the mic locker`,
+    metadata: { count: unitIds.length, unitIds }
+  })
+  return { unitIds }
 }
 
 export async function updateUnit(

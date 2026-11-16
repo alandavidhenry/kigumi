@@ -101,7 +101,8 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 
 ## Deferred from Phase 6
 
-- **Desk channels with no input** (buses, returns, masters) cannot be added to a sheet yet; a sheet only has strips for inputs. A manual "add strip" and bus strips (a second template per console) are the next step.
+- ~~**Desk channels with no input**~~ The desk view (ADR 0023) records any strip, creating its row on save, and the master area holds buses and masters. Still open: strip types other than the one repeated input strip (e.g. stereo returns between the inputs).
+- **Visual desk follow-ups (ADR 0023):** per-channel template home values (today one set for every channel); a desk drawing in the PDF (it prints lines); copy/paste and multi-select in the layout editor; touch drag from the library (click to add works on touch); the room layout editor keeps its own undo history; `src/components/desk/use-history.ts` could replace it.
 - **Recall strips are not kept in step with the input list.** "Add new inputs" appends missing strips; renaming, renumbering or removing an input does not move or remove a strip, so the engineer's written values are never touched.
 - **Shared console templates (Studio, PLAN §6):** templates are per organisation. Sharing or publishing templates across organisations (and a community library of desks) is not built. `Feature.SHARED_CONSOLE_TEMPLATES` exists but gates nothing.
 - **Only one shipped desk.** A digital-desk starter (scene-style) and a few popular analogue consoles would help; they must be transcribed from manufacturer documentation, not guessed.
@@ -137,6 +138,17 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Accessibility beyond axe:** keyboard-only and screen-reader passes on the layout editor and recall sheet, and a real tablet at the console, are still manual.
 - **Dev server reload loop:** once during Phase 8 `next dev` (Turbopack) got stuck recompiling and reloading `/auth/sign-in`; restarting the server cleared it, and the headers were ruled out. Worth noting if E2E runs against a dev server flake.
 
+## Deferred from the setup and session wizards (ADR 0024)
+
+- ~~Getting started dismissal is per browser~~ Done (ADR 0025): the card has no dismiss; hide the tile, which is saved per person on the server.
+- **Dashboard drag and drop is mouse-only:** it uses HTML5 drag events, which don't fire on touch. The arrow buttons cover touch and keyboard. A pointer-events or `dnd-kit` version could add touch drag.
+- **Setup gate is per organisation:** a second owner of an unresolved organisation is also sent to `/setup`. Fine for now; a per-person "seen setup" flag would need another preference.
+- **The session page loads `getSession` twice:** the segment layout (`sessions/[sessionId]/layout.tsx`) and the child page both call it for the session. Wrap it in React `cache()` (or a per-request memo) so the database is read once per navigation.
+- **AI ranking caps a preset at 16 sources:** `MAX_AI_SOURCES` is 16. Full rock band is exactly 16, so one more source makes the AI ranking refuse it. Options are to raise the cap (a cost and quality decision, then re-run `recs:eval`), to split the preset, or to leave a source such as Kick out of the AI request only. Not decided.
+- **Live preview for your own layout templates in the wizard:** not built. The layout step previews the generated scene; a saved template's layout can be chosen but its drawing is not shown live in the wizard.
+- **Layout version bump with no change:** `writeApplyPlanTx` always increments `Layout.version`, so the wizard's create leaves a new layout at version 2 (the default is 1). Harmless, since the editor starts from whatever version is stored, but it could be skipped when the plan is empty.
+- **Generated layouts are heuristics:** `placeSources` is tested for placement and labels, not for acoustic sense. Real sessions should check the zones (kit at the back, vocals at the front, room mics further back) before this is relied on; the zones are in `src/lib/layout/auto-place.ts`.
+
 ## Later phases (summary)
 
-Recommendations (P4, built), layouts and sessions (P5, built), recall sheets (P6, built), maintenance and warranty (P7, built), hardening (P8, built). See `docs/PLAN.md`.
+Recommendations (P4, built), layouts and sessions (P5, built), recall sheets (P6, built), maintenance and warranty (P7, built), hardening (P8, built), setup and session wizards (UX, built). See `docs/PLAN.md`.

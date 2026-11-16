@@ -33,14 +33,7 @@ export const BUILT_IN_TEMPLATES: readonly BuiltInTemplate[] = [
     name: 'Band tracking',
     description: 'Drum kit, bass and guitar amps, and a vocal position.',
     items: [
-      {
-        type: 'instrument',
-        label: 'Drum kit',
-        fx: 0.5,
-        fy: 0.3,
-        widthMm: 1800,
-        depthMm: 1600
-      },
+      { type: 'drum_kit', label: 'Drum kit', fx: 0.5, fy: 0.3 },
       {
         type: 'mic',
         label: 'Kick',
@@ -91,6 +84,13 @@ export const BUILT_IN_TEMPLATES: readonly BuiltInTemplate[] = [
         fy: 0.7,
         rotationDeg: 0,
         zMm: 1600
+      },
+      {
+        type: 'vocalist',
+        label: 'Vocalist',
+        fx: 0.5,
+        fy: 0.62,
+        rotationDeg: 180
       },
       { type: 'gobo', label: 'Gobo', fx: 0.5, fy: 0.45, widthMm: 1500 }
     ]

@@ -47,7 +47,7 @@ describe('logger', () => {
   it('sends errors to stderr, warnings to warn and info to stdout', () => {
     const error = vi.mocked(console.error)
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    const out = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    const out = vi.spyOn(console, 'info').mockImplementation(() => {})
     error.mockClear()
 
     logger.error('a.b', { error: new Error('x') })

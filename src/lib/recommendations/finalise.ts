@@ -90,7 +90,10 @@ export interface FinaliseArgs {
   content: RecommendationContent
 }
 
-function toOption(option: RuleOption, snapshot: LockerSnapshot): FinalOption {
+export function toOption(
+  option: RuleOption,
+  snapshot: LockerSnapshot
+): FinalOption {
   const units = option.unitIds.map((unitId, index) => {
     const unit = snapshot.units.find((u) => u.unitId === unitId)
     const mic = unit ? snapshot.mics[unit.micSlug] : undefined
@@ -283,5 +286,69 @@ export function finalise(args: FinaliseArgs): {
       warnings: rules.warnings
     },
     adjustments
+  }
+}
+
+// A FinalView straight from the rules, no model involved (session wizard).
+// Per source: the caller's override (an option id of that source's candidates,
+// keyed by request source id), else the rules' planned option, else the first
+// candidate whose units no other source has taken. Stereo and tree sources
+// choose first, as in finalise.
+export function rulesView(
+  rules: RulesOutput,
+  snapshot: LockerSnapshot,
+  overrides: Readonly<Record<string, string>> = {}
+): FinalView {
+  const used = new Set<string>()
+  const free = (option: RuleOption) =>
+    option.unitIds.every((id) => !used.has(id))
+  const chosen = new Map<string, RuleOption>()
+
+  const order = rules.sources
+    .map((source, index) => ({ source, index }))
+    .filter(({ source }) => !source.line)
+    .sort((a, b) => b.source.micCount - a.source.micCount || a.index - b.index)
+
+  for (const { source } of order) {
+    const find = (id: string | null | undefined) =>
+      source.candidates.find((c) => c.id === id)
+    const option = [
+      find(overrides[source.id]),
+      find(source.planOptionId),
+      ...source.candidates
+    ].find((o): o is RuleOption => o !== undefined && free(o))
+    if (option) {
+      chosen.set(source.id, option)
+      for (const id of option.unitIds) used.add(id)
+    }
+  }
+
+  return {
+    answerable: true,
+    summary: null,
+    sources: rules.sources.map((source) => {
+      const option = chosen.get(source.id)
+      return {
+        sourceId: source.id,
+        label: source.label,
+        kind: source.kind,
+        technique: source.technique,
+        micCount: source.micCount,
+        line: source.line,
+        unfillable: source.unfillable,
+        primary: option
+          ? {
+              ...toOption(option, snapshot),
+              origin: 'rules' as const,
+              reasoning: 'Chosen by the rules from what is owned and free.',
+              placement: null
+            }
+          : null,
+        alternatives: [],
+        rulesPickOptionId: source.planOptionId,
+        adjusted: null
+      }
+    }),
+    warnings: rules.warnings
   }
 }

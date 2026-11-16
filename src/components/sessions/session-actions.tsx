@@ -1,14 +1,6 @@
 'use client'
 
-import {
-  Copy,
-  Download,
-  FileText,
-  Link2,
-  LayoutTemplate,
-  Sparkles
-} from 'lucide-react'
-import Link from 'next/link'
+import { Copy, Download, FileText, Link2, LayoutTemplate } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
@@ -40,14 +32,12 @@ export interface RecommendationChoice {
 // Everything you can do with a session besides editing its fields.
 export function SessionActions({
   sessionId,
-  layoutId,
   canEdit,
   canUseTemplates,
   share,
   recommendations
 }: {
   readonly sessionId: string
-  readonly layoutId: string | null
   readonly canEdit: boolean
   readonly canUseTemplates: boolean
   readonly share: { token: string | null; expiresAt: string | null } | null
@@ -79,13 +69,6 @@ export function SessionActions({
   return (
     <div className='space-y-4'>
       <div className='flex flex-wrap gap-2'>
-        {layoutId && (
-          <Button asChild>
-            <Link href={`/sessions/${sessionId}/layout`}>
-              {canEdit ? 'Edit layout' : 'View layout'}
-            </Link>
-          </Button>
-        )}
         <Button variant='outline' asChild>
           <a href={`/api/sessions/${sessionId}/sheet`}>
             <FileText />
@@ -104,14 +87,6 @@ export function SessionActions({
             DAW tracks (text)
           </a>
         </Button>
-        {canEdit && (
-          <Button variant='outline' asChild>
-            <Link href={`/recommendations?sessionId=${sessionId}`}>
-              <Sparkles />
-              Recommend mics
-            </Link>
-          </Button>
-        )}
         {canEdit && recommendations.length > 0 && (
           <ApplyDialog
             sessionId={sessionId}

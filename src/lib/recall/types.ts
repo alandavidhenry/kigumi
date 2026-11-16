@@ -19,6 +19,11 @@ export interface ControlDef {
   min?: number
   max?: number
   options?: string[]
+  // Derived from a visual desk (ADR 0023); a v1 strip never sets these.
+  multi?: boolean
+  centre?: number
+  step?: number
+  taper?: 'linear' | 'log'
 }
 
 export interface StripSection {
@@ -30,7 +35,8 @@ export interface StripDefinition {
   sections: StripSection[]
 }
 
-export type RecallValue = string | number | boolean
+// A multi-select selector (routing 1-2 / 3-4 / L-R) records its lit buttons.
+export type RecallValue = string | number | boolean | string[]
 export type RecallValues = Record<string, RecallValue>
 
 export interface OutboardSetting {

@@ -37,6 +37,7 @@ import {
   GET as listSessionsRoute,
   POST as postSession
 } from '@/app/api/sessions/route'
+import { POST as postWizard } from '@/app/api/sessions/wizard/route'
 import { GET as getSharedPdf } from '@/app/api/share/[token]/sheet/route'
 import { unauthorized } from '@/lib/errors'
 import { PlanTier } from '@/lib/plans'
@@ -111,6 +112,13 @@ beforeEach(() => {
   db.sessionShareLink.updateMany.mockResolvedValue({ count: 0 })
 })
 
+const wizardBody = {
+  details: { name: 'Wizard day', startsAt: '2026-07-01T10:00' },
+  sources: [{ id: 'a', label: 'Lead vocal', kind: 'vocal_lead' }],
+  picks: { mode: 'none' },
+  layout: { kind: 'blank' }
+}
+
 // Each call is a route handler invoked as a member of an organisation that
 // does not own the ids involved.
 const foreignCalls: Array<[string, () => Promise<Response>]> = [
@@ -165,6 +173,26 @@ const foreignCalls: Array<[string, () => Promise<Response>]> = [
     () => patchTemplate(jsonRequest('PATCH', { name: 'N' }), lid)
   ],
   ['DELETE template', () => deleteTemplateRoute(new Request('http://x'), lid)],
+  [
+    'POST wizard with a foreign room',
+    () =>
+      postWizard(
+        jsonRequest('POST', {
+          ...wizardBody,
+          details: { ...wizardBody.details, roomId: 'theirs' }
+        })
+      )
+  ],
+  [
+    'POST wizard with a foreign recommendation result',
+    () =>
+      postWizard(
+        jsonRequest('POST', {
+          ...wizardBody,
+          picks: { mode: 'ai', resultId: 'theirs' }
+        })
+      )
+  ],
   [
     'POST template from a session',
     () => postTemplate(jsonRequest('POST', { name: 'T', fromSessionId: 'x' }))
@@ -318,6 +346,27 @@ describe('templates (Pro)', () => {
 })
 
 describe('session lifecycle', () => {
+  it('creates a session through the wizard', async () => {
+    db.layout.create.mockResolvedValue({ id: 'l1' })
+    db.layoutItem.findMany.mockResolvedValue([])
+    const response = await postWizard(jsonRequest('POST', wizardBody))
+    expect(response.status).toBe(201)
+    expect((await response.json()).result).toMatchObject({
+      id: expect.any(String),
+      recall: 'skipped',
+      warnings: []
+    })
+  })
+
+  it('returns 400 for an invalid wizard body and 403 for a viewer', async () => {
+    expect(
+      (await postWizard(jsonRequest('POST', { ...wizardBody, sources: [] })))
+        .status
+    ).toBe(400)
+    signInAs(MemberRole.VIEWER)
+    expect((await postWizard(jsonRequest('POST', wizardBody))).status).toBe(403)
+  })
+
   it('creates a session from a built-in template on the Free plan', async () => {
     signInAs(MemberRole.OWNER, PlanTier.FREE)
     db.layout.create.mockResolvedValue({ id: 'l1' })

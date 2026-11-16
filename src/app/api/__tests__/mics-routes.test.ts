@@ -13,6 +13,7 @@ import {
   DELETE as deleteUnit,
   PATCH as patchUnit
 } from '@/app/api/locker/[unitId]/route'
+import { POST as lockerBulk } from '@/app/api/locker/bulk/route'
 import { GET as lockerList, POST as lockerAdd } from '@/app/api/locker/route'
 import { GET as getMicRoute } from '@/app/api/mics/[micId]/route'
 import { GET as listMicsRoute } from '@/app/api/mics/route'
@@ -179,6 +180,44 @@ describe('/api/locker', () => {
     })
     const response = await lockerAdd(json('POST', { micModelId: 'm1' }))
     expect(response.status).toBe(201)
+  })
+
+  it('bulk add: 401, 403 and 400 paths', async () => {
+    const body = { rows: [{ micModelId: 'm1', quantity: 2 }] }
+    vi.mocked(getTenantContext).mockRejectedValue(unauthorized())
+    expect((await lockerBulk(json('POST', body))).status).toBe(401)
+    signInAs(MemberRole.VIEWER)
+    expect((await lockerBulk(json('POST', body))).status).toBe(403)
+    signInAs(MemberRole.OWNER)
+    expect((await lockerBulk(json('POST', { rows: [] }))).status).toBe(400)
+  })
+
+  it('bulk add: creates units and 404s an unknown model or room', async () => {
+    catalogue.findMany.mockResolvedValue([publishedMic] as never)
+    db.equipmentItem.count.mockResolvedValue(0)
+    db.microphoneUnit.findMany.mockResolvedValue([])
+    db.equipmentItem.create.mockResolvedValue({ id: 'eq_new' })
+    db.microphoneUnit.create.mockResolvedValue({ id: 'unit_new' })
+    const created = await lockerBulk(
+      json('POST', { rows: [{ micModelId: 'm1', quantity: 2 }] })
+    )
+    expect(created.status).toBe(201)
+    expect((await created.json()).unitIds).toHaveLength(2)
+
+    db.room.findFirst.mockResolvedValue(null)
+    const room = await lockerBulk(
+      json('POST', {
+        roomId: 'other_org_room',
+        rows: [{ micModelId: 'm1', quantity: 1 }]
+      })
+    )
+    expect(room.status).toBe(404)
+
+    catalogue.findMany.mockResolvedValue([])
+    const missing = await lockerBulk(
+      json('POST', { rows: [{ micModelId: 'nope', quantity: 1 }] })
+    )
+    expect(missing.status).toBe(404)
   })
 
   it("404s linking another organisation's equipment item", async () => {

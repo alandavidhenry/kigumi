@@ -50,7 +50,7 @@ export function MicAiSummary({
   return (
     <Card>
       <CardHeader className='flex-row flex-wrap items-center justify-between gap-2 space-y-0'>
-        <CardTitle className='text-base'>Summary</CardTitle>
+        <CardTitle>Summary</CardTitle>
         <AiGeneratedBadge />
       </CardHeader>
       <CardContent className='space-y-4 text-sm'>
@@ -60,7 +60,7 @@ export function MicAiSummary({
               <p className='font-medium'>{summary.content.headline}</p>
               <p>{summary.content.overview}</p>
             </div>
-            <div className='grid gap-4 sm:grid-cols-3'>
+            <div className='grid gap-5 sm:grid-cols-3'>
               <Section title='Strengths' items={summary.content.strengths} />
               <Section
                 title='Limitations'

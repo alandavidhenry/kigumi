@@ -230,6 +230,45 @@ export const lockerUnitInputSchema = z.object({
   notes: optionalText(2000)
 })
 
+export const LOCKER_BULK_MAX_ROWS = 24
+export const LOCKER_BULK_MAX_UNITS = 48
+
+// Quick add: several models at once, each with a quantity. A matched row makes
+// a pair or trio sharing one generated group name.
+export const lockerBulkInputSchema = z
+  .object({
+    roomId: text(40).optional().nullable(),
+    rows: z
+      .array(
+        z
+          .object({
+            micModelId: text(40),
+            quantity: z.number().int().min(1).max(12),
+            matched: z.boolean().optional().default(false),
+            condition: z.enum(MIC_CONDITIONS).default('good')
+          })
+          .refine((row) => !row.matched || row.quantity <= 3, {
+            message: 'A matched set holds two or three microphones',
+            path: ['quantity']
+          })
+          .refine((row) => !row.matched || row.quantity >= 2, {
+            message: 'A matched set holds two or three microphones',
+            path: ['quantity']
+          })
+      )
+      .min(1)
+      .max(LOCKER_BULK_MAX_ROWS)
+  })
+  .refine(
+    (input) =>
+      input.rows.reduce((sum, row) => sum + row.quantity, 0) <=
+      LOCKER_BULK_MAX_UNITS,
+    {
+      message: `At most ${LOCKER_BULK_MAX_UNITS} microphones at once`,
+      path: ['rows']
+    }
+  )
+
 export const lockerUnitUpdateSchema = z
   .object({
     serial: optionalText(100),

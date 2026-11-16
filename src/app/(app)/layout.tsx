@@ -3,10 +3,12 @@ import { redirect } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
 import { TenantProvider } from '@/components/providers/tenant-provider'
 import type { ClientTenant } from '@/components/providers/tenant-provider'
+import { SetupGate } from '@/components/setup/setup-gate'
 import { isAppError } from '@/lib/errors'
 import { countUnreadNotifications } from '@/lib/maintenance/notifications'
 import { listMyOrganisations } from '@/lib/members'
 import { isCurrentUserPlatformAdmin } from '@/lib/platform-admin'
+import { isSetupRequired } from '@/lib/setup'
 import { getTenantContext } from '@/lib/tenant-context'
 import type { TenantContext } from '@/lib/tenant-context'
 
@@ -32,11 +34,12 @@ export default async function AppLayout({
   readonly children: React.ReactNode
 }) {
   const ctx = await resolveTenant()
-  const [organisations, isPlatformAdmin, unreadNotifications] =
+  const [organisations, isPlatformAdmin, unreadNotifications, setupRequired] =
     await Promise.all([
       listMyOrganisations(ctx.userId),
       isCurrentUserPlatformAdmin(),
-      countUnreadNotifications(ctx)
+      countUnreadNotifications(ctx),
+      isSetupRequired(ctx)
     ])
 
   const tenant: ClientTenant = {
@@ -53,7 +56,10 @@ export default async function AppLayout({
 
   return (
     <TenantProvider tenant={tenant}>
-      <AppShell unreadNotifications={unreadNotifications}>{children}</AppShell>
+      <AppShell unreadNotifications={unreadNotifications}>
+        <SetupGate required={setupRequired} />
+        {children}
+      </AppShell>
     </TenantProvider>
   )
 }

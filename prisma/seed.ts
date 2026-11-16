@@ -502,7 +502,8 @@ async function main() {
       id: ORG_ID,
       name: 'Northern Lights Recording',
       slug: 'northern-lights-recording',
-      planTier: 'studio'
+      planTier: 'studio',
+      setupResolvedAt: new Date()
     }
   })
 

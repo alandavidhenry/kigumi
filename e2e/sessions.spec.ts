@@ -47,13 +47,56 @@ test.describe('owner', () => {
     await expect(page.getByRole('heading', { name })).toBeVisible({
       timeout: 30_000
     })
-    // The starter template's microphone has a line on the input list, and a
-    // warning that no real microphone has been chosen yet.
-    await expect(
-      page.getByRole('textbox', { name: 'Source for input 1' })
-    ).toHaveValue('Vocal')
+    // The Overview warns that no real microphone has been chosen yet; the
+    // starter template's microphone has a line on the Inputs tab.
     await expect(
       page.getByText('no microphone from your locker is chosen')
+    ).toBeVisible()
+    await page.getByRole('link', { name: /Inputs & mics/ }).click()
+    await expect(
+      page.getByRole('textbox', { name: 'Source for input 1', exact: true })
+    ).toHaveValue('Vocal')
+  })
+
+  test('plans a session with the guided wizard', async ({ page }) => {
+    const name = `Wizard ${uniqueSuffix()}`
+    await page.goto('/sessions/new')
+    await page.getByLabel('Session name').fill(name, { timeout: 30_000 })
+    await page.getByRole('button', { name: 'Next' }).click()
+
+    await page.getByRole('button', { name: /Small rock band/ }).click()
+    await page.getByRole('button', { name: 'Next' }).click()
+
+    // Mics: rules-based picks are the default.
+    await expect(
+      page.getByRole('heading', { name: 'Choose microphones' })
+    ).toBeVisible()
+    await page.getByRole('button', { name: 'Next' }).click()
+
+    // Layout: automatic placement is the default.
+    await expect(
+      page.getByRole('heading', { name: 'Room layout' })
+    ).toBeVisible()
+    await page.getByRole('button', { name: 'Next' }).click()
+
+    // Recall: choose the first console when one is seeded, else skip.
+    await expect(
+      page.getByRole('heading', { name: 'Recall sheet' })
+    ).toBeVisible()
+    const desk = page.getByLabel('Console')
+    if (await desk.count()) {
+      await desk.selectOption({ index: 1 })
+    }
+    await page.getByRole('button', { name: 'Next' }).click()
+
+    await page.getByRole('button', { name: 'Create session' }).click()
+    await expect(page.getByRole('heading', { name })).toBeVisible({
+      timeout: 30_000
+    })
+
+    await page.getByRole('link', { name: /Inputs & mics/ }).click()
+    await expect(
+      page.getByRole('textbox', { name: 'Source for input 1', exact: true })
     ).toBeVisible()
   })
 
@@ -63,7 +106,9 @@ test.describe('owner', () => {
   }) => {
     const id = await createSession(request)
     await page.goto(`/sessions/${id}/layout`)
-    await expect(page.getByRole('heading', { name: /Layout:/ })).toBeVisible({
+    await expect(
+      page.getByRole('heading', { name: 'Layout', exact: true })
+    ).toBeVisible({
       timeout: 30_000
     })
 
@@ -78,7 +123,7 @@ test.describe('owner', () => {
       'All changes saved'
     )
 
-    await page.goto(`/sessions/${id}`)
+    await page.getByRole('link', { name: /Inputs & mics/ }).click()
     await expect(
       page.getByRole('textbox', { name: 'Source for input 1' })
     ).toHaveValue('Snare top')
@@ -93,7 +138,7 @@ test.describe('owner', () => {
     )
     await page.getByRole('button', { name: 'Delete item' }).click()
     expect((await removed).status()).toBe(200)
-    await page.goto(`/sessions/${id}`)
+    await page.goto(`/sessions/${id}/inputs`)
     await expect(page.getByText('No inputs yet.')).toBeVisible()
   })
 
@@ -157,6 +202,7 @@ test.describe('owner', () => {
       timeout: 30_000
     })
 
+    await page.getByRole('link', { name: /Inputs & mics/ }).click()
     // A controlled checkbox only changes once the server has saved, so click it
     // rather than asserting the state straight away.
     await page.getByLabel(/Phantom power for input 2/).click()
@@ -245,7 +291,7 @@ test.describe('owner', () => {
     )
     expect(applied.status()).toBe(200)
 
-    await page.goto(`/sessions/${APPLY_SESSION}`)
+    await page.goto(`/sessions/${APPLY_SESSION}/inputs`)
     await expect(
       page.getByRole('textbox', { name: 'Source for input 1' })
     ).toHaveValue(/Lead vocal|Snare/, { timeout: 30_000 })
@@ -312,6 +358,7 @@ test.describe('viewer', () => {
     await expect(
       page.getByRole('heading', { name: /Drum and vocal tracking/ })
     ).toBeVisible({ timeout: 30_000 })
+    await page.getByRole('link', { name: /Inputs & mics/ }).click()
     await expect(
       page.getByRole('textbox', { name: 'Source for input 1' })
     ).toBeDisabled()

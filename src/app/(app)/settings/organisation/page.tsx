@@ -1,6 +1,9 @@
+import Link from 'next/link'
+
 import { OrganisationForm } from '@/app/(app)/settings/organisation/organisation-form'
 import { PageHeader } from '@/components/page-header'
 import { PlanComparison } from '@/components/plan-comparison'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getAiUsage } from '@/lib/ai/usage'
 import { countMembers } from '@/lib/members'
@@ -52,7 +55,7 @@ export default async function OrganisationSettingsPage() {
   ]
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader title='Organisation' description={ctx.organisationName} />
 
       <OrganisationForm
@@ -60,12 +63,29 @@ export default async function OrganisationSettingsPage() {
         canEdit={hasPermission(ctx.role, Permission.EDIT_ORGANISATION)}
       />
 
+      {hasPermission(ctx.role, Permission.MANAGE_STUDIOS) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Setup wizard</CardTitle>
+          </CardHeader>
+          <CardContent className='flex flex-wrap items-center justify-between gap-3'>
+            <p className='text-sm text-muted-foreground'>
+              Add a studio, rooms, microphones or your desk step by step. Safe
+              to run again.
+            </p>
+            <Button asChild variant='surface'>
+              <Link href='/setup'>Open setup wizard</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>{PLAN_LABELS[ctx.planTier]} plan usage</CardTitle>
         </CardHeader>
         <CardContent className='p-0'>
-          <dl className='divide-y border-t'>
+          <dl className='divide-y border-t border-border'>
             {rows.map(({ label, used, limit }) => (
               <div
                 key={label}

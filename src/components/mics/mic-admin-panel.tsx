@@ -108,7 +108,7 @@ export function MicAdminPanel({
     <Card>
       <CardHeader className='flex-row flex-wrap items-center justify-between gap-2 space-y-0'>
         <div className='flex items-center gap-2'>
-          <CardTitle className='text-base'>Review</CardTitle>
+          <CardTitle>Review</CardTitle>
           <Badge variant={STATUS_VARIANT[mic.status]}>
             {MIC_STATUS_LABELS[mic.status]}
           </Badge>

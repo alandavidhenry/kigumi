@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto'
 
 import { recordAudit } from '@/lib/audit'
-import { conflict, notFound } from '@/lib/errors'
+import { badRequest, conflict, notFound } from '@/lib/errors'
+import { toJsonValue } from '@/lib/prisma-json'
 import { requirePermission } from '@/lib/tenant-context'
 import type { TenantContext } from '@/lib/tenant-context'
 import { tenantDb } from '@/lib/tenant-db'
@@ -9,13 +10,25 @@ import { Permission } from '@/types/rbac'
 
 import { BUILTIN_CONSOLE_TEMPLATES, getBuiltInConsoleTemplate } from './builtin'
 import {
+  controlsOf,
+  countValueControls,
+  emptyDefaults,
+  emptyLayout,
+  layoutFromStrip
+} from './desk-layout'
+import { reconcileValues } from './desk-reconcile'
+import {
   consoleInputSchema,
   consoleUpdateSchema,
+  defaultsSchema,
+  deskLayoutSchema,
   stripSchema,
   templateInputSchema,
-  templateUpdateSchema
+  templateUpdateSchema,
+  validateValues
 } from './schemas'
 
+import type { DeskDefaults, DeskLayout } from './desk-types'
 import type { StripDefinition } from './types'
 
 // Console definitions and their channel-strip templates (PLAN §4.7, ADR 0017).
@@ -30,6 +43,9 @@ export interface TemplateSummary {
 }
 
 export interface TemplateDetail extends TemplateSummary {
+  layout: DeskLayout
+  defaultValues: DeskDefaults
+  // The channel strip's controls grouped by panel (derived from the layout).
   strip: StripDefinition
 }
 
@@ -44,22 +60,45 @@ export interface ConsoleSummary {
   templateName: string
 }
 
-// A stored strip is validated on every read; a row that no longer fits is
-// treated as empty rather than crashing the page.
-export function readStrip(json: unknown): StripDefinition {
-  const parsed = stripSchema.safeParse(json)
-  return parsed.success ? parsed.data : { sections: [] }
+// A stored desk is validated on every read. A v1 strip (written before ADR
+// 0023) is converted with its keys intact; a row that fits neither is treated
+// as an empty desk rather than crashing the page.
+export function readLayout(json: unknown): DeskLayout {
+  const v2 = deskLayoutSchema.safeParse(json)
+  if (v2.success) return v2.data as DeskLayout
+  const v1 = stripSchema.safeParse(json)
+  if (v1.success) return layoutFromStrip(v1.data)
+  return { ...emptyLayout(), master: { widthMm: 0, components: [] } }
 }
 
-const countControls = (strip: StripDefinition) =>
-  strip.sections.reduce((n, s) => n + s.controls.length, 0)
+// The channel strip's controls, from whichever version is stored.
+export function readStrip(json: unknown): StripDefinition {
+  return controlsOf(readLayout(json), 'strip')
+}
+
+export function readDefaults(json: unknown): DeskDefaults {
+  const parsed = defaultsSchema.safeParse(json)
+  return parsed.success ? parsed.data : emptyDefaults()
+}
+
+const countControls = (layout: DeskLayout) =>
+  countValueControls(layout, 'strip') + countValueControls(layout, 'master')
+
+// Checks values sent for a layout: every key a control of the right area,
+// every value fitting it.
+function checkDefaults(layout: DeskLayout, values: DeskDefaults) {
+  const problem =
+    validateValues(controlsOf(layout, 'strip'), values.strip) ??
+    validateValues(controlsOf(layout, 'master'), values.master)
+  if (problem) throw badRequest(problem)
+}
 
 export function listBuiltInTemplates() {
   return BUILTIN_CONSOLE_TEMPLATES.map((t) => ({
     id: t.id,
     name: t.name,
     description: t.description,
-    controlCount: countControls(t.strip)
+    controlCount: countControls(t.layout)
   }))
 }
 
@@ -84,7 +123,7 @@ export async function listConsoleTemplates(
     id: row.id,
     name: row.name,
     description: row.description,
-    controlCount: countControls(readStrip(row.strip)),
+    controlCount: countControls(readLayout(row.strip)),
     consoleCount: row._count.consoles
   }))
 }
@@ -101,17 +140,25 @@ export async function getConsoleTemplate(
       name: true,
       description: true,
       strip: true,
+      defaultValues: true,
       _count: { select: { consoles: true } }
     }
   })
   if (!row) throw notFound('Template')
-  const strip = readStrip(row.strip)
+  const layout = readLayout(row.strip)
   return {
     id: row.id,
     name: row.name,
     description: row.description,
-    strip,
-    controlCount: countControls(strip),
+    layout,
+    // Never hand back a value whose control has gone.
+    defaultValues: reconcileValues(
+      null,
+      layout,
+      readDefaults(row.defaultValues)
+    ).values,
+    strip: controlsOf(layout, 'strip'),
+    controlCount: countControls(layout),
     consoleCount: row._count.consoles
   }
 }
@@ -122,12 +169,16 @@ export async function createConsoleTemplate(
 ): Promise<{ id: string }> {
   requirePermission(ctx, Permission.MANAGE_SESSIONS)
   const data = templateInputSchema.parse(input)
+  const layout = data.strip as DeskLayout
+  const defaults = data.defaultValues ?? emptyDefaults()
+  checkDefaults(layout, defaults)
   const created = await tenantDb(ctx).consoleTemplate.create({
     data: {
       organisationId: ctx.organisationId,
       name: data.name,
       description: data.description ?? null,
-      strip: data.strip
+      strip: layout as never,
+      defaultValues: toJsonValue(defaults)
     },
     select: { id: true }
   })
@@ -150,16 +201,38 @@ export async function updateConsoleTemplate(
   const db = tenantDb(ctx)
   const existing = await db.consoleTemplate.findFirst({
     where: { id: templateId },
-    select: { name: true }
+    select: { name: true, strip: true, defaultValues: true }
   })
   if (!existing) throw notFound('Template')
+
+  // Values sent now must fit the layout exactly; values already stored are
+  // fitted to a changed layout (dropped or clamped), as the editor warned.
+  let defaults: DeskDefaults | undefined
+  let dropped = 0
+  if (data.strip !== undefined || data.defaultValues !== undefined) {
+    const previous = readLayout(existing.strip)
+    const layout = (data.strip as DeskLayout | undefined) ?? previous
+    if (data.defaultValues) {
+      checkDefaults(layout, data.defaultValues)
+      defaults = data.defaultValues
+    } else {
+      const fitted = reconcileValues(
+        previous,
+        layout,
+        readDefaults(existing.defaultValues)
+      )
+      defaults = fitted.values
+      dropped = fitted.lost.length
+    }
+  }
 
   const { count } = await db.consoleTemplate.updateMany({
     where: { id: templateId },
     data: {
       ...(data.name !== undefined && { name: data.name }),
       ...(data.description !== undefined && { description: data.description }),
-      ...(data.strip !== undefined && { strip: data.strip })
+      ...(data.strip !== undefined && { strip: data.strip as never }),
+      ...(defaults !== undefined && { defaultValues: toJsonValue(defaults) })
     }
   })
   if (count === 0) throw notFound('Template')
@@ -168,7 +241,7 @@ export async function updateConsoleTemplate(
     entityType: 'console_template',
     entityId: templateId,
     summary: `Updated channel-strip template ${data.name ?? existing.name}`,
-    metadata: { fields: Object.keys(data) }
+    metadata: { fields: Object.keys(data), droppedValues: dropped }
   })
 }
 
@@ -246,7 +319,8 @@ export async function createConsole(
           organisationId: ctx.organisationId,
           name: builtIn.name,
           description: builtIn.description,
-          strip: builtIn.strip as never
+          strip: builtIn.layout as never,
+          defaultValues: toJsonValue(emptyDefaults())
         },
         select: { id: true }
       })

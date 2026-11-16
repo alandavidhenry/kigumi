@@ -1,3 +1,5 @@
+import { formatValue } from './desk-geometry'
+
 import type {
   ControlDef,
   RecallValue,
@@ -14,10 +16,7 @@ export function formatControlValue(
   value: RecallValue
 ): string {
   if (control.type === 'switch') return value ? 'on' : 'off'
-  if (control.type === 'knob' && typeof value === 'number') {
-    return control.unit ? `${value} ${control.unit}` : String(value)
-  }
-  return String(value)
+  return formatValue(control, value)
 }
 
 export interface RecallLine {

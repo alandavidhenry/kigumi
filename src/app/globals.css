@@ -7,14 +7,17 @@
 /*
   Design tokens.
 
-  Same semantic token system as Minato (Supabase Studio-style: near-black
-  canvas, hairline borders instead of shadows), with a warm timber brand
-  (OKLCH hue 65) reserved for primary actions, links, focus rings and active
-  navigation. Success stays green and warning sits at hue 95 so neither is
-  confused with the brand.
-  Values are expressed in OKLCH so that lightness steps are perceptually even
-  across both themes; translucent tokens (muted/accent/border) are foreground
-  overlays, so they composite correctly over whichever surface sits beneath.
+  Paper and ink with one amber highlight (ADR 0026). Cards float on a warm
+  canvas; the main action is solid ink (paper in dark); solid amber marks "you
+  are here" and the one figure that matters. The timber brand (OKLCH hue 65)
+  is kept for links, focus rings and notices. Success stays green and warning
+  sits near hue 90 so neither is confused with the brand.
+
+  Values are OKLCH so lightness steps are perceptually even across both
+  themes; translucent tokens (muted/accent/border) are foreground overlays, so
+  they composite correctly over whichever surface sits beneath. Status colours
+  double as text on their own 15% tint, so in light they stay at L 0.5 or
+  below (4.5:1).
 */
 @theme {
   --color-background: var(--background);
@@ -22,12 +25,16 @@
 
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-card-border: var(--card-border);
 
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
 
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
 
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -72,10 +79,27 @@
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
 
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-  --radius-xl: 8px;
+  /*
+    Curves: cards and dialogs take xl, menus lg, fields md. Buttons and badges
+    are full pills (rounded-full), set in the components.
+  */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+
+  /* Soft lift for cards in light (none in dark); a firmer one for overlays. */
+  --shadow-card: var(--card-shadow);
+  --shadow-pop: var(--pop-shadow);
+
+  /* Page titles and the oversized figures on stat tiles. */
+  --text-title: 1.625rem;
+  --text-title--line-height: 1.2;
+  --text-title--letter-spacing: -0.02em;
+  --text-display: 2.75rem;
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.03em;
 
   --font-sans:
     var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, -apple-system,
@@ -87,123 +111,143 @@
 
 @layer base {
   /*
-    Dark is the default theme, so it lives on :root — an unclassed document
-    (before the anti-FOUC script in layout.tsx runs) still paints dark.
+    The theme follows the system unless one is stored; the script in
+    layout.tsx sets .dark or .light before first paint. Dark also lives on
+    :root so a document with no class (scripts blocked) still paints a
+    complete theme.
   */
   :root,
   .dark {
     color-scheme: dark;
 
-    --background: oklch(0.19 0.0025 65);
-    --foreground: oklch(0.95 0.0028 65);
+    --background: oklch(0.16 0.004 65);
+    --foreground: oklch(0.97 0.003 65);
 
-    --card: oklch(0.215 0.0025 65);
-    --card-foreground: oklch(0.95 0.0028 65);
-    --popover: oklch(0.2275 0.0025 65);
-    --popover-foreground: oklch(0.95 0.0028 65);
+    --card: oklch(0.215 0.004 65);
+    --card-foreground: oklch(0.97 0.003 65);
+    --card-border: oklch(0.97 0.003 65 / 8%);
+    --popover: oklch(0.25 0.004 65);
+    --popover-foreground: oklch(0.97 0.003 65);
 
-    --primary: oklch(0.76 0.15 65);
-    --primary-foreground: oklch(0.19 0.001 65);
+    /* The main action: a solid paper plate with ink text. */
+    --primary: oklch(0.97 0.003 65);
+    --primary-foreground: oklch(0.16 0.01 65);
 
-    --secondary: oklch(0.95 0.0028 65 / 6.6%);
-    --secondary-foreground: oklch(0.95 0.0028 65);
+    /* Solid amber: active navigation, key tiles, progress. Ink text. */
+    --highlight: oklch(0.8 0.16 72);
+    --highlight-foreground: oklch(0.16 0.01 65);
 
-    --muted: oklch(0.95 0.0028 65 / 3.3%);
-    --muted-foreground: oklch(0.798 0.0028 65);
-    --accent: oklch(0.95 0.0028 65 / 4.9%);
-    --accent-foreground: oklch(0.95 0.0028 65);
+    --secondary: oklch(0.97 0.003 65 / 7%);
+    --secondary-foreground: oklch(0.97 0.003 65);
+
+    --muted: oklch(0.97 0.003 65 / 4%);
+    --muted-foreground: oklch(0.78 0.005 65);
+    --accent: oklch(0.97 0.003 65 / 6%);
+    --accent-foreground: oklch(0.97 0.003 65);
 
     --destructive: oklch(0.75 0.14 25);
-    --destructive-foreground: oklch(0.19 0.001 25);
-    --success: oklch(0.76 0.15 155);
-    --success-foreground: oklch(0.19 0.001 155);
-    --warning: oklch(0.8 0.14 95);
-    --warning-foreground: oklch(0.19 0.001 95);
-    --info: oklch(0.7 0.14 288);
-    --info-foreground: oklch(0.95 0.0028 288);
+    --destructive-foreground: oklch(0.16 0.01 25);
+    --success: oklch(0.78 0.15 155);
+    --success-foreground: oklch(0.16 0.01 155);
+    --warning: oklch(0.82 0.14 90);
+    --warning-foreground: oklch(0.16 0.01 90);
+    --info: oklch(0.76 0.12 288);
+    --info-foreground: oklch(0.16 0.01 288);
 
-    /*
-      The brand fill used by primary buttons is a deep green tint carrying
-      normal foreground text, not a bright green plate — bright --brand is for
-      links, focus rings, icons and active nav.
-    */
-    --brand: oklch(0.76 0.15 65);
-    --brand-tint: oklch(0.32 0.09 65);
-    --brand-border: oklch(0.76 0.15 65 / 30%);
+    /* Brand as text: links, icons, focus rings. Tint and border: notices. */
+    --brand: oklch(0.8 0.15 70);
+    --brand-tint: oklch(0.32 0.07 65);
+    --brand-border: oklch(0.8 0.15 70 / 30%);
 
-    --border: oklch(0.95 0.0028 65 / 7.5%);
-    --border-strong: oklch(0.95 0.0028 65 / 20%);
-    --input: oklch(0.95 0.0028 65 / 13.5%);
-    --field: oklch(0 0 0 / 12%);
-    --ring: oklch(0.76 0.15 65 / 55%);
+    --border: oklch(0.97 0.003 65 / 8%);
+    --border-strong: oklch(0.97 0.003 65 / 22%);
+    --input: oklch(0.97 0.003 65 / 16%);
+    --field: oklch(0 0 0 / 18%);
+    --ring: oklch(0.8 0.15 70 / 60%);
     --scrim: oklch(0 0 0 / 60%);
 
-    --sidebar: oklch(0.175 0.0025 65);
-    --sidebar-foreground: oklch(0.798 0.0028 65);
-    --sidebar-accent: oklch(0.95 0.0028 65 / 6.6%);
-    --sidebar-border: oklch(0.95 0.0028 65 / 7.5%);
+    --sidebar: oklch(0.16 0.004 65);
+    --sidebar-foreground: oklch(0.78 0.005 65);
+    --sidebar-accent: oklch(0.97 0.003 65 / 7%);
+    --sidebar-border: oklch(0.97 0.003 65 / 8%);
 
-    --chart-1: oklch(0.76 0.15 65);
+    --chart-1: oklch(0.8 0.16 72);
     --chart-2: oklch(0.72 0.13 230);
     --chart-3: oklch(0.8 0.14 155);
     --chart-4: oklch(0.7 0.14 300);
     --chart-5: oklch(0.72 0.14 25);
 
-    --radius: 6px;
+    --card-shadow: 0 0 0 0 transparent;
+    --pop-shadow:
+      0 0 0 1px oklch(0.97 0.003 65 / 6%), 0 16px 40px -8px oklch(0 0 0 / 60%);
+
+    --radius: 10px;
   }
 
   .light {
     color-scheme: light;
 
-    --background: oklch(0.97 0.006 240);
-    --foreground: oklch(0.15 0.006 240);
+    --background: oklch(0.965 0.006 85);
+    --foreground: oklch(0.16 0.01 65);
 
-    --card: oklch(0.995 0.003 240);
-    --card-foreground: oklch(0.15 0.006 240);
-    --popover: oklch(0.995 0.003 240);
-    --popover-foreground: oklch(0.15 0.006 240);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.16 0.01 65);
+    --card-border: transparent;
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.16 0.01 65);
 
-    --primary: oklch(0.76 0.15 65);
-    --primary-foreground: oklch(0.1 0 34);
+    /* The main action: a solid ink plate with paper text. */
+    --primary: oklch(0.16 0.01 65);
+    --primary-foreground: oklch(0.99 0.003 85);
 
-    --secondary: oklch(0.1 0 34 / 6%);
-    --secondary-foreground: oklch(0.1 0 34);
+    --highlight: oklch(0.83 0.16 75);
+    --highlight-foreground: oklch(0.16 0.01 65);
 
-    --muted: oklch(0.1 0 34 / 3.3%);
-    --muted-foreground: oklch(0.413 0 34);
-    --accent: oklch(0.1 0 34 / 4.9%);
-    --accent-foreground: oklch(0.1 0 34);
+    --secondary: oklch(0.16 0.01 65 / 6%);
+    --secondary-foreground: oklch(0.16 0.01 65);
 
-    --destructive: oklch(0.52 0.14 25);
-    --destructive-foreground: oklch(0.995 0 25);
-    --success: oklch(0.55 0.13 155);
-    --success-foreground: oklch(0.995 0 155);
-    --warning: oklch(0.68 0.14 95);
-    --warning-foreground: oklch(0.1 0 95);
-    --info: oklch(0.54 0.14 288);
-    --info-foreground: oklch(0.995 0 288);
+    --muted: oklch(0.16 0.01 65 / 3.5%);
+    --muted-foreground: oklch(0.44 0.01 65);
+    --accent: oklch(0.16 0.01 65 / 5%);
+    --accent-foreground: oklch(0.16 0.01 65);
 
-    --brand: oklch(0.6 0.14 65);
-    --brand-tint: oklch(0.94 0.05 65);
-    --brand-border: oklch(0.6 0.14 65 / 30%);
+    --destructive: oklch(0.5 0.17 25);
+    --destructive-foreground: oklch(0.99 0 25);
+    --success: oklch(0.47 0.12 155);
+    --success-foreground: oklch(0.99 0 155);
+    --warning: oklch(0.48 0.1 80);
+    --warning-foreground: oklch(0.99 0 90);
+    --info: oklch(0.48 0.15 288);
+    --info-foreground: oklch(0.99 0 288);
 
-    --border: oklch(0.1 0 34 / 8%);
-    --border-strong: oklch(0.1 0 34 / 16%);
-    --input: oklch(0.1 0 34 / 14%);
-    --field: oklch(0 0 0 / 1.5%);
-    --ring: oklch(0.6 0.14 65 / 55%);
-    --scrim: oklch(0 0 0 / 40%);
+    --brand: oklch(0.5 0.12 62);
+    --brand-tint: oklch(0.95 0.045 80);
+    --brand-border: oklch(0.5 0.12 62 / 28%);
 
-    --sidebar: oklch(0.945 0.009 240);
-    --sidebar-foreground: oklch(0.42 0.006 240);
-    --sidebar-accent: oklch(0.15 0.006 240 / 6%);
-    --sidebar-border: oklch(0.15 0.006 240 / 8%);
+    --border: oklch(0.16 0.01 65 / 9%);
+    --border-strong: oklch(0.16 0.01 65 / 22%);
+    --input: oklch(0.16 0.01 65 / 18%);
+    --field: oklch(1 0 0);
+    --ring: oklch(0.5 0.12 62 / 60%);
+    --scrim: oklch(0.16 0.01 65 / 45%);
 
-    --chart-1: oklch(0.6 0.14 65);
-    --chart-2: oklch(0.58 0.13 230);
-    --chart-3: oklch(0.68 0.14 155);
-    --chart-4: oklch(0.56 0.15 300);
-    --chart-5: oklch(0.58 0.16 25);
+    --sidebar: oklch(0.965 0.006 85);
+    --sidebar-foreground: oklch(0.38 0.01 65);
+    --sidebar-accent: oklch(0.16 0.01 65 / 6%);
+    --sidebar-border: oklch(0.16 0.01 65 / 9%);
+
+    --chart-1: oklch(0.62 0.15 65);
+    --chart-2: oklch(0.55 0.13 230);
+    --chart-3: oklch(0.6 0.14 155);
+    --chart-4: oklch(0.54 0.15 300);
+    --chart-5: oklch(0.56 0.16 25);
+
+    --card-shadow:
+      0 1px 2px oklch(0.16 0.01 65 / 4%),
+      0 6px 20px -6px oklch(0.16 0.01 65 / 8%);
+    --pop-shadow:
+      0 0 0 1px oklch(0.16 0.01 65 / 6%),
+      0 16px 40px -8px oklch(0.16 0.01 65 / 22%);
   }
 }
 
@@ -217,6 +261,10 @@
   button:not(:disabled),
   a {
     cursor: pointer;
+  }
+  ::selection {
+    background-color: var(--highlight);
+    color: var(--highlight-foreground);
   }
 }
 

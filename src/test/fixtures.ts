@@ -75,6 +75,8 @@ export function makeFakeDb() {
     patTest: fakeModel(),
     warranty: fakeModel(),
     notification: fakeModel(),
+    sessionTemplate: fakeModel(),
+    dashboardPreference: fakeModel(),
     // Interactive transactions run against the same fake, so a test sees every
     // write the service makes.
     $transaction: vi.fn(async (run: (tx: unknown) => unknown) => run(db)),

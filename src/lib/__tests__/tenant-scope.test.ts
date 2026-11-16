@@ -26,6 +26,7 @@ describe('TENANT_MODELS', () => {
       'AuditLog',
       'Console',
       'ConsoleTemplate',
+      'DashboardPreference',
       'EquipmentItem',
       'InputChannel',
       'Layout',
@@ -45,6 +46,7 @@ describe('TENANT_MODELS', () => {
       'RecordingSession',
       'Room',
       'SessionShareLink',
+      'SessionTemplate',
       'Studio',
       'UsageCounter',
       'Warranty'

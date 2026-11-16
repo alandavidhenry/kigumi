@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { deleteAttachmentsFor, storePhoto } from '@/lib/attachments'
 import { AppError } from '@/lib/errors'
 import { PlanTier } from '@/lib/plans'
-import { GENERIC_ANALOGUE_STRIP } from '@/lib/recall/builtin'
+import {
+  GENERIC_ANALOGUE_DESK,
+  GENERIC_ANALOGUE_STRIP
+} from '@/lib/recall/builtin'
 import {
   createConsole,
   createConsoleTemplate,
@@ -158,7 +161,8 @@ describe('consoles', () => {
     expect(db.consoleTemplate.create.mock.calls[0][0].data).toMatchObject({
       organisationId: 'org_1',
       name: 'Generic analogue desk',
-      strip: GENERIC_ANALOGUE_STRIP
+      strip: GENERIC_ANALOGUE_DESK,
+      defaultValues: { strip: {}, master: {} }
     })
     expect(db.console.create.mock.calls[0][0].data).toMatchObject({
       id,
@@ -227,7 +231,7 @@ describe('createRecallSheet', () => {
       id: 'c1',
       name: 'Big desk',
       channelCount: 2,
-      template: { strip: GENERIC_ANALOGUE_STRIP }
+      template: { strip: GENERIC_ANALOGUE_DESK, defaultValues: null }
     })
     db.inputChannel.findMany.mockResolvedValue([
       {
@@ -300,7 +304,7 @@ describe('createRecallSheet', () => {
       consoleId: 'c1',
       consoleName: 'Big desk',
       channelCount: 2,
-      strip: GENERIC_ANALOGUE_STRIP,
+      strip: GENERIC_ANALOGUE_DESK,
       organisationId: 'org_1'
     })
     const rows = db.recallChannel.createMany.mock.calls[0][0].data
@@ -317,12 +321,52 @@ describe('createRecallSheet', () => {
     expect(rows[0].notes).not.toContain('private')
   })
 
+  it('starts every strip from the template home values, with the input list on top', async () => {
+    db.console.findFirst.mockResolvedValue({
+      id: 'c1',
+      name: 'Big desk',
+      channelCount: 2,
+      template: {
+        strip: GENERIC_ANALOGUE_DESK,
+        defaultValues: {
+          strip: { phantom: true, fader: 0, gone: 3 },
+          master: { main_lr: -5, nothing: 1 }
+        }
+      }
+    })
+    await createRecallSheet(engineer, 's1', { consoleId: 'c1' })
+    expect(db.recallSheet.create.mock.calls[0][0].data).toMatchObject({
+      stripDefaults: { phantom: true, fader: 0 },
+      masterValues: { main_lr: -5 }
+    })
+    const [row] = db.recallChannel.createMany.mock.calls[0][0].data
+    // The input list says no phantom on the kick: that wins over the default.
+    expect(row.values).toEqual({ phantom: false, fader: 0 })
+  })
+
+  it('still works from a template written before the visual desk (v1)', async () => {
+    db.console.findFirst.mockResolvedValue({
+      id: 'c1',
+      name: 'Old desk',
+      channelCount: 2,
+      template: { strip: GENERIC_ANALOGUE_STRIP, defaultValues: null }
+    })
+    await createRecallSheet(engineer, 's1', { consoleId: 'c1' })
+    const stored = db.recallSheet.create.mock.calls[0][0].data.strip
+    expect(stored.version).toBe(2)
+    expect(stored.strip.components.map((c: { id: string }) => c.id)).toEqual(
+      expect.arrayContaining(['phantom', 'gain', 'fader'])
+    )
+  })
+
   it('copies a previous session recall exactly, without photos or input links', async () => {
     db.recallSheet.findFirst.mockResolvedValue({
       consoleId: 'c1',
       consoleName: 'Big desk',
       channelCount: 24,
-      strip: GENERIC_ANALOGUE_STRIP,
+      strip: GENERIC_ANALOGUE_DESK,
+      stripDefaults: { fader: 0 },
+      masterValues: { main_lr: -3 },
       notes: 'Tape op: Sam',
       channels: [
         {
@@ -355,7 +399,10 @@ describe('createRecallSheet', () => {
       sessionId: 's2',
       consoleName: 'Big desk',
       channelCount: 24,
-      notes: 'Tape op: Sam'
+      notes: 'Tape op: Sam',
+      strip: GENERIC_ANALOGUE_DESK,
+      stripDefaults: { fader: 0 },
+      masterValues: { main_lr: -3 }
     })
     expect(db.recallChannel.createMany.mock.calls[0][0].data[0]).toMatchObject({
       stripNumber: 4,
@@ -391,11 +438,12 @@ describe('createRecallSheet', () => {
 describe('addMissingRecallChannels', () => {
   it('adds strips for new inputs and leaves the written ones alone', async () => {
     db.recordingSession.findFirst.mockResolvedValue({ id: 's1', name: 'x' })
-    db.recallSheet.findFirst.mockImplementation(async (args) =>
-      args.select?.channelCount
-        ? { channelCount: 8 }
-        : { id: 'rs1', strip: GENERIC_ANALOGUE_STRIP }
-    )
+    db.recallSheet.findFirst.mockResolvedValue({
+      id: 'rs1',
+      strip: GENERIC_ANALOGUE_DESK,
+      channelCount: 8,
+      stripDefaults: { fader: -10, phantom: true }
+    })
     db.recallChannel.findMany.mockResolvedValue([{ stripNumber: 1 }])
     const channel = (id: string, number: number) => ({
       id,
@@ -419,6 +467,8 @@ describe('addMissingRecallChannels', () => {
     expect(result).toEqual({ added: 1, skipped: 0 })
     const rows = db.recallChannel.createMany.mock.calls[0][0].data
     expect(rows.map((r: { stripNumber: number }) => r.stripNumber)).toEqual([2])
+    // The sheet's own snapshot of the home values, then the input list.
+    expect(rows[0].values).toEqual({ fader: -10, phantom: false })
   })
 })
 
@@ -700,5 +750,225 @@ describe('listRecallSources', () => {
     const args = db.recallSheet.findMany.mock.calls[0][0]
     expect(args.where).toEqual({ sessionId: { not: 's1' } })
     expect(args.orderBy).toEqual({ session: { startsAt: 'desc' } })
+  })
+})
+
+describe('visual desk templates (ADR 0023)', () => {
+  const desk = {
+    version: 2,
+    heightMm: 300,
+    strip: {
+      widthMm: 30,
+      components: [
+        {
+          id: 'gain',
+          kind: 'knob',
+          x: 5,
+          y: 5,
+          label: 'Gain',
+          min: 0,
+          max: 60
+        },
+        { id: 'mute', kind: 'switch', x: 5, y: 40, label: 'Mute' }
+      ]
+    },
+    master: {
+      widthMm: 60,
+      components: [{ id: 'main', kind: 'fader', x: 5, y: 5, label: 'Main' }]
+    }
+  }
+
+  it('reads a v1 template as a desk with the same keys and only live home values', async () => {
+    db.consoleTemplate.findFirst.mockResolvedValue({
+      id: 't1',
+      name: 'Old',
+      description: null,
+      strip,
+      defaultValues: { strip: { gain: 20, removed: 1 }, master: {} },
+      _count: { consoles: 0 }
+    })
+    const template = await getConsoleTemplate(viewer, 't1')
+    expect(template.layout.version).toBe(2)
+    expect(template.layout.strip.components.map((c) => c.id)).toEqual(
+      expect.arrayContaining(['gain', 'phantom'])
+    )
+    expect(template.defaultValues).toEqual({ strip: { gain: 20 }, master: {} })
+    expect(template.controlCount).toBe(2)
+  })
+
+  it('creates a template with home values that fit it, refusing ones that do not', async () => {
+    db.consoleTemplate.create.mockResolvedValue({ id: 't1' })
+    await createConsoleTemplate(engineer, {
+      name: 'Desk',
+      strip: desk,
+      defaultValues: { strip: { gain: 30 }, master: { main: 0 } }
+    })
+    expect(db.consoleTemplate.create.mock.calls[0][0].data).toMatchObject({
+      strip: desk,
+      defaultValues: { strip: { gain: 30 }, master: { main: 0 } }
+    })
+    await expectCode(
+      createConsoleTemplate(engineer, {
+        name: 'Desk',
+        strip: desk,
+        defaultValues: { strip: { main: 0 }, master: {} }
+      }),
+      'BAD_REQUEST'
+    )
+    await expectCode(
+      createConsoleTemplate(engineer, {
+        name: 'Desk',
+        strip: desk,
+        defaultValues: { strip: { gain: 99 }, master: {} }
+      }),
+      'BAD_REQUEST'
+    )
+  })
+
+  it('drops stored home values whose control was removed when only the layout changes', async () => {
+    db.consoleTemplate.findFirst.mockResolvedValue({
+      name: 'Desk',
+      strip: desk,
+      defaultValues: { strip: { gain: 30, mute: true }, master: { main: -5 } }
+    })
+    db.consoleTemplate.updateMany.mockResolvedValue({ count: 1 })
+    const smaller = {
+      ...desk,
+      strip: {
+        ...desk.strip,
+        components: [{ ...desk.strip.components[0], max: 20 }]
+      }
+    }
+    await updateConsoleTemplate(engineer, 't1', { strip: smaller })
+    expect(
+      db.consoleTemplate.updateMany.mock.calls[0][0].data.defaultValues
+    ).toEqual({ strip: { gain: 20 }, master: { main: -5 } })
+    expect(recordAudit).toHaveBeenCalledWith(
+      engineer,
+      expect.objectContaining({
+        metadata: expect.objectContaining({ droppedValues: 1 })
+      })
+    )
+  })
+
+  it('stores home values sent with a layout as they are, after checking them', async () => {
+    db.consoleTemplate.findFirst.mockResolvedValue({
+      name: 'Desk',
+      strip: desk,
+      defaultValues: null
+    })
+    db.consoleTemplate.updateMany.mockResolvedValue({ count: 1 })
+    await updateConsoleTemplate(engineer, 't1', {
+      defaultValues: { strip: { mute: false }, master: {} }
+    })
+    expect(db.consoleTemplate.updateMany.mock.calls[0][0].data).toEqual({
+      defaultValues: { strip: { mute: false }, master: {} }
+    })
+    await expectCode(
+      updateConsoleTemplate(engineer, 't1', {
+        defaultValues: { strip: { mute: 'yes' }, master: {} }
+      }),
+      'BAD_REQUEST'
+    )
+  })
+})
+
+describe('saving the desk view in one go', () => {
+  beforeEach(() => {
+    db.recordingSession.findFirst.mockResolvedValue({ id: 's1', name: 'x' })
+    db.recallSheet.findFirst.mockResolvedValue({
+      id: 'rs1',
+      strip: GENERIC_ANALOGUE_DESK,
+      channelCount: 4,
+      stripDefaults: null
+    })
+    db.recallChannel.findMany.mockResolvedValue([{ stripNumber: 1 }])
+  })
+
+  it('updates strips that exist, adds ones that do not, and saves the master area', async () => {
+    await updateRecallSheet(engineer, 's1', {
+      masterValues: { main_lr: -2, monitor_source: 'Mix' },
+      channels: [
+        { stripNumber: 1, values: { gain: 30, routing: ['1-2', 'L-R'] } },
+        { stripNumber: 3, values: { fader: 0 } }
+      ]
+    })
+    expect(db.recallSheet.updateMany).toHaveBeenCalledWith({
+      where: { id: 'rs1' },
+      data: { masterValues: { main_lr: -2, monitor_source: 'Mix' } }
+    })
+    expect(db.recallChannel.updateMany).toHaveBeenCalledWith({
+      where: { recallSheetId: 'rs1', stripNumber: 1 },
+      data: { values: { gain: 30, routing: ['1-2', 'L-R'] } }
+    })
+    expect(db.recallChannel.create.mock.calls[0][0].data).toMatchObject({
+      organisationId: 'org_1',
+      recallSheetId: 'rs1',
+      stripNumber: 3,
+      label: 'Ch 3',
+      values: { fader: 0 }
+    })
+    expect(db.recallChannel.findMany.mock.calls[0][0].where).toEqual({
+      recallSheetId: 'rs1',
+      stripNumber: { in: [1, 3] }
+    })
+  })
+
+  it('checks every strip and the master area before writing anything', async () => {
+    await expectCode(
+      updateRecallSheet(engineer, 's1', {
+        channels: [
+          { stripNumber: 1, values: { gain: 30 } },
+          { stripNumber: 2, values: { routing: ['9-10'] } }
+        ]
+      }),
+      'BAD_REQUEST'
+    )
+    await expectCode(
+      updateRecallSheet(engineer, 's1', { masterValues: { gain: 3 } }),
+      'BAD_REQUEST'
+    )
+    await expectCode(
+      updateRecallSheet(engineer, 's1', {
+        channels: [{ stripNumber: 5, values: {} }]
+      }),
+      'BAD_REQUEST'
+    )
+    // The same strip twice is a malformed request (Zod, 400 at the route).
+    await expect(
+      updateRecallSheet(engineer, 's1', {
+        channels: [
+          { stripNumber: 1, values: {} },
+          { stripNumber: 1, values: {} }
+        ]
+      })
+    ).rejects.toThrow('Each strip appears once')
+    expect(db.recallChannel.updateMany).not.toHaveBeenCalled()
+    expect(db.recallChannel.create).not.toHaveBeenCalled()
+    expect(db.recallSheet.updateMany).not.toHaveBeenCalled()
+  })
+
+  it('returns the desk and only master values that still have a control', async () => {
+    db.recallSheet.findFirst.mockResolvedValue({
+      id: 'rs1',
+      consoleId: null,
+      consoleName: 'Desk',
+      channelCount: 4,
+      strip: GENERIC_ANALOGUE_DESK,
+      masterValues: { main_lr: 0, gone: 1 },
+      notes: null,
+      channels: [],
+      outboard: []
+    })
+    db.attachment.findMany.mockResolvedValue([])
+    const sheet = await getRecallSheet(viewer, 's1')
+    expect(sheet?.layout).toEqual(GENERIC_ANALOGUE_DESK)
+    expect(sheet?.masterValues).toEqual({ main_lr: 0 })
+    expect(sheet?.strip.sections.map((s) => s.label)).toEqual([
+      'Input',
+      'EQ',
+      'Aux sends',
+      'Output'
+    ])
   })
 })

@@ -38,6 +38,7 @@ export interface SeededOrg {
     shareToken: string
     consoleTemplate: string
     console: string
+    sessionTemplate: string
     sheet: string
     recallChannel: string
     outboard: string
@@ -106,6 +107,7 @@ export async function seedOrganisation(prefix: string): Promise<SeededOrg> {
     shareToken: shareTokenFor(prefix),
     consoleTemplate: id('console_template'),
     console: id('console'),
+    sessionTemplate: id('session_template'),
     sheet: id('sheet'),
     recallChannel: id('recall_channel'),
     outboard: id('outboard'),
@@ -135,7 +137,8 @@ export async function seedOrganisation(prefix: string): Promise<SeededOrg> {
       id: org,
       name: `${marker} org`,
       slug: prefix,
-      planTier: 'studio'
+      planTier: 'studio',
+      setupResolvedAt: new Date()
     }
   })
   await prisma.member.create({
@@ -284,6 +287,30 @@ export async function seedOrganisation(prefix: string): Promise<SeededOrg> {
       templateId: ids.consoleTemplate,
       name: `${marker} desk`,
       channelCount: 24
+    }
+  })
+  await prisma.dashboardPreference.create({
+    data: {
+      organisationId: org,
+      userId: ids.user,
+      layout: { order: ['usage'], hidden: [] }
+    }
+  })
+  await prisma.sessionTemplate.create({
+    data: {
+      id: ids.sessionTemplate,
+      organisationId: org,
+      name: `${marker} session template`,
+      sources: [
+        {
+          id: 's1',
+          label: `${marker} vocal`,
+          kind: 'vocal_lead',
+          technique: 'mono'
+        }
+      ],
+      layoutId: ids.templateLayout,
+      consoleId: ids.console
     }
   })
   await prisma.recallSheet.create({

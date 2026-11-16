@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState, useMemo } from 'react'
 
 type Theme = 'dark' | 'light' | 'system'
+type ResolvedTheme = 'dark' | 'light'
 
 type ThemeProviderProps = {
   readonly children: React.ReactNode
@@ -12,15 +13,18 @@ type ThemeProviderProps = {
 
 type ThemeProviderState = {
   theme: Theme
+  // What is on screen: 'system' resolved against the OS setting.
+  resolvedTheme: ResolvedTheme
   setTheme: (theme: Theme) => void
 }
 
 const initialState: ThemeProviderState = {
-  theme: 'dark',
+  theme: 'system',
+  resolvedTheme: 'dark',
   setTheme: () => null
 }
 
-const applyTheme = (theme: Theme) => {
+const applyTheme = (theme: Theme): ResolvedTheme => {
   const root = window.document.documentElement
   const resolved =
     theme === 'system'
@@ -32,17 +36,22 @@ const applyTheme = (theme: Theme) => {
   root.classList.remove('light', 'dark')
   root.classList.add(resolved)
   root.style.colorScheme = resolved
+  return resolved
 }
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
 
+// The theme follows the system until the person picks one (stored under
+// `storageKey`); the anti-flash script in the root layout makes the same
+// choice before first paint.
 export function ThemeProvider({
   children,
-  defaultTheme = 'dark',
+  defaultTheme = 'system',
   storageKey = 'theme',
   ...props
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(defaultTheme)
+  const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>('dark')
 
   useEffect(() => {
     const savedTheme = localStorage.getItem(storageKey)
@@ -53,13 +62,13 @@ export function ThemeProvider({
   }, [storageKey])
 
   useEffect(() => {
-    applyTheme(theme)
+    setResolvedTheme(applyTheme(theme))
 
     if (theme !== 'system') return
 
     // Follow the OS while 'system' is selected and the app stays open.
     const media = window.matchMedia('(prefers-color-scheme: dark)')
-    const onChange = () => applyTheme('system')
+    const onChange = () => setResolvedTheme(applyTheme('system'))
 
     media.addEventListener('change', onChange)
     return () => media.removeEventListener('change', onChange)
@@ -69,12 +78,13 @@ export function ThemeProvider({
   const value = useMemo(
     () => ({
       theme,
+      resolvedTheme,
       setTheme: (theme: Theme) => {
         localStorage.setItem(storageKey, theme)
         setTheme(theme)
       }
     }),
-    [theme, storageKey]
+    [theme, resolvedTheme, storageKey]
   )
 
   return (

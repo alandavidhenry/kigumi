@@ -49,7 +49,7 @@ export default async function SessionsPage({ searchParams }: PageProps) {
       ownTemplatesLocked={!canTemplates}
       sessions={recent.slice(0, 30).map((s) => ({ id: s.id, name: s.name }))}
       trigger={
-        <Button>
+        <Button variant='surface'>
           <Plus />
           New session
         </Button>
@@ -57,12 +57,24 @@ export default async function SessionsPage({ searchParams }: PageProps) {
     />
   ) : null
 
+  const actions = canManage ? (
+    <div className='flex flex-wrap gap-2'>
+      <Button asChild>
+        <Link href='/sessions/new'>
+          <CalendarClock />
+          Plan a session
+        </Link>
+      </Button>
+      {newButton}
+    </div>
+  ) : null
+
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title='Sessions'
         description='Plan a session once: the room layout, the microphones and the input list stay in step.'
-        actions={newButton}
+        actions={actions}
       />
 
       <nav aria-label='Session filter' className='flex gap-1'>
@@ -71,7 +83,7 @@ export default async function SessionsPage({ searchParams }: PageProps) {
             key={s.id}
             asChild
             size='sm'
-            variant={s.id === scope ? 'secondary' : 'ghost'}
+            variant={s.id === scope ? 'default' : 'surface'}
           >
             <Link
               href={`/sessions?scope=${s.id}`}
@@ -93,7 +105,7 @@ export default async function SessionsPage({ searchParams }: PageProps) {
                 ? 'Create a session to lay out the room and build the input list.'
                 : 'Nobody has planned a session yet.'
             }
-            action={newButton}
+            action={actions}
           />
         </Card>
       ) : (
@@ -102,7 +114,7 @@ export default async function SessionsPage({ searchParams }: PageProps) {
             <Link
               key={session.id}
               href={`/sessions/${session.id}`}
-              className='flex min-h-14 flex-wrap items-center gap-3 px-4 py-3 hover:bg-muted/40'
+              className='flex min-h-14 flex-wrap items-center gap-3 px-5 py-3 hover:bg-muted/40'
             >
               <div className='min-w-0 flex-1'>
                 <p className='truncate font-medium'>{session.name}</p>

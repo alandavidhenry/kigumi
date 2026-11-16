@@ -51,7 +51,7 @@ export default async function ValuationPage() {
   const report = await getValuationReport(ctx)
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title='Valuation report'
         description='Based on purchase prices. Retired items are excluded.'

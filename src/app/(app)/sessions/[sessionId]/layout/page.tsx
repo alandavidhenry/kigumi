@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 
 import { LayoutEditorLoader } from '@/components/layout/layout-editor-loader'
-import { PageHeader } from '@/components/page-header'
 import { isAppError } from '@/lib/errors'
 import { getLayout } from '@/lib/layout/service'
 import { listEditorUnits } from '@/lib/sessions/editor-data'
@@ -36,12 +35,13 @@ export default async function SessionLayoutPage({ params }: PageProps) {
 
   return (
     <div className='space-y-4'>
-      <PageHeader
-        title={`Layout: ${session.name}`}
-        description='Place microphones and gear to scale. Each microphone you place gets a line on the input list.'
-        backHref={`/sessions/${session.id}`}
-        backLabel='Session'
-      />
+      <div>
+        <h2 className='text-base font-medium'>Layout</h2>
+        <p className='text-sm text-muted-foreground'>
+          Place microphones and gear to scale. Each microphone you place gets a
+          line on the input list.
+        </p>
+      </div>
       <LayoutEditorLoader
         key={`${layout.id}:${layout.version}`}
         layout={layout}

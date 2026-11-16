@@ -53,7 +53,10 @@ function write(level: LogLevel, event: string, fields?: LogFields) {
   const line = formatLogLine(level, event, fields)
   if (level === 'error') console.error(line)
   else if (level === 'warn') console.warn(line)
-  else process.stdout.write(`${line}\n`)
+  // console.info (stdout in Node) rather than process.stdout, which Next's
+  // Edge-runtime analysis flags because instrumentation.ts imports this file.
+  // eslint-disable-next-line no-console
+  else console.info(line)
 
   if (level === 'error' && fields?.error !== undefined) {
     const span = trace.getActiveSpan()

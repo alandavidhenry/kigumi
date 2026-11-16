@@ -54,6 +54,7 @@ export function prefillChannels(
     const source = controls.get(PREFILL_KEYS.input)
     if (
       source?.type === 'select' &&
+      !source.multi &&
       source.options?.includes('Mic') &&
       input.micName
     ) {

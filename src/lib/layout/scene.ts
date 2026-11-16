@@ -1,7 +1,9 @@
 import { displaySize, facing, isInsideRoom, itemCorners } from './geometry'
 import { patternOutline } from './pattern'
+import { itemShape, placeShape } from './shapes'
 
 import type { Point } from './geometry'
+import type { ShapePart } from './shapes'
 import type { LayoutDoc, LayoutItemDoc, LayoutItemType } from './types'
 
 // A layout reduced to plain drawing primitives in millimetres (ADR 0016
@@ -19,6 +21,8 @@ export interface SceneItem {
   arrow: { from: Point; to: Point } | null
   // Mics with the overlay on: the idealised pattern outline.
   pattern: Point[] | null
+  // Symbol drawn in place of the plain footprint (amp, drum kit, vocalist, mic).
+  parts: ShapePart[] | null
   outsideRoom: boolean
 }
 
@@ -56,6 +60,7 @@ export function sceneItem(item: LayoutItemDoc, layout: LayoutDoc): SceneItem {
     isMic && item.showPattern && item.patternSetting
       ? patternOutline(centre, item.rotationDeg, item.patternSetting, 600)
       : null
+  const shape = itemShape({ ...item, ...displaySize(item) })
   return {
     id: item.id,
     type: item.type,
@@ -67,6 +72,7 @@ export function sceneItem(item: LayoutItemDoc, layout: LayoutDoc): SceneItem {
     labelAt: centre,
     arrow,
     pattern,
+    parts: shape ? placeShape(shape, centre, item.rotationDeg) : null,
     outsideRoom: !isInsideRoom(item, layout)
   }
 }

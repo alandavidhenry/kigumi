@@ -26,7 +26,7 @@ export default async function MembersPage() {
   const upgradeLabel = upgradeTier ? PLAN_LABELS[upgradeTier] : null
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title='Members'
         description={`${usedSeats} of ${formatLimit(seats)} seats used, including pending invitations`}

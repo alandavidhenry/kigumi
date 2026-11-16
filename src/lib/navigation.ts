@@ -2,8 +2,7 @@ import { Permission } from '@/types/rbac'
 
 // Sidebar/command-palette model. Icons are named rather than imported so this
 // stays a plain, unit-testable module; app-sidebar.tsx maps names to icons.
-// Future modules (Inventory, Mic locker, Sessions, Maintenance) are added here
-// as their phases land.
+// Groups with no visible items are omitted.
 
 export type NavIconName =
   | 'dashboard'
@@ -21,6 +20,7 @@ export type NavIconName =
   | 'members'
   | 'activity'
   | 'settings'
+  | 'setup'
 
 export interface NavItem {
   name: string
@@ -43,48 +43,57 @@ export function buildNavGroups(
   can: (permission: Permission) => boolean,
   { platformAdmin = false }: NavOptions = {}
 ): NavGroup[] {
-  const studioItems: NavItem[] = [
-    { name: 'Studios & rooms', href: '/studios', icon: 'studios' }
-  ]
-  if (can(Permission.VIEW_INVENTORY)) {
-    studioItems.push({
-      name: 'Inventory',
-      href: '/inventory',
-      icon: 'inventory'
-    })
-  }
-
-  if (can(Permission.VIEW_MIC_CATALOGUE)) {
-    studioItems.push({ name: 'Mic catalogue', href: '/mics', icon: 'mics' })
+  const planItems: NavItem[] = []
+  if (can(Permission.VIEW_SESSIONS)) {
+    planItems.push({ name: 'Sessions', href: '/sessions', icon: 'sessions' })
   }
   if (can(Permission.VIEW_INVENTORY)) {
-    studioItems.push({ name: 'Mic locker', href: '/locker', icon: 'locker' })
-    studioItems.push({
+    planItems.push({
       name: 'Recommendations',
       href: '/recommendations',
       icon: 'recommendations'
     })
   }
   if (can(Permission.VIEW_SESSIONS)) {
-    studioItems.push({ name: 'Sessions', href: '/sessions', icon: 'sessions' })
-    studioItems.push({
+    planItems.push({
       name: 'Layout templates',
       href: '/layouts/templates',
       icon: 'templates'
     })
-    studioItems.push({
+  }
+
+  const gearItems: NavItem[] = []
+  if (can(Permission.VIEW_INVENTORY)) {
+    gearItems.push({ name: 'Inventory', href: '/inventory', icon: 'inventory' })
+  }
+  if (can(Permission.VIEW_INVENTORY)) {
+    gearItems.push({ name: 'Mic locker', href: '/locker', icon: 'locker' })
+  }
+  if (can(Permission.VIEW_MIC_CATALOGUE)) {
+    gearItems.push({ name: 'Mic catalogue', href: '/mics', icon: 'mics' })
+  }
+  if (can(Permission.VIEW_SESSIONS)) {
+    gearItems.push({
       name: 'Consoles & recall',
       href: '/consoles',
       icon: 'consoles'
     })
   }
+
+  // The setup wizard is not a main link (ADR 0025): it is forced on first run,
+  // then reached from the dashboard and organisation settings.
+  const studioItems: NavItem[] = [
+    { name: 'Studios & rooms', href: '/studios', icon: 'studios' }
+  ]
+
+  const careItems: NavItem[] = []
   if (can(Permission.VIEW_INVENTORY)) {
-    studioItems.push({
+    careItems.push({
       name: 'Maintenance',
       href: '/maintenance',
       icon: 'maintenance'
     })
-    studioItems.push({
+    careItems.push({
       name: 'Warranties',
       href: '/warranties',
       icon: 'warranty'
@@ -107,17 +116,16 @@ export function buildNavGroups(
     icon: 'settings'
   })
 
-  return [
+  const groups: NavGroup[] = [
     {
       id: 'overview',
       label: '',
       items: [{ name: 'Dashboard', href: '/dashboard', icon: 'dashboard' }]
     },
-    {
-      id: 'studio',
-      label: 'Studio',
-      items: studioItems
-    },
+    { id: 'plan', label: 'Plan', items: planItems },
+    { id: 'gear', label: 'Gear', items: gearItems },
+    { id: 'studio', label: 'Studio', items: studioItems },
+    { id: 'care', label: 'Care', items: careItems },
     { id: 'organisation', label: 'Organisation', items: organisationItems },
     ...(platformAdmin
       ? [
@@ -135,4 +143,6 @@ export function buildNavGroups(
         ]
       : [])
   ]
+
+  return groups.filter((group) => group.items.length > 0)
 }

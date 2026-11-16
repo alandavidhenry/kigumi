@@ -51,7 +51,7 @@ export interface PreviewResult {
   unitNames: Record<string, string>
 }
 
-interface Prepared extends PreviewResult {
+export interface Prepared extends PreviewResult {
   snapshot: LockerSnapshot
   sessionId: string | null
 }
@@ -78,7 +78,10 @@ async function bookingWindow(
   return dayWindow(forDate, timeZone)
 }
 
-async function prepare(ctx: TenantContext, input: unknown): Promise<Prepared> {
+export async function prepareRules(
+  ctx: TenantContext,
+  input: unknown
+): Promise<Prepared> {
   const parsed = recommendationRequestSchema.parse(input)
   const request = normaliseRequest(parsed)
   const db = tenantDb(ctx)
@@ -143,7 +146,7 @@ export async function previewRecommendation(
   input: unknown
 ): Promise<PreviewResult> {
   requirePermission(ctx, Permission.VIEW_INVENTORY)
-  const { request, rules, room, unitNames } = await prepare(ctx, input)
+  const { request, rules, room, unitNames } = await prepareRules(ctx, input)
   return { request, rules, room, unitNames }
 }
 
@@ -366,7 +369,7 @@ export async function createRecommendation(
   options: CreateOptions = {}
 ): Promise<CreateResult> {
   requirePermission(ctx, Permission.USE_AI)
-  const prepared = await prepare(ctx, input)
+  const prepared = await prepareRules(ctx, input)
   const { snapshot, sessionId, ...preview } = prepared
   const { request, rules, room } = prepared
 

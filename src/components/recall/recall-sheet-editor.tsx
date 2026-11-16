@@ -6,6 +6,7 @@ import { useRef, useState } from 'react'
 
 import { FormError } from '@/components/auth/auth-card'
 import { ConfirmDeleteButton } from '@/components/confirm-delete-button'
+import { RecallDeskLoader } from '@/components/desk/desk-loader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -88,6 +89,42 @@ function ControlInput({
       </NativeSelect>
     )
   }
+  if (control.type === 'select' && control.multi) {
+    const chosen = Array.isArray(value) ? value : []
+    return (
+      <fieldset
+        aria-label={label}
+        className='flex min-h-9 flex-wrap items-center gap-x-3 gap-y-1'
+        disabled={disabled}
+      >
+        {control.options?.map((o) => (
+          <label key={o} className='flex items-center gap-1.5 text-sm'>
+            <input
+              type='checkbox'
+              className='size-4 accent-[var(--brand)]'
+              checked={chosen.includes(o)}
+              onChange={(e) => {
+                const next = e.target.checked
+                  ? [...chosen, o]
+                  : chosen.filter((x) => x !== o)
+                onChange(control.options?.filter((x) => next.includes(x)))
+              }}
+            />
+            {o}
+          </label>
+        ))}
+        {value !== undefined && (
+          <button
+            type='button'
+            className='text-xs text-muted-foreground underline'
+            onClick={() => onChange(undefined)}
+          >
+            Not recorded
+          </button>
+        )}
+      </fieldset>
+    )
+  }
   if (control.type === 'select') {
     return (
       <NativeSelect
@@ -163,7 +200,7 @@ function ChannelEditor({
     })
 
   return (
-    <details className='group rounded-md border'>
+    <details className='group rounded-lg bg-muted'>
       <summary className='flex cursor-pointer flex-wrap items-baseline gap-x-3 px-3 py-2 text-sm'>
         <span className='w-8 font-medium tabular-nums'>
           {channel.stripNumber}
@@ -178,7 +215,7 @@ function ChannelEditor({
             : summary.map((l) => `${l.section}: ${l.text}`).join(' | ')}
         </span>
       </summary>
-      <div className='space-y-4 border-t px-3 py-3'>
+      <div className='space-y-4 border-t border-border px-3 py-3'>
         <div className='space-y-1'>
           <Label htmlFor={`label-${channel.id}`}>Label</Label>
           <Input
@@ -190,8 +227,8 @@ function ChannelEditor({
             onChange={(e) => setLabel(e.target.value)}
           />
         </div>
-        {strip.sections.map((section) => (
-          <fieldset key={section.label} className='space-y-2'>
+        {strip.sections.map((section, index) => (
+          <fieldset key={`${index}:${section.label}`} className='space-y-2'>
             <legend className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
               {section.label}
             </legend>
@@ -265,7 +302,7 @@ function OutboardEditor({
   const [notes, setNotes] = useState(unit.notes ?? '')
 
   return (
-    <div className='space-y-3 rounded-md border p-3'>
+    <div className='space-y-3 rounded-lg bg-muted p-3'>
       <div className='grid gap-3 sm:grid-cols-2'>
         <div className='space-y-1'>
           <Label className='text-xs'>Unit</Label>
@@ -493,6 +530,7 @@ export function RecallSheetEditor({
   const router = useRouter()
   const { error, busy, run } = useSaver()
   const [notes, setNotes] = useState(sheet.notes ?? '')
+  const [view, setView] = useState<'desk' | 'list'>('desk')
   const [uploading, setUploading] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
 
@@ -524,7 +562,7 @@ export function RecallSheetEditor({
   }
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <div className='flex flex-wrap items-center gap-2'>
         <Button asChild variant='surface'>
           <a href={`/api/sessions/${sessionId}/recall/pdf`}>
@@ -577,17 +615,45 @@ export function RecallSheetEditor({
       <FormError message={error} />
 
       <Card>
-        <CardHeader>
-          <CardTitle className='text-base'>
+        <CardHeader className='flex flex-row flex-wrap items-center justify-between gap-2 space-y-0'>
+          <CardTitle>
             Channels{' '}
             <span className='font-normal text-muted-foreground'>
               ({sheet.channels.length} on {sheet.consoleName},{' '}
               {sheet.channelCount} channels)
             </span>
           </CardTitle>
+          <div
+            role='group'
+            aria-label='Show the recall as'
+            className='inline-flex rounded-full bg-muted p-0.5'
+          >
+            {(['desk', 'list'] as const).map((v) => (
+              <button
+                key={v}
+                type='button'
+                aria-pressed={view === v}
+                onClick={() => setView(v)}
+                className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+                  view === v
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {v === 'desk' ? 'Desk' : 'List'}
+              </button>
+            ))}
+          </div>
         </CardHeader>
         <CardContent className='space-y-2'>
-          {sheet.channels.length === 0 ? (
+          {view === 'desk' ? (
+            <RecallDeskLoader
+              key={JSON.stringify([sheet.channels, sheet.masterValues])}
+              sessionId={sessionId}
+              sheet={sheet}
+              canEdit={canEdit}
+            />
+          ) : sheet.channels.length === 0 ? (
             <p className='text-sm text-muted-foreground'>
               No channels yet. Add inputs to the session, then choose &quot;Add
               new inputs&quot;.
@@ -608,7 +674,7 @@ export function RecallSheetEditor({
 
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Outboard</CardTitle>
+          <CardTitle>Outboard</CardTitle>
         </CardHeader>
         <CardContent className='space-y-3'>
           {sheet.outboard.length === 0 && (
@@ -633,7 +699,7 @@ export function RecallSheetEditor({
 
       <Card>
         <CardHeader className='flex flex-row items-center justify-between space-y-0'>
-          <CardTitle className='text-base'>Desk photos</CardTitle>
+          <CardTitle>Desk photos</CardTitle>
           {canEdit && sheet.photos.length < MAX_RECALL_PHOTOS && (
             <>
               <input
@@ -672,7 +738,7 @@ export function RecallSheetEditor({
                   <img
                     src={`/api/attachments/${photo.id}`}
                     alt='Desk photo'
-                    className='aspect-square w-full rounded-md border object-cover'
+                    className='aspect-square w-full rounded-lg object-cover'
                   />
                   {canEdit && (
                     <div className='absolute right-1 top-1'>
@@ -700,7 +766,7 @@ export function RecallSheetEditor({
 
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Notes</CardTitle>
+          <CardTitle>Notes</CardTitle>
         </CardHeader>
         <CardContent className='space-y-2'>
           <Textarea
