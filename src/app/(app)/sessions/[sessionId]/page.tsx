@@ -46,10 +46,10 @@ export default async function SessionPage({ params }: PageProps) {
   const blocking = session.warnings.filter((w) => w.severity === 'blocking')
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <Card>
         <CardHeader>
-          <CardTitle className='flex items-center gap-2 text-base'>
+          <CardTitle className='flex items-center gap-2'>
             Checks
             {blocking.length > 0 && (
               <Badge variant='destructive'>
@@ -63,10 +63,10 @@ export default async function SessionPage({ params }: PageProps) {
         </CardContent>
       </Card>
 
-      <div className='grid gap-6 lg:grid-cols-[1fr_1fr]'>
+      <div className='grid gap-5 lg:grid-cols-[1fr_1fr]'>
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>Layout</CardTitle>
+            <CardTitle>Layout</CardTitle>
           </CardHeader>
           <CardContent>
             {session.layout ? (
@@ -78,7 +78,7 @@ export default async function SessionPage({ params }: PageProps) {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className='text-base'>Details</CardTitle>
+            <CardTitle>Details</CardTitle>
           </CardHeader>
           <CardContent>
             <SessionDetailsForm
@@ -104,7 +104,7 @@ export default async function SessionPage({ params }: PageProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Input list</CardTitle>
+          <CardTitle>Input list</CardTitle>
         </CardHeader>
         <CardContent className='flex flex-wrap items-center gap-3'>
           <p className='text-sm text-muted-foreground'>
@@ -125,7 +125,7 @@ export default async function SessionPage({ params }: PageProps) {
 
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Share and export</CardTitle>
+          <CardTitle>Share and export</CardTitle>
         </CardHeader>
         <CardContent>
           <SessionActions

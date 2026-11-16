@@ -171,7 +171,7 @@ export function PlanDialog({
         </>
       )}
 
-      <div className='grid gap-4 sm:grid-cols-2'>
+      <div className='grid gap-5 sm:grid-cols-2'>
         <FormField label='Every (days)' htmlFor='plan-days'>
           <Input
             id='plan-days'
@@ -201,7 +201,7 @@ export function PlanDialog({
         />
       )}
 
-      <div className='grid gap-4 sm:grid-cols-2'>
+      <div className='grid gap-5 sm:grid-cols-2'>
         <FormField
           label='Remind me (days before)'
           htmlFor='plan-lead'

@@ -431,14 +431,14 @@ export function LayoutEditor({
   const unitFor = (id: string | null) => units.find((u) => u.id === id) ?? null
 
   return (
-    <div className='space-y-3'>
+    <div className='space-y-4'>
       <div
         className='flex flex-wrap items-center gap-2'
         role='toolbar'
         aria-label='Layout tools'
       >
         <Button
-          variant='outline'
+          variant='surface'
           size='sm'
           onClick={undo}
           disabled={!canEdit || past.length === 0}
@@ -447,7 +447,7 @@ export function LayoutEditor({
           <Undo2 />
         </Button>
         <Button
-          variant='outline'
+          variant='surface'
           size='sm'
           onClick={redo}
           disabled={!canEdit || future.length === 0}
@@ -457,7 +457,7 @@ export function LayoutEditor({
         </Button>
         <span className='mx-1 h-5 w-px bg-border' />
         <Button
-          variant='outline'
+          variant='surface'
           size='sm'
           onClick={() => canvas.current?.zoomBy(1 / 1.25)}
           aria-label='Zoom out'
@@ -465,7 +465,7 @@ export function LayoutEditor({
           <ZoomOut />
         </Button>
         <Button
-          variant='outline'
+          variant='surface'
           size='sm'
           onClick={() => canvas.current?.zoomBy(1.25)}
           aria-label='Zoom in'
@@ -473,7 +473,7 @@ export function LayoutEditor({
           <ZoomIn />
         </Button>
         <Button
-          variant='outline'
+          variant='surface'
           size='sm'
           onClick={() => canvas.current?.fit()}
           aria-label='Fit room to view'
@@ -533,11 +533,11 @@ export function LayoutEditor({
               Reload
             </Button>
           )}
-          <Button variant='outline' size='sm' onClick={exportPng}>
+          <Button variant='surface' size='sm' onClick={exportPng}>
             <Download />
             PNG
           </Button>
-          <Button variant='outline' size='sm' asChild>
+          <Button variant='surface' size='sm' asChild>
             <a href={pdfHref}>
               <FileText />
               PDF
@@ -546,8 +546,8 @@ export function LayoutEditor({
         </div>
       </div>
 
-      <div className='grid gap-3 lg:grid-cols-[1fr_320px]'>
-        <div className='space-y-3'>
+      <div className='grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]'>
+        <div className='min-w-0 space-y-3'>
           {colors && (
             <EditorCanvas
               ref={canvas}
@@ -582,15 +582,15 @@ export function LayoutEditor({
           )}
         </div>
 
-        <div className='space-y-3'>
+        <div className='space-y-5'>
           {canEdit && (
-            <Card className='space-y-2 p-3'>
-              <h2 className='text-sm font-medium'>Add</h2>
-              <div className='flex flex-wrap gap-1.5'>
+            <Card className='space-y-3 p-4'>
+              <h2 className='text-base font-semibold'>Add</h2>
+              <div className='flex flex-wrap gap-2'>
                 {LAYOUT_ITEM_TYPES.map((type) => (
                   <Button
                     key={type}
-                    variant='outline'
+                    variant='surface'
                     size='sm'
                     draggable
                     onDragStart={(event) =>
@@ -609,8 +609,8 @@ export function LayoutEditor({
             </Card>
           )}
 
-          <Card className='space-y-2 p-3'>
-            <h2 className='text-sm font-medium'>
+          <Card className='space-y-3 p-4'>
+            <h2 className='text-base font-semibold'>
               Items{' '}
               <span className='text-muted-foreground'>({items.length})</span>
             </h2>
@@ -630,7 +630,9 @@ export function LayoutEditor({
                     onClick={() => setSelectedId(item.id)}
                     aria-pressed={item.id === selectedId}
                     className={`flex min-h-9 w-full items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-muted ${
-                      item.id === selectedId ? 'bg-muted font-medium' : ''
+                      item.id === selectedId
+                        ? 'bg-primary font-medium text-primary-foreground hover:bg-primary'
+                        : ''
                     }`}
                   >
                     <span className='truncate'>
@@ -648,15 +650,15 @@ export function LayoutEditor({
           </Card>
 
           {selected && (
-            <Card className='space-y-3 p-3' aria-label='Selected item'>
+            <Card className='space-y-3 p-4' aria-label='Selected item'>
               <div className='flex items-center justify-between'>
-                <h2 className='text-sm font-medium'>
+                <h2 className='text-base font-semibold'>
                   {LAYOUT_ITEM_LABELS[selected.type]}
                 </h2>
                 {canEdit && (
                   <div className='flex gap-1'>
                     <Button
-                      variant='outline'
+                      variant='surface'
                       size='sm'
                       onClick={duplicateSelected}
                       aria-label='Duplicate item'
@@ -664,7 +666,7 @@ export function LayoutEditor({
                       <Copy />
                     </Button>
                     <Button
-                      variant='outline'
+                      variant='surface'
                       size='sm'
                       onClick={removeSelected}
                       aria-label='Delete item'

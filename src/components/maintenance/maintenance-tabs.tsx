@@ -26,7 +26,7 @@ export function MaintenanceTabs({
           className={cn(
             '-mb-px border-b-2 px-3 py-2 text-sm transition-colors',
             tab.href === current
-              ? 'border-brand font-medium text-foreground'
+              ? 'border-foreground font-medium text-foreground'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           )}
         >

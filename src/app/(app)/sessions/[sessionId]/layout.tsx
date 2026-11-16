@@ -40,7 +40,7 @@ export default async function SessionSegmentLayout({
   }
 
   return (
-    <div className='space-y-4'>
+    <div className='space-y-6'>
       <BreadcrumbLabel
         href={`/sessions/${session.id}`}
         label={

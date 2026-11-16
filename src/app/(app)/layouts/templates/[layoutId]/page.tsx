@@ -29,7 +29,7 @@ export default async function TemplatePage({ params }: PageProps) {
 
   if (!hasFeature(ctx.planTier, Feature.TEMPLATES)) {
     return (
-      <div className='space-y-6'>
+      <div className='space-y-8'>
         <PageHeader
           title='Layout template'
           backHref='/layouts/templates'

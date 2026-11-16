@@ -85,7 +85,7 @@ export function FeedbackControls({
     : ['accepted', 'rejected']
 
   return (
-    <div className='space-y-3 rounded-lg border bg-muted/20 p-3'>
+    <div className='space-y-3 rounded-lg bg-muted p-3'>
       <div className='flex flex-wrap items-center gap-2'>
         <span className='text-xs font-medium uppercase tracking-wide text-muted-foreground'>
           {sourceKey === '*' ? 'Overall' : 'How did it go?'}

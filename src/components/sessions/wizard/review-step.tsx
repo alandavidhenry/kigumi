@@ -66,7 +66,7 @@ export function ReviewStep({
 
   return (
     <div className='space-y-5'>
-      <dl className='divide-y rounded-lg border bg-card px-4'>
+      <dl className='divide-y rounded-lg bg-muted px-4'>
         <Row label='Session'>
           <strong>{state.name}</strong>
           {state.client && ` for ${state.client}`}

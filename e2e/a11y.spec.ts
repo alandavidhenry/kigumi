@@ -106,3 +106,26 @@ test.describe('signed-in pages', () => {
     await expect(page.locator('#main')).toBeFocused()
   })
 })
+
+// The theme follows the system and Playwright's default is light, so the
+// runs above cover the light palette. The dark palette is checked on the
+// pages that between them use every surface, status colour and chart.
+test.describe('signed-in pages in dark', () => {
+  test.use({ storageState: OWNER_STATE, colorScheme: 'dark' })
+
+  for (const path of [
+    '/dashboard',
+    '/inventory',
+    '/mics/shure-sm57',
+    '/sessions/seed-session-tracking/layout',
+    '/sessions/new',
+    '/maintenance'
+  ]) {
+    test(`${path} has no serious violations in dark`, async ({ page }) => {
+      await page.goto(path)
+      await pageReady(page)
+      await expect(page.locator('html')).toHaveClass(/\bdark\b/)
+      await expectNoSeriousViolations(page)
+    })
+  }
+})

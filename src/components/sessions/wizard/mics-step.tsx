@@ -172,7 +172,7 @@ export function MicsStep({
       {error !== null && <AiRequestError error={error} />}
 
       {aiActive && (
-        <div className='flex flex-wrap items-center gap-2 rounded-md border border-brand-border bg-brand-tint/40 px-3 py-2 text-sm'>
+        <div className='flex flex-wrap items-center gap-2 rounded-lg border border-brand-border bg-brand-tint/50 px-3 py-2 text-sm'>
           <AiGeneratedBadge />
           <span>
             The AI&apos;s ranking will be applied to the session.{' '}
@@ -218,7 +218,7 @@ export function MicsStep({
             return (
               <li
                 key={wizardId}
-                className='space-y-1.5 rounded-lg border bg-card p-3'
+                className='space-y-1.5 rounded-lg bg-muted p-3'
               >
                 <div className='flex flex-wrap items-baseline justify-between gap-2'>
                   <Label htmlFor={`pick-${wizardId}`} className='font-medium'>

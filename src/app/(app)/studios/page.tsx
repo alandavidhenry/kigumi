@@ -41,7 +41,7 @@ export default async function StudiosPage() {
   ) : null
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title='Studios & rooms'
         description={`${studios.length} of ${formatLimit(limit)} studios on your plan`}

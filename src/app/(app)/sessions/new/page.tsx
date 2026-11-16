@@ -26,7 +26,7 @@ export default async function NewSessionPage({ searchParams }: PageProps) {
 
   if (!hasPermission(ctx.role, Permission.MANAGE_SESSIONS)) {
     return (
-      <div className='space-y-6'>
+      <div className='space-y-8'>
         <PageHeader title='Plan a session' />
         <Card>
           <EmptyState
@@ -65,7 +65,7 @@ export default async function NewSessionPage({ searchParams }: PageProps) {
   )
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title='Plan a session'
         description='Set up the details, pick an ensemble, choose from the mics you own and get a layout and input list in one go.'

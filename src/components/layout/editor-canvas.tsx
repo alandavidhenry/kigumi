@@ -208,7 +208,7 @@ export const EditorCanvas = forwardRef<CanvasHandle, Props>(
     return (
       <div
         ref={wrapRef}
-        className='relative h-[min(65vh,640px)] min-h-[320px] w-full touch-none overflow-hidden rounded-md border bg-muted/30'
+        className='relative h-[min(65vh,640px)] min-h-[320px] w-full touch-none overflow-hidden rounded-xl border border-card-border bg-card shadow-card'
         onDragOver={(event) => event.preventDefault()}
         onDrop={(event) => {
           event.preventDefault()

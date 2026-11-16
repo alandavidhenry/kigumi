@@ -4,6 +4,7 @@ import {
   CardDescription,
   CardHeader
 } from '@/components/ui/card'
+import { Notice } from '@/components/ui/notice'
 
 export function AuthCard({
   title,
@@ -16,7 +17,7 @@ export function AuthCard({
 }) {
   return (
     <div className='flex flex-1 items-center justify-center px-4 py-10'>
-      <Card className='w-full max-w-md'>
+      <Card className='w-full max-w-md rounded-2xl p-2 md:p-4'>
         <CardHeader>
           {/* A real h1: auth pages have no other page heading. */}
           <h1 className='text-base font-semibold leading-none tracking-tight'>
@@ -33,12 +34,9 @@ export function AuthCard({
 export function FormError({ message }: { readonly message?: string | null }) {
   if (!message) return null
   return (
-    <div
-      role='alert'
-      className='rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive'
-    >
+    <Notice role='alert' variant='destructive' className='text-destructive'>
       {message}
-    </div>
+    </Notice>
   )
 }
 
@@ -48,11 +46,8 @@ export function FormNotice({
   readonly children: React.ReactNode
 }) {
   return (
-    <div
-      role='status'
-      className='rounded-md border border-success/30 bg-success/10 p-3 text-sm text-foreground'
-    >
+    <Notice role='status' variant='success'>
       {children}
-    </div>
+    </Notice>
   )
 }

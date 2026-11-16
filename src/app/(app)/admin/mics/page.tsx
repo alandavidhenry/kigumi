@@ -56,7 +56,7 @@ export default async function MicReviewQueuePage({
   ])
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title='Mic review queue'
         description={MIC_STATUSES.map(

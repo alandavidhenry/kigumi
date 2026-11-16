@@ -108,7 +108,7 @@ export function EquipmentDetailView({
   const itemUrl = `${origin}/inventory/${item.id}`
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title={title}
         description={`${EQUIPMENT_CATEGORY_LABELS[item.category]}${item.serial ? ` · S/N ${item.serial}` : ''}`}

@@ -298,7 +298,7 @@ export function RecallDesk({
     <div className='space-y-3'>
       <div className='flex flex-wrap items-center gap-2'>
         <Button
-          variant='ghost'
+          variant='surface'
           size='icon'
           aria-label='Undo'
           disabled={!canUndo}
@@ -307,7 +307,7 @@ export function RecallDesk({
           <Undo2 />
         </Button>
         <Button
-          variant='ghost'
+          variant='surface'
           size='icon'
           aria-label='Redo'
           disabled={!canRedo}
@@ -316,7 +316,7 @@ export function RecallDesk({
           <Redo2 />
         </Button>
         <Button
-          variant='ghost'
+          variant='surface'
           size='icon'
           aria-label='Zoom out'
           onClick={() => canvas.current?.zoomBy(1 / 1.25)}
@@ -324,7 +324,7 @@ export function RecallDesk({
           <ZoomOut />
         </Button>
         <Button
-          variant='ghost'
+          variant='surface'
           size='icon'
           aria-label='Zoom in'
           onClick={() => canvas.current?.zoomBy(1.25)}
@@ -332,7 +332,7 @@ export function RecallDesk({
           <ZoomIn />
         </Button>
         <Button
-          variant='ghost'
+          variant='surface'
           size='icon'
           aria-label='Fit the desk'
           onClick={() => canvas.current?.fit()}
@@ -340,7 +340,7 @@ export function RecallDesk({
           <Maximize />
         </Button>
         <Button
-          variant='ghost'
+          variant='surface'
           size='sm'
           aria-pressed={showValues}
           onClick={() => setShowValues((v) => !v)}
@@ -360,7 +360,7 @@ export function RecallDesk({
       </div>
       <FormError message={error} />
 
-      <div className='grid gap-4 lg:grid-cols-[minmax(0,1fr)_17rem]'>
+      <div className='grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]'>
         <div className='min-w-0'>
           {colors ? (
             <DeskCanvas
@@ -391,7 +391,7 @@ export function RecallDesk({
           </p>
         </div>
 
-        <aside aria-label='Inspector' className='space-y-4'>
+        <aside aria-label='Inspector' className='space-y-5'>
           {selected && selection ? (
             <ValueInspector
               component={selected}
@@ -411,7 +411,7 @@ export function RecallDesk({
             </p>
           )}
           {current && channel && (
-            <div className='space-y-2 rounded-md border p-3'>
+            <div className='space-y-2 rounded-xl border border-card-border bg-card p-4 shadow-card'>
               <h3 className='text-sm font-semibold'>Strip {channel}</h3>
               <div className='space-y-1'>
                 <Label htmlFor='desk-strip-label' className='text-xs'>

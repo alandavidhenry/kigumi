@@ -31,7 +31,7 @@ export default async function ConsolesPage() {
   const templateChoices = templates.map((t) => ({ id: t.id, name: t.name }))
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <PageHeader
         title='Consoles & recall'
         description='Describe your desk once, then record its settings per session from the session page. Free on every plan.'
@@ -42,8 +42,8 @@ export default async function ConsolesPage() {
         }
       />
 
-      <section className='space-y-2'>
-        <h2 className='text-sm font-medium'>Your consoles</h2>
+      <section className='space-y-3'>
+        <h2 className='text-base font-semibold'>Your consoles</h2>
         {consoles.length === 0 ? (
           <Card>
             <EmptyState
@@ -79,9 +79,9 @@ export default async function ConsolesPage() {
         )}
       </section>
 
-      <section className='space-y-2'>
+      <section className='space-y-3'>
         <div className='flex items-center justify-between'>
-          <h2 className='text-sm font-medium'>Channel-strip templates</h2>
+          <h2 className='text-base font-semibold'>Channel-strip templates</h2>
           {canEdit && (
             <Button asChild variant='surface' size='sm'>
               <Link href='/consoles/templates/new'>New template</Link>

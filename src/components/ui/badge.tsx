@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils'
   `bg-green-100 text-green-800` pills that were unreadable on a dark canvas.
 */
 const badgeVariants = cva(
-  'inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium transition-colors focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2',
+  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-hidden focus:ring-2 focus:ring-ring focus:ring-offset-2',
   {
     variants: {
       variant: {

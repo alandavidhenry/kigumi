@@ -62,7 +62,7 @@ export function CommandPalette() {
       <button
         type='button'
         onClick={() => setOpen(true)}
-        className='flex h-8 items-center gap-2 rounded-md border border-input bg-field px-2 text-sm text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground'
+        className='flex h-9 items-center gap-2 rounded-full border border-input bg-card px-3 text-sm text-muted-foreground transition-colors hover:border-border-strong hover:text-foreground'
       >
         <Search className='h-4 w-4 shrink-0' />
         <span className='sr-only sm:not-sr-only'>Search…</span>

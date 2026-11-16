@@ -53,7 +53,7 @@ export function MicComparisonAi({
   return (
     <Card>
       <CardHeader className='flex-row flex-wrap items-center justify-between gap-2 space-y-0'>
-        <CardTitle className='text-base'>Which to use when</CardTitle>
+        <CardTitle>Which to use when</CardTitle>
         <AiGeneratedBadge />
       </CardHeader>
       <CardContent className='space-y-5 text-sm'>
@@ -93,7 +93,7 @@ export function MicComparisonAi({
               </ul>
             </div>
 
-            <div className='grid gap-4 sm:grid-cols-2'>
+            <div className='grid gap-5 sm:grid-cols-2'>
               {result.content.perMic.map((entry) => (
                 <div key={entry.slug} className='space-y-1'>
                   <h3 className='font-medium'>{nameOf(entry.slug)}</h3>

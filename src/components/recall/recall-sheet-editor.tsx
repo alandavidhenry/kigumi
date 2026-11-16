@@ -200,7 +200,7 @@ function ChannelEditor({
     })
 
   return (
-    <details className='group rounded-md border'>
+    <details className='group rounded-lg bg-muted'>
       <summary className='flex cursor-pointer flex-wrap items-baseline gap-x-3 px-3 py-2 text-sm'>
         <span className='w-8 font-medium tabular-nums'>
           {channel.stripNumber}
@@ -215,7 +215,7 @@ function ChannelEditor({
             : summary.map((l) => `${l.section}: ${l.text}`).join(' | ')}
         </span>
       </summary>
-      <div className='space-y-4 border-t px-3 py-3'>
+      <div className='space-y-4 border-t border-border px-3 py-3'>
         <div className='space-y-1'>
           <Label htmlFor={`label-${channel.id}`}>Label</Label>
           <Input
@@ -302,7 +302,7 @@ function OutboardEditor({
   const [notes, setNotes] = useState(unit.notes ?? '')
 
   return (
-    <div className='space-y-3 rounded-md border p-3'>
+    <div className='space-y-3 rounded-lg bg-muted p-3'>
       <div className='grid gap-3 sm:grid-cols-2'>
         <div className='space-y-1'>
           <Label className='text-xs'>Unit</Label>
@@ -562,7 +562,7 @@ export function RecallSheetEditor({
   }
 
   return (
-    <div className='space-y-6'>
+    <div className='space-y-8'>
       <div className='flex flex-wrap items-center gap-2'>
         <Button asChild variant='surface'>
           <a href={`/api/sessions/${sessionId}/recall/pdf`}>
@@ -616,7 +616,7 @@ export function RecallSheetEditor({
 
       <Card>
         <CardHeader className='flex flex-row flex-wrap items-center justify-between gap-2 space-y-0'>
-          <CardTitle className='text-base'>
+          <CardTitle>
             Channels{' '}
             <span className='font-normal text-muted-foreground'>
               ({sheet.channels.length} on {sheet.consoleName},{' '}
@@ -626,7 +626,7 @@ export function RecallSheetEditor({
           <div
             role='group'
             aria-label='Show the recall as'
-            className='inline-flex rounded-md border p-0.5'
+            className='inline-flex rounded-full bg-muted p-0.5'
           >
             {(['desk', 'list'] as const).map((v) => (
               <button
@@ -634,10 +634,10 @@ export function RecallSheetEditor({
                 type='button'
                 aria-pressed={view === v}
                 onClick={() => setView(v)}
-                className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
+                className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
                   view === v
                     ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
                 {v === 'desk' ? 'Desk' : 'List'}
@@ -674,7 +674,7 @@ export function RecallSheetEditor({
 
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Outboard</CardTitle>
+          <CardTitle>Outboard</CardTitle>
         </CardHeader>
         <CardContent className='space-y-3'>
           {sheet.outboard.length === 0 && (
@@ -699,7 +699,7 @@ export function RecallSheetEditor({
 
       <Card>
         <CardHeader className='flex flex-row items-center justify-between space-y-0'>
-          <CardTitle className='text-base'>Desk photos</CardTitle>
+          <CardTitle>Desk photos</CardTitle>
           {canEdit && sheet.photos.length < MAX_RECALL_PHOTOS && (
             <>
               <input
@@ -738,7 +738,7 @@ export function RecallSheetEditor({
                   <img
                     src={`/api/attachments/${photo.id}`}
                     alt='Desk photo'
-                    className='aspect-square w-full rounded-md border object-cover'
+                    className='aspect-square w-full rounded-lg object-cover'
                   />
                   {canEdit && (
                     <div className='absolute right-1 top-1'>
@@ -766,7 +766,7 @@ export function RecallSheetEditor({
 
       <Card>
         <CardHeader>
-          <CardTitle className='text-base'>Notes</CardTitle>
+          <CardTitle>Notes</CardTitle>
         </CardHeader>
         <CardContent className='space-y-2'>
           <Textarea

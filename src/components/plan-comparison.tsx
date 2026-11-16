@@ -42,7 +42,7 @@ export function PlanComparison({ current }: { readonly current: PlanTier }) {
   return (
     <div
       id='plans'
-      className='grid scroll-mt-20 gap-4 sm:grid-cols-2 xl:grid-cols-4'
+      className='grid scroll-mt-20 gap-5 sm:grid-cols-2 xl:grid-cols-4'
     >
       {PLAN_ORDER.map((tier, index) => {
         const info = PLAN_INFO[tier]
@@ -57,14 +57,20 @@ export function PlanComparison({ current }: { readonly current: PlanTier }) {
             key={tier}
             aria-label={`${info.label} plan`}
             className={cn(
-              'flex flex-col gap-4 rounded-lg border bg-card p-4',
-              isCurrent && 'border-brand'
+              'flex flex-col gap-4 rounded-xl p-5',
+              isCurrent
+                ? 'bg-highlight text-highlight-foreground [&_.text-muted-foreground]:text-highlight-foreground/80 [&_svg]:text-highlight-foreground'
+                : 'border border-card-border bg-card shadow-card'
             )}
           >
             <div className='space-y-1'>
               <div className='flex items-center justify-between gap-2'>
                 <h3 className='font-semibold'>{info.label}</h3>
-                {isCurrent && <Badge>Current plan</Badge>}
+                {isCurrent && (
+                  <Badge className='border-transparent bg-highlight-foreground text-highlight'>
+                    Current plan
+                  </Badge>
+                )}
               </div>
               <p className='text-xs text-muted-foreground'>{info.audience}</p>
             </div>
@@ -97,7 +103,7 @@ export function PlanComparison({ current }: { readonly current: PlanTier }) {
               ))}
             </ul>
 
-            <ul className='space-y-1.5 border-t pt-3 text-sm'>
+            <ul className='space-y-1.5 border-t border-border pt-3 text-sm'>
               {previous && (
                 <li className='text-xs text-muted-foreground'>
                   Everything in {previous.label}, plus:

@@ -63,10 +63,10 @@ export function UserMenu() {
         <Button
           variant='ghost'
           size='icon'
-          className='rounded-full'
+          className='h-9 w-9 rounded-full'
           aria-label={`${initials(userName)}: account menu`}
         >
-          <span className='flex h-8 w-8 items-center justify-center rounded-full border border-brand-border bg-brand-tint text-sm font-medium text-foreground'>
+          <span className='flex h-9 w-9 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground'>
             {initials(userName)}
           </span>
         </Button>

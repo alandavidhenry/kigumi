@@ -61,7 +61,7 @@ export function RulesResult({ preview }: { readonly preview: PreviewResult }) {
         return (
           <Card key={source.id}>
             <CardHeader className='space-y-1'>
-              <CardTitle className='text-base'>{source.label}</CardTitle>
+              <CardTitle>{source.label}</CardTitle>
               <p className='text-xs text-muted-foreground'>
                 {kindLabel(source.kind)}
                 {source.micCount > 1 &&
