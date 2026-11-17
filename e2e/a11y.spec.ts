@@ -1,13 +1,13 @@
 import AxeBuilder from '@axe-core/playwright'
-import { expect, test } from '@playwright/test'
 
 import {
   OWNER_STATE,
   SEEDED_EQUIPMENT_ID,
   SEEDED_STUDIO_ID
 } from './credentials'
+import { expect, test } from './fixtures'
 
-import type { Page } from '@playwright/test'
+import type { Page } from './fixtures'
 
 // Automated accessibility checks (Phase 8, M8): axe-core against WCAG 2.1 A
 // and AA on every main page, failing on serious and critical violations.
@@ -83,6 +83,7 @@ test.describe('signed-in pages', () => {
     '/notifications',
     '/settings/members',
     '/settings/organisation',
+    '/settings/account',
     '/activity'
   ]
 

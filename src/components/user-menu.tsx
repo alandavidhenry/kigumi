@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, LogOut, Plus } from 'lucide-react'
+import { Check, LogOut, Plus, UserCog } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -106,6 +106,12 @@ export function UserMenu() {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href='/settings/account' className='flex items-center gap-2'>
+            <UserCog className='h-4 w-4' />
+            Account settings
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem
           onSelect={() => void signOut()}
           className='flex items-center gap-2 text-destructive focus:text-destructive'

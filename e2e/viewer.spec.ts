@@ -1,6 +1,5 @@
-import { expect, test } from '@playwright/test'
-
 import { SEEDED_STUDIO_ID, VIEWER_STATE } from './credentials'
+import { expect, test } from './fixtures'
 
 test.use({ storageState: VIEWER_STATE })
 

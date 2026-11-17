@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { Suspense, useState } from 'react'
 
 import { AuthCard, FormError, FormNotice } from '@/components/auth/auth-card'
+import { HydrationMarker } from '@/components/hydration-flag'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { PasswordInput } from '@/components/ui/password-input'
@@ -92,6 +93,7 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
   return (
     <Suspense>
+      <HydrationMarker />
       <ResetPasswordForm />
     </Suspense>
   )

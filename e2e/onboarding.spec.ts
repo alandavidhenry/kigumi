@@ -1,5 +1,4 @@
-import { expect, test } from '@playwright/test'
-
+import { expect, test } from './fixtures'
 import { markEmailVerified, signIn, uniqueSuffix } from './helpers'
 
 // Full self-service path: sign up → verify → create organisation + studio →

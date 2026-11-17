@@ -1,6 +1,5 @@
-import { expect, test, type APIRequestContext } from '@playwright/test'
-
 import { OWNER_STATE, SEEDED_EQUIPMENT_ID, VIEWER_STATE } from './credentials'
+import { expect, test, type APIRequestContext } from './fixtures'
 import { uniqueSuffix } from './helpers'
 
 // Maintenance plans, the service log, PAT testing, warranties with receipts,

@@ -1,5 +1,6 @@
 import { Plus_Jakarta_Sans, Source_Code_Pro } from 'next/font/google'
 
+import { HydrationFlag } from '@/components/hydration-flag'
 import { BreadcrumbProvider } from '@/components/providers/breadcrumb-provider'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { SkipLink } from '@/components/skip-link'
@@ -60,6 +61,7 @@ export default function RootLayout({
       <body
         className={`${plusJakartaSans.variable} ${sourceCodePro.variable} font-sans`}
       >
+        <HydrationFlag />
         <SkipLink />
         <ThemeProvider>
           <BreadcrumbProvider>{children}</BreadcrumbProvider>

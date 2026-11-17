@@ -1,6 +1,5 @@
-import { expect, test, type APIRequestContext } from '@playwright/test'
-
 import { OWNER_STATE, VIEWER_STATE } from './credentials'
+import { expect, test, type APIRequestContext } from './fixtures'
 import { uniqueSuffix } from './helpers'
 
 // Consoles, per-session recall sheets, outboard and copying a previous recall

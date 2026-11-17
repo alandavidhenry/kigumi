@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 
 import { FormError } from '@/components/auth/auth-card'
+import { HydrationMarker } from '@/components/hydration-flag'
 import { MicQuickAdd } from '@/components/mics/mic-quick-add'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -73,6 +74,7 @@ interface Props {
 export function SetupWizard(props: Props) {
   return (
     <Suspense fallback={null}>
+      <HydrationMarker />
       <WizardInner {...props} />
     </Suspense>
   )

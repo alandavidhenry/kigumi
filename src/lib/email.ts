@@ -152,3 +152,40 @@ export async function sendReminderDigestEmail(
       .join('\n')}\n\n${url}`
   })
 }
+
+export async function sendChangeEmailConfirmationEmail(
+  to: string,
+  name: string,
+  newEmail: string,
+  url: string
+): Promise<void> {
+  await sendEmail({
+    to,
+    subject: 'Approve changing your Kigumi email',
+    html: layout(
+      'Approve your email change',
+      `<p>Hi ${escapeHtml(name)}, someone asked to change your Kigumi email to <strong>${escapeHtml(newEmail)}</strong>. If it wasn't you, ignore this email and change your password.</p>`,
+      'Approve change',
+      url
+    ),
+    text: `Hi ${name}, approve changing your Kigumi email to ${newEmail}: ${url}`
+  })
+}
+
+export async function sendDeleteAccountEmail(
+  to: string,
+  name: string,
+  url: string
+): Promise<void> {
+  await sendEmail({
+    to,
+    subject: 'Confirm deleting your Kigumi account',
+    html: layout(
+      'Delete your account',
+      `<p>Hi ${escapeHtml(name)}, follow the link to permanently delete your Kigumi account. Your name and email are removed and you leave every organisation. Studio data stays with the organisations. If it wasn't you, ignore this email and change your password.</p>`,
+      'Delete my account',
+      url
+    ),
+    text: `Hi ${name}, confirm deleting your Kigumi account: ${url}`
+  })
+}

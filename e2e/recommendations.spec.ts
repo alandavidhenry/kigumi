@@ -1,6 +1,5 @@
-import { expect, test } from '@playwright/test'
-
 import { OWNER_STATE, VIEWER_STATE } from './credentials'
+import { expect, test } from './fixtures'
 
 // Like ai.spec.ts, these never press "Rank and explain with AI": that spends
 // real allowance and needs a key. The pipeline is covered by the Vitest route

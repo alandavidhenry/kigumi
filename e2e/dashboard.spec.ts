@@ -1,6 +1,5 @@
-import { expect, test } from '@playwright/test'
-
 import { OWNER_STATE } from './credentials'
+import { expect, test } from './fixtures'
 
 test.use({ storageState: OWNER_STATE })
 

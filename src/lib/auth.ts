@@ -3,6 +3,7 @@ import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { nextCookies } from 'better-auth/next-js'
 import { organization } from 'better-auth/plugins'
 
+import { assertCanDeleteAccount, beforeDeleteUser } from '@/lib/account'
 import {
   afterAcceptInvitation,
   afterCancelInvitation,
@@ -21,6 +22,8 @@ import {
 } from '@/lib/auth-hooks'
 import { ac, roles } from '@/lib/auth-permissions'
 import {
+  sendChangeEmailConfirmationEmail,
+  sendDeleteAccountEmail,
   sendInvitationEmail,
   sendPasswordResetEmail,
   sendVerificationEmail
@@ -48,6 +51,31 @@ export const auth = betterAuth({
     autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
       await sendVerificationEmail(user.email, user.name, url)
+    }
+  },
+  user: {
+    // The new address is verified before it takes effect, and the old one is
+    // asked to approve first so a hijacked session can't quietly redirect mail.
+    changeEmail: {
+      enabled: true,
+      sendChangeEmailConfirmation: async ({ user, newEmail, url }) => {
+        await sendChangeEmailConfirmationEmail(
+          user.email,
+          user.name,
+          newEmail,
+          url
+        )
+      }
+    },
+    // Deletion needs the password, then an emailed link. A sole owner is
+    // refused at both steps (src/lib/account.ts).
+    deleteUser: {
+      enabled: true,
+      sendDeleteAccountVerification: async ({ user, url }) => {
+        await assertCanDeleteAccount(user.id)
+        await sendDeleteAccountEmail(user.email, user.name, url)
+      },
+      beforeDelete: beforeDeleteUser
     }
   },
   // Better Auth rate-limits auth endpoints in production by default (e.g. 3

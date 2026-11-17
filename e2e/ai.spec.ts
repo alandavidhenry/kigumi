@@ -1,6 +1,5 @@
-import { expect, test } from '@playwright/test'
-
 import { OWNER_STATE, VIEWER_STATE } from './credentials'
+import { expect, test } from './fixtures'
 
 // These never press "Generate": that spends real AI allowance and needs an
 // API key. The generation pipeline is covered by the Vitest route tests with

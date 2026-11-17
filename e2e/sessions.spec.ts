@@ -1,6 +1,5 @@
-import { expect, test, type APIRequestContext } from '@playwright/test'
-
 import { OWNER_STATE, VIEWER_STATE } from './credentials'
+import { expect, test, type APIRequestContext } from './fixtures'
 import { uniqueSuffix } from './helpers'
 
 // Sessions, the layout editor, the input list, PDF, share links and DAW export
@@ -62,22 +61,22 @@ test.describe('owner', () => {
     const name = `Wizard ${uniqueSuffix()}`
     await page.goto('/sessions/new')
     await page.getByLabel('Session name').fill(name, { timeout: 30_000 })
-    await page.getByRole('button', { name: 'Next' }).click()
+    await page.getByRole('button', { name: 'Next', exact: true }).click()
 
     await page.getByRole('button', { name: /Small rock band/ }).click()
-    await page.getByRole('button', { name: 'Next' }).click()
+    await page.getByRole('button', { name: 'Next', exact: true }).click()
 
     // Mics: rules-based picks are the default.
     await expect(
       page.getByRole('heading', { name: 'Choose microphones' })
     ).toBeVisible()
-    await page.getByRole('button', { name: 'Next' }).click()
+    await page.getByRole('button', { name: 'Next', exact: true }).click()
 
     // Layout: automatic placement is the default.
     await expect(
       page.getByRole('heading', { name: 'Room layout' })
     ).toBeVisible()
-    await page.getByRole('button', { name: 'Next' }).click()
+    await page.getByRole('button', { name: 'Next', exact: true }).click()
 
     // Recall: choose the first console when one is seeded, else skip.
     await expect(
@@ -87,7 +86,7 @@ test.describe('owner', () => {
     if (await desk.count()) {
       await desk.selectOption({ index: 1 })
     }
-    await page.getByRole('button', { name: 'Next' }).click()
+    await page.getByRole('button', { name: 'Next', exact: true }).click()
 
     await page.getByRole('button', { name: 'Create session' }).click()
     await expect(page.getByRole('heading', { name })).toBeVisible({
