@@ -203,4 +203,7 @@ resource "azurerm_role_assignment" "kv_app_service" {
   scope                = module.key_vault.key_vault_id
   role_definition_name = "Key Vault Secrets User"
   principal_id         = module.app_service.app_service_identity_principal_id
+  # Required by the ABAC condition on the CI principal's RBAC Administrator
+  # role (docs/operations.md, "CI service principal roles").
+  principal_type = "ServicePrincipal"
 }
