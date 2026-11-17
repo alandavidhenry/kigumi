@@ -9,6 +9,9 @@ https_only      = true
 
 key_vault = {
   sku_name = "standard"
+
+  # Dev is torn down and rebuilt under the same name.
+  purge_protection_enabled = false
 }
 
 storage = {
@@ -28,7 +31,7 @@ enable_backup_storage = false
 platform_admin_emails = "alandavidhenry@gmail.com"
 
 # sp-terraform-minato: deploying principal (local applies + CI/CD). Set once.
-kv_deployer_object_id = "7b1732f1-3e33-40b4-b134-0321b61a8444"
+kv_deployer_object_id = "6cfcc054-fb20-4b7a-a90e-bcc381478191"
 
 extra_app_settings = {
   "AI_DAILY_REQUEST_CAP" = "100"

@@ -47,7 +47,16 @@ variable "key_vault" {
   description = "Key Vault configuration"
   type = object({
     sku_name = string
+    # Blocks purging a deleted vault for 90 days. Turn off only where the
+    # environment is torn down and rebuilt under the same name.
+    purge_protection_enabled = optional(bool, true)
   })
+}
+
+variable "enable_telemetry" {
+  description = "AVM telemetry: anonymous deployment counts sent to Microsoft. Off by default."
+  type        = bool
+  default     = false
 }
 
 variable "storage" {

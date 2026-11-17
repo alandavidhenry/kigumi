@@ -14,6 +14,17 @@ variable "resource_group_name" {
   type = string
 }
 
+variable "resource_group_id" {
+  description = "Resource ID of the resource group"
+  type        = string
+}
+
+variable "enable_telemetry" {
+  description = "AVM telemetry (anonymous deployment counts sent to Microsoft)"
+  type        = bool
+  default     = false
+}
+
 variable "app_service_id" {
   description = "Web app to alert on"
   type        = string

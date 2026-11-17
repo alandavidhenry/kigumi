@@ -32,8 +32,15 @@ variable "app_url" {
 
 variable "key_vault" {
   type = object({
-    sku_name = string
+    sku_name                 = string
+    purge_protection_enabled = optional(bool, true)
   })
+}
+
+variable "enable_telemetry" {
+  description = "AVM telemetry: anonymous deployment counts sent to Microsoft"
+  type        = bool
+  default     = false
 }
 
 variable "storage" {

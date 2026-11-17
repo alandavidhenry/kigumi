@@ -2,22 +2,22 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 5.0"
+      version = "~> 4.81"
     }
     random = {
       source  = "hashicorp/random"
       version = "~> 3.6"
     }
-    time = {
-      source  = "hashicorp/time"
-      version = "~> 0.14"
+    azapi = {
+      source  = "Azure/azapi"
+      version = "~> 2.12"
     }
   }
   required_version = ">= 1.16.0"
 
   backend "azurerm" {
     resource_group_name  = "rg-terraform-state-prod-uks"
-    storage_account_name = "tfstatekigumiproduks"
+    storage_account_name = "stkigumitfstateproduks"
     container_name       = "tfstateprod"
     key                  = "kigumi-prod.tfstate"
   }

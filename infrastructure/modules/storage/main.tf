@@ -1,58 +1,70 @@
 locals {
-  location_short = {
-    "UK South" = "uks"
-    "uksouth"  = "uks"
-    "UK West"  = "ukw"
-    "ukwest"   = "ukw"
-  }[var.location]
-  st_name = "st${replace(var.project, "-", "")}${var.environment}${local.location_short}01"
+  st_name = "st${replace(var.project, "-", "")}${var.environment}${var.location_short}01"
+
+  public_access = {
+    private   = "None"
+    blob      = "Blob"
+    container = "Container"
+  }
 }
 
-resource "azurerm_storage_account" "main" {
+module "storage_account" {
+  source  = "Azure/avm-res-storage-storageaccount/azurerm"
+  version = "0.11.0"
+
   name                     = local.st_name
-  resource_group_name      = var.resource_group_name
   location                 = var.location
+  parent_id                = var.resource_group_id
   account_tier             = var.account_tier
   account_replication_type = var.account_replication_type
   min_tls_version          = var.min_tls_version
+  tags                     = var.tags
+  enable_telemetry         = var.enable_telemetry
 
-  # All containers are created private (see azurerm_storage_container below) -
-  # SAS tokens are the only intended access path. Pinned explicitly since
-  # AzureRM v5 changed the provider default from true to false; without this,
-  # the next provider bump could silently flip it back.
+  # Blobs are never public: SAS tokens are the only intended access path.
   allow_nested_items_to_be_public = false
 
-  blob_properties {
-    # Recovery from deletes and overwrites (docs/operations.md, "Backups").
-    versioning_enabled = true
-
-    delete_retention_policy {
-      days = 30
-    }
-
-    container_delete_retention_policy {
-      days = 30
-    }
-
-    dynamic "cors_rule" {
-      for_each = length(var.allowed_origins) > 0 ? [1] : []
-      content {
-        allowed_headers    = ["*"]
-        allowed_methods    = ["GET", "HEAD", "OPTIONS"]
-        allowed_origins    = var.allowed_origins
-        exposed_headers    = ["*"]
-        max_age_in_seconds = 86400
-      }
-    }
+  # The app authenticates with the account connection string (a Key Vault
+  # secret), which needs shared keys; the AVM default is off. The firewall
+  # default is Deny, which would lock out the App Service (no VNet).
+  shared_access_key_enabled     = true
+  public_network_access_enabled = true
+  network_rules = {
+    bypass         = ["AzureServices"]
+    default_action = "Allow"
   }
 
-  tags = var.tags
+  blob_properties = {
+    # Recovery from deletes and overwrites (docs/operations.md, "Backups").
+    versioning_enabled = true
+    delete_retention_policy = {
+      days = 30
+    }
+    container_delete_retention_policy = {
+      days = 30
+    }
+    cors_rules = length(var.allowed_origins) > 0 ? [{
+      allowed_headers    = ["*"]
+      allowed_methods    = ["GET", "HEAD", "OPTIONS"]
+      allowed_origins    = var.allowed_origins
+      exposed_headers    = ["*"]
+      max_age_in_seconds = 86400
+    }] : null
+  }
+
+  containers = {
+    for name, c in var.containers : name => {
+      name          = name
+      public_access = local.public_access[c.access_type]
+    }
+  }
 }
 
-resource "azurerm_storage_container" "main" {
-  for_each = var.containers
+# The AVM module does not expose account keys, so read the connection string
+# once the account exists.
+data "azurerm_storage_account" "main" {
+  name                = module.storage_account.name
+  resource_group_name = var.resource_group_name
 
-  name                  = each.key
-  storage_account_id    = azurerm_storage_account.main.id
-  container_access_type = each.value.access_type
+  depends_on = [module.storage_account]
 }

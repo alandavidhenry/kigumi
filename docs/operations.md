@@ -8,14 +8,25 @@ How to watch, back up and restore Kigumi in production. Decisions behind this ar
 
 **First-time setup (once per environment).**
 
-1. Create the state storage: `terraform apply` in `infrastructure/bootstrap/<Env>` (variables: `subscription_id`, `cicd_sp_object_id`).
-2. Reuse or create the CI service principal with OIDC federated credentials for the repository and each GitHub environment (`Development`, `Production`). Give it `Contributor` and `User Access Administrator` on the subscription.
+1. Create the state storage: `terraform apply` in `infrastructure/bootstrap/<Env>` (variables: `subscription_id`, `cicd_sp_object_id`). It applies with local state first; then uncomment the `backend` block in that `main.tf` and run `terraform init -migrate-state` so the bootstrap's own state moves into the account it created. The state account has versioning, 30-day soft delete, a `CanNotDelete` lock on its resource group and no shared keys (Entra ID only), so to delete it deliberately, remove the lock first.
+2. Reuse or create the CI service principal with OIDC federated credentials for the repository and each GitHub environment (`Development`, `Production`). Give it `Contributor` and a constrained `Role Based Access Control Administrator` on the subscription (see "CI service principal roles" below).
 3. Create the Neon project and branch; copy its connection string.
 4. GitHub environment secrets (per environment): `ARM_CLIENT_ID`, `ARM_TENANT_ID`, `ARM_SUBSCRIPTION_ID`, `DATABASE_URL`, `GHCR_PAT` (`read:packages`), optional `ANTHROPIC_API_KEY`, and `CRON_SECRET` (after step 6). Repository secrets: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` (hardened base images).
 5. Edit `infrastructure/env/<Env>/terraform.tfvars` (`platform_admin_emails`, `kv_deployer_object_id`; `app_url` once a custom domain exists), then run the Terraform workflow (or `terraform apply` locally with `secrets.auto.tfvars`, copied from the `.example`).
 6. Read the outputs: `terraform output -raw cron_secret` goes into the `CRON_SECRET` environment secret. Set the environment variables `AZURE_APP_NAME` and `AZURE_RESOURCE_GROUP` from `app_service_name` and `resource_group_name`.
 7. Production only: put `terraform output -raw backup_storage_connection_string` in `BACKUP_STORAGE_CONNECTION_STRING`, create the read-only role below for `BACKUP_DATABASE_URL`, and set the repository secrets `APP_URL` and `CRON_SECRET` (the cron workflows use these) to the Production values.
 8. Run `dev-deploy.yml` (or publish a release), then check `/api/health` and the smoke test.
+
+**CI service principal roles.** Terraform creates role assignments, so `Contributor` alone is not enough. Instead of `User Access Administrator` (which can assign Owner), the principal gets `Role Based Access Control Administrator` with a condition, set in the portal under Subscription > Access control (IAM) > Add role assignment > Conditions, choosing "Constrain roles and principal types":
+
+| Setting             | Value                                                 |
+| ------------------- | ----------------------------------------------------- |
+| Roles it may assign | `Key Vault Secrets Officer`, `Key Vault Secrets User` |
+| Principal types     | Service principals (managed identities count)         |
+
+Why those two: the Key Vault module gives the deployer `Key Vault Secrets Officer` so Terraform can write secrets, and `modules/kigumi` gives the App Service identity `Key Vault Secrets User` to read them. The App Service identity is created by Terraform, so individual principals cannot be named in advance; that is why the condition limits roles and principal type instead.
+
+_Adding another role assignment later_ (for example `Storage Blob Data Contributor` for the app on the storage account): add the assignment in Terraform, then edit the condition on the CI service principal's `Role Based Access Control Administrator` assignment and add the new role to the allowed list. If you forget, `terraform apply` fails with `AuthorizationFailed` on `Microsoft.Authorization/roleAssignments/write` for that assignment; nothing is partially applied that is not otherwise recoverable. Widen principal types (add Users or Groups) only if Terraform needs to assign to those. Do not switch to `User Access Administrator` or "all roles except privileged": that lets a leaked pipeline credential grant itself broad access.
 
 **Rollback.** Re-run the deploy for the previous good commit's image (`az webapp config container set � ghcr.io/<repo>:<sha>`). Schema changes are expand-then-contract, so the previous image still works against the migrated database.
 

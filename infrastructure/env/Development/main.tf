@@ -9,6 +9,7 @@ module "kigumi" {
   https_only            = var.https_only
   app_url               = var.app_url
   key_vault             = var.key_vault
+  enable_telemetry      = var.enable_telemetry
   storage               = var.storage
   storage_container     = var.storage_container
   enable_backup_storage = var.enable_backup_storage

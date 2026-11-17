@@ -8,8 +8,8 @@ variable "environment" {
   type        = string
 }
 
-variable "resource_group_name" {
-  description = "The name of the resource group"
+variable "resource_group_id" {
+  description = "Resource ID of the resource group"
   type        = string
 }
 
@@ -31,12 +31,11 @@ variable "https_only" {
 }
 
 variable "docker_image" {
-  description = "Docker image configuration"
+  description = "Initial container image. Registry credentials go in app_settings (DOCKER_REGISTRY_SERVER_*)."
   type = object({
-    name              = string
-    registry_url      = string
-    registry_username = string
-    registry_password = string
+    name         = string
+    tag          = string
+    registry_url = string
   })
 }
 
@@ -56,4 +55,15 @@ variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)
   default     = {}
+}
+
+variable "enable_telemetry" {
+  description = "AVM telemetry (anonymous deployment counts sent to Microsoft)"
+  type        = bool
+  default     = false
+}
+
+variable "location_short" {
+  description = "Short region code used in resource names (e.g. uks), from the kigumi module"
+  type        = string
 }

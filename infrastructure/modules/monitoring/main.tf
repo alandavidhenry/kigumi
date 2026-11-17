@@ -1,23 +1,27 @@
-resource "azurerm_log_analytics_workspace" "main" {
-  name                = "log-${var.project}-${var.environment}"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  sku                 = "PerGB2018"
-  retention_in_days   = var.retention_in_days
-  tags                = var.tags
+module "log_analytics" {
+  source  = "Azure/avm-res-operationalinsights-workspace/azurerm"
+  version = "0.5.1"
+
+  name                                      = "log-${var.project}-${var.environment}"
+  location                                  = var.location
+  resource_group_name                       = var.resource_group_name
+  log_analytics_workspace_sku               = "PerGB2018"
+  log_analytics_workspace_retention_in_days = var.retention_in_days
+  tags                                      = var.tags
+  enable_telemetry                          = var.enable_telemetry
 }
 
-resource "azurerm_application_insights" "main" {
-  name                = "appi-${var.project}-${var.environment}"
-  resource_group_name = var.resource_group_name
-  location            = var.location
-  workspace_id        = azurerm_log_analytics_workspace.main.id
-  application_type    = "Node.JS"
-  tags                = var.tags
-}
+module "application_insights" {
+  source  = "Azure/avm-res-insights-component/azurerm"
+  version = "0.5.0"
 
-resource "azurerm_key_vault_secret" "connection_string" {
-  name         = "applicationinsights-connection-string"
-  value        = azurerm_application_insights.main.connection_string
-  key_vault_id = var.key_vault_id
+  name      = "appi-${var.project}-${var.environment}"
+  location  = var.location
+  parent_id = var.resource_group_id
+  # The ARM API accepts "web" or "other"; the azurerm-only "Node.JS" value is
+  # not valid here. The type only affects portal defaults.
+  application_type = "web"
+  workspace_id     = module.log_analytics.resource_id
+  tags             = var.tags
+  enable_telemetry = var.enable_telemetry
 }

@@ -3,17 +3,24 @@
 # alerts read the App Service console logs, which the diagnostic setting below
 # sends to Log Analytics.
 
-resource "azurerm_monitor_action_group" "main" {
-  name                = "ag-${var.project}-${var.environment}"
-  resource_group_name = var.resource_group_name
-  short_name          = "kigumi"
-  tags                = var.tags
+# The action group is AVM; AVM has no module for metric alerts, scheduled
+# query alerts or the diagnostic setting below, so those stay azurerm.
+module "action_group" {
+  source  = "Azure/avm-res-insights-actiongroup/azurerm"
+  version = "0.2.0"
 
-  dynamic "email_receiver" {
-    for_each = var.email_addresses
-    content {
-      name                    = "email-${email_receiver.key}"
-      email_address           = email_receiver.value
+  name       = "ag-${var.project}-${var.environment}"
+  short_name = "kigumi"
+  # Action groups are a global resource.
+  location         = "global"
+  parent_id        = var.resource_group_id
+  tags             = var.tags
+  enable_telemetry = var.enable_telemetry
+
+  email_receivers = {
+    for i, address in var.email_addresses : "email-${i}" => {
+      name                    = "email-${i}"
+      email_address           = address
       use_common_alert_schema = true
     }
   }
@@ -48,7 +55,7 @@ resource "azurerm_monitor_metric_alert" "server_errors" {
   }
 
   action {
-    action_group_id = azurerm_monitor_action_group.main.id
+    action_group_id = module.action_group.resource_id
   }
 }
 
@@ -71,7 +78,7 @@ resource "azurerm_monitor_metric_alert" "liveness" {
   }
 
   action {
-    action_group_id = azurerm_monitor_action_group.main.id
+    action_group_id = module.action_group.resource_id
   }
 }
 
@@ -156,7 +163,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "event" {
   }
 
   action {
-    action_groups = [azurerm_monitor_action_group.main.id]
+    action_groups = [module.action_group.resource_id]
   }
 }
 
@@ -181,6 +188,6 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "missing" {
   }
 
   action {
-    action_groups = [azurerm_monitor_action_group.main.id]
+    action_groups = [module.action_group.resource_id]
   }
 }

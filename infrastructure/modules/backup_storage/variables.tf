@@ -18,6 +18,17 @@ variable "resource_group_name" {
   type        = string
 }
 
+variable "resource_group_id" {
+  description = "Resource ID of the resource group"
+  type        = string
+}
+
+variable "enable_telemetry" {
+  description = "AVM telemetry (anonymous deployment counts sent to Microsoft)"
+  type        = bool
+  default     = false
+}
+
 variable "replication_type" {
   description = "Replication type for the backup account"
   type        = string
@@ -34,4 +45,9 @@ variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)
   default     = {}
+}
+
+variable "location_short" {
+  description = "Short region code used in resource names (e.g. uks), from the kigumi module"
+  type        = string
 }

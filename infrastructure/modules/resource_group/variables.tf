@@ -24,3 +24,14 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "enable_telemetry" {
+  description = "AVM telemetry (anonymous deployment counts sent to Microsoft)"
+  type        = bool
+  default     = false
+}
+
+variable "location_short" {
+  description = "Short region code used in resource names (e.g. uks), from the kigumi module"
+  type        = string
+}

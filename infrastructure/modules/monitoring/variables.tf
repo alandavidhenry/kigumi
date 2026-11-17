@@ -18,8 +18,8 @@ variable "resource_group_name" {
   type        = string
 }
 
-variable "key_vault_id" {
-  description = "The ID of the Key Vault to store the connection string in"
+variable "resource_group_id" {
+  description = "Resource ID of the resource group"
   type        = string
 }
 
@@ -33,4 +33,10 @@ variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)
   default     = {}
+}
+
+variable "enable_telemetry" {
+  description = "AVM telemetry (anonymous deployment counts sent to Microsoft)"
+  type        = bool
+  default     = false
 }

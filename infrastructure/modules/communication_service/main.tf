@@ -1,39 +1,33 @@
-locals {
-  location_short = {
-    "UK South" = "uks"
-    "uksouth"  = "uks"
-    "UK West"  = "ukw"
-    "ukwest"   = "ukw"
-  }[var.location]
-}
-
+# No AVM module exists for the Communication Service resource itself, so it
+# stays a plain azurerm resource; the email service and domain use AVM.
 resource "azurerm_communication_service" "main" {
-  name                = "acs-${var.project}-${var.environment}-${local.location_short}"
+  name                = "acs-${var.project}-${var.environment}-${var.location_short}"
   resource_group_name = var.resource_group_name
   data_location       = var.data_location
   tags                = var.tags
 }
 
-resource "azurerm_email_communication_service" "main" {
-  name                = "ecs-${var.project}-${var.environment}-${local.location_short}"
-  resource_group_name = var.resource_group_name
-  data_location       = var.data_location
-  tags                = var.tags
-}
+module "email_service" {
+  source  = "Azure/avm-res-communication-emailservice/azurerm"
+  version = "0.3.0"
 
-resource "azurerm_email_communication_service_domain" "main" {
-  name              = "AzureManagedDomain"
-  email_service_id  = azurerm_email_communication_service.main.id
-  domain_management = "AzureManaged"
+  name          = "ecs-${var.project}-${var.environment}-${var.location_short}"
+  location      = "global"
+  parent_id     = var.resource_group_id
+  data_location = var.data_location
+  tags          = var.tags
+
+  enable_telemetry = var.enable_telemetry
+
+  email_communication_service_domains = {
+    managed = {
+      name              = "AzureManagedDomain"
+      domain_management = "AzureManaged"
+    }
+  }
 }
 
 resource "azurerm_communication_service_email_domain_association" "main" {
   communication_service_id = azurerm_communication_service.main.id
-  email_service_domain_id  = azurerm_email_communication_service_domain.main.id
-}
-
-resource "azurerm_key_vault_secret" "acs_connection_string" {
-  name         = "acs-connection-string"
-  value        = azurerm_communication_service.main.primary_connection_string
-  key_vault_id = var.key_vault_id
+  email_service_domain_id  = module.email_service.domain_resource_ids["managed"]
 }
