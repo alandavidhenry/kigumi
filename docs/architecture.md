@@ -8,6 +8,7 @@ Better Auth (`src/lib/auth.ts`) with the Prisma adapter, email + password, **req
 
 - `withDefaultActiveOrganisation`: a `session.create.before` hook that puts a returning user into their first organisation.
 - `beforeCreateInvitation`: rejects unknown roles, and rejects invites once members plus live pending invitations reach the plan's seats (`countUsedSeats`, `src/lib/seats.ts`). `membershipLimit` enforces seats again on accept.
+- **Account settings (`/settings/account`):** name via `updateUser`; email via `changeEmail` (the old address approves, then the new one verifies); password via `changePassword` (signs out other sessions). Deleting needs the password plus an emailed link. `src/lib/account.ts` refuses it while the user is the only owner of any organisation (checked on the page, when the email is requested, and again just before deletion), and `beforeDeleteUser` leaves an audit row in each organisation they belonged to. Everything else about the user cascades or goes null (ADR 0003 tables keep their rows).
 - `after*` hooks write audit rows for organisation create/update, invitation create/cancel, member join, role change and remove.
 
 Better Auth's access control (`src/lib/auth-permissions.ts`) guards its own org endpoints: owner = ownerAc, manager = adminAc, engineer/viewer = memberAc. Better Auth itself stops non-owners granting or editing the owner role. The client (`src/lib/auth-client.ts`) is used directly by UI for sign-in/up, password reset, organisation create/setActive/update, invite, role change, remove, and accepting invitations.
@@ -65,6 +66,7 @@ src/app/
   (app)/inventory/[equipmentId]  # also: maintenance, usage hours, PAT status, warranty and service history
   (app)/settings/members    # members, invitations, role changes
   (app)/settings/organisation  # rename, plan + usage
+  (app)/settings/account       # name, email, password, delete account (user menu → Account settings)
   (app)/activity            # audit log (owner/manager)
   api/auth/[...all]         # Better Auth handler
   api/studios, api/studios/[studioId], api/studios/[studioId]/rooms, api/rooms/[roomId]

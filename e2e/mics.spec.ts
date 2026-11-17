@@ -1,6 +1,5 @@
-import { expect, test } from '@playwright/test'
-
 import { OWNER_STATE, VIEWER_STATE } from './credentials'
+import { expect, test } from './fixtures'
 import { uniqueSuffix } from './helpers'
 
 // Needs PLATFORM_ADMIN_EMAILS=owner@kigumi.test (see .env.example) and the

@@ -6,7 +6,7 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 
 - ~~**Deploy pipeline and Terraform**~~ Written (ADR 0022) but not yet applied: needs the first-time setup in `docs/operations.md`, then a first run of each environment. Follow-ups: verify the console-log alerts fire after the first deploy; monthly dump retention for a year (the lifecycle rule currently deletes every dump after 36 days); custom domain and `app_url`; deployment slots for zero-downtime swaps.
 - ~~**Automated cross-tenant test against a real DB**~~ Done in Phase 8: `npm run test:db` (two organisations, every tenant route, in CI).
-- **Account settings page:** change name, email or password, and delete account (Better Auth endpoints exist; no UI yet).
+- ~~**Account settings page**~~ Done: `/settings/account` (name, email, password, delete). Still open: an "active sessions" list with sign out of other devices, and an account export before deletion.
 - **Organisation deletion and leaving:** owners can't yet delete an organisation or leave it from the UI. Since Phase 8 the Better Auth delete endpoint is disabled too (`disableOrganizationDeletion`); a real flow needs confirmation, a grace period, an audit record and blob clean-up (ADR 0019).
 - ~~**Rate limiting on auth endpoints in memory**~~ Done in Phase 8: `rateLimit.storage = 'database'`.
 - **`organization.create` and the cookie cache:** creating an org doesn't refresh the cached active organisation; callers must call `setActive`. Revisit if Better Auth changes this.
@@ -43,7 +43,7 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Platform audit trail:** admin catalogue changes are not in the per-tenant `AuditLog` (see ADR 0012). Add a platform-level log, and replace the env-var admin list if the team grows.
 - **Availability by session date:** the locker's "Available" means the inventory item is in service. Date-based double-booking arrives with sessions (Phase 5).
 - **Mic page extras:** the AI summary and the comparison view (2–4 mics) are Phase 3. Equipment pages don't yet show their catalogue link, and bulk locker linking from existing microphone inventory is manual.
-- **Existing E2E flake:** `inventory.spec.ts` ("S/N SN-42" after editing) failed once in roughly six full dev-server runs. It doesn't touch Phase 2 code, but it's worth stabilising.
+- ~~**Existing E2E flake:** `inventory.spec.ts`~~ Fixed (see the E2E stabilisation note under Phase 8).
 
 ## Monetisation (ADR 0011)
 
@@ -97,7 +97,7 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Template scaling:** positions are scaled proportionally into a different room; item sizes are not, so a template from a large room can crowd a small one (the warnings flag items outside the walls).
 - **"If you were buying"** suggestions remain deferred (Phase 4).
 - **Free-plan E2E for the template upgrade prompt:** covered by route and service tests (403 `FEATURE_NOT_IN_PLAN`) but not by a Playwright run with a Free organisation.
-- **E2E specs that fail under full-suite load:** `inventory.spec.ts` ("can add, edit, search and delete an item", the known S/N flake above) and `mics.spec.ts` ("platform admin reviews a new mic through to publication") failed in all three full parallel dev-server runs during Phase 5 and pass when run on their own. Both time out at the default 5 s right after a save plus `router.refresh()` against the dev server. They don't touch Phase 5 code, but they need stabilising (longer expect timeouts or waiting on the save response).
+- ~~**E2E specs that fail under full-suite load:** `inventory.spec.ts` ("can add, edit, search and delete an item", the known S/N flake above) and `mics.spec.ts` ("platform admin reviews a new mic through to publication") failed in all three full parallel dev-server runs during Phase 5 and pass when run on their own. Both time out at the default 5 s right after a save plus `router.refresh()` against the dev server. They don't touch Phase 5 code, but they need stabilising (longer expect timeouts or waiting on the save response).~~ Fixed (see the E2E stabilisation note under Phase 8).
 
 ## Deferred from Phase 6
 
@@ -136,6 +136,7 @@ Open gaps and deferred work. Phases are in `docs/PLAN.md`.
 - **Share links from before Phase 8** keep working but can't be shown again; the page offers a new link.
 - **PDF attachments download** rather than open in a tab (sandboxing). A dedicated viewer page (`pdf.js` under a strict CSP) could bring back in-browser viewing.
 - **Accessibility beyond axe:** keyboard-only and screen-reader passes on the layout editor and recall sheet, and a real tablet at the console, are still manual.
+- **E2E stabilisation (done):** the failures came from the dev server, not the app. It compiles a route on first hit and can hot-reload the page mid-test, specs typed into forms before React hydrated (including inside `<Suspense>` boundaries) and matched toasts and short button names by substring, and the setup spec left rows behind. Fixed with a hydration-aware `page.goto` (`e2e/fixtures.ts`), `HydrationFlag` / `HydrationMarker`, exact matches, per-run cleanup, longer local timeouts and `E2E_BUILT=1` (see `docs/testing.md`). 109 specs pass on both the dev server and a production build, and twice over on the build. Still open: React logs a hydration attribute-mismatch warning on some pages in dev (not traced); `next dev` and `next build` print a one-off Next.js security-upgrade notice that stops the first command, which breaks the Playwright web server on its first attempt.
 - **Dev server reload loop:** once during Phase 8 `next dev` (Turbopack) got stuck recompiling and reloading `/auth/sign-in`; restarting the server cleared it, and the headers were ruled out. Worth noting if E2E runs against a dev server flake.
 
 ## Deferred from the setup and session wizards (ADR 0024)

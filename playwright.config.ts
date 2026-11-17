@@ -9,6 +9,11 @@ const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${port}`
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
+  // A dev server compiles each route on first hit, so locally a page can take
+  // several seconds to appear. CI runs a built app and keeps the tighter
+  // defaults.
+  timeout: process.env.CI ? 30_000 : 60_000,
+  expect: { timeout: process.env.CI ? 5_000 : 15_000 },
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 1 : undefined,
@@ -28,13 +33,20 @@ export default defineConfig({
   ],
   // In CI, the server is built and started by a workflow step before Playwright
   // runs, against seeded data — reusing it there would race the seed. Locally,
-  // reuse whatever dev server is already running on the port.
+  // reuse whatever server is already running on the port, else start one:
+  // "npm run dev" by default, or with E2E_BUILT=1 a production build like CI's.
+  // The dev server recompiles and hot-reloads the page the first time a route
+  // is hit, which can wipe a form mid-test; the built app does not.
   webServer: process.env.CI
     ? undefined
     : {
-        command: 'npm run dev',
+        command: process.env.E2E_BUILT
+          ? 'npm run build && npm run start'
+          : 'npm run dev',
         url: baseURL,
         reuseExistingServer: true,
-        timeout: 120_000
+        timeout: process.env.E2E_BUILT ? 300_000 : 120_000,
+        // Parallel sign-ins from one address trip the auth rate limiter.
+        env: process.env.E2E_BUILT ? { AUTH_RATE_LIMIT: 'off' } : undefined
       }
 })

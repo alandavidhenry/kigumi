@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { Suspense, useState } from 'react'
 
 import { AuthCard, FormError, FormNotice } from '@/components/auth/auth-card'
+import { HydrationMarker } from '@/components/hydration-flag'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -119,6 +120,7 @@ function SignUpForm() {
 export default function SignUpPage() {
   return (
     <Suspense>
+      <HydrationMarker />
       <SignUpForm />
     </Suspense>
   )

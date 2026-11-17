@@ -1,6 +1,5 @@
-import { expect, test } from '@playwright/test'
-
 import { OWNER_STATE, SEEDED_EQUIPMENT_ID, VIEWER_STATE } from './credentials'
+import { expect, test } from './fixtures'
 import { uniqueSuffix } from './helpers'
 
 test.describe('owner', () => {

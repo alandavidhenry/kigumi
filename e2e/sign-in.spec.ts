@@ -1,6 +1,5 @@
-import { expect, test } from '@playwright/test'
-
 import { ownerCredentials } from './credentials'
+import { expect, test } from './fixtures'
 import { signIn } from './helpers'
 
 test.describe('sign-in', () => {
