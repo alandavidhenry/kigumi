@@ -34,6 +34,10 @@ module "key_vault" {
     deployer = {
       role_definition_id_or_name = "Key Vault Secrets Officer"
       principal_id               = var.deployer_object_id
+      # The CI service principal may only assign roles to service principals,
+      # enforced by an ABAC condition that reads the declared principal type.
+      # Left unset, the request fails that condition.
+      principal_type = "ServicePrincipal"
     }
   }
 
