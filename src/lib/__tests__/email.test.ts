@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   escapeHtml,
+  sendChangeEmailConfirmationEmail,
+  sendDeleteAccountEmail,
   sendEmail,
   sendInvitationEmail,
   sendPasswordResetEmail,
@@ -105,5 +107,29 @@ describe('templated emails', () => {
     expect(html).toContain('&lt;script&gt;Eve&lt;/script&gt;')
     expect(html).toContain('Abbey &amp; Co')
     expect(html).not.toContain('<script>')
+  })
+})
+
+describe('account emails', () => {
+  it('sends the change-email approval to the address given', async () => {
+    await sendChangeEmailConfirmationEmail(
+      'old@kigumi.test',
+      'Ada',
+      'new@kigumi.test',
+      'https://app/x'
+    )
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('old@kigumi.test')
+    )
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('new@kigumi.test')
+    )
+  })
+
+  it('sends the delete-account confirmation with the link', async () => {
+    await sendDeleteAccountEmail('ada@kigumi.test', 'Ada', 'https://app/del')
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('https://app/del')
+    )
   })
 })

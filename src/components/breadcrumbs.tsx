@@ -27,6 +27,7 @@ const ROUTE_LABELS: Record<string, string> = {
   '/notifications': 'Reminders',
   '/admin': 'Platform',
   '/admin/mics': 'Mic review queue',
+  '/settings/account': 'Account',
   '/settings/members': 'Members',
   '/settings/organisation': 'Organisation'
 }
