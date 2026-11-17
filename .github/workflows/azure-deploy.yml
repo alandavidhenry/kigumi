@@ -1,0 +1,108 @@
+name: Deploy to Azure
+
+# Migrates the database, points the App Service at the new image, then smoke
+# tests /api/health/deep (database + Blob). The deep check needs the bearer
+# CRON_SECRET, so it is an environment secret next to DATABASE_URL.
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: Deployment environment
+        required: true
+        type: string
+      image_uri:
+        description: Docker image URI to deploy
+        required: true
+        type: string
+    secrets:
+      ARM_CLIENT_ID:
+        required: true
+      ARM_TENANT_ID:
+        required: true
+      ARM_SUBSCRIPTION_ID:
+        required: true
+      DATABASE_URL:
+        required: true
+      CRON_SECRET:
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Azure App Service
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '26'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Migrations are written to be backwards compatible with the previous
+      # release (add before use, drop after), so the old container keeps working
+      # while this runs.
+      - name: Run database migrations
+        run: npx prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Login to Azure
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+      - name: Deploy container to Azure App Service
+        env:
+          IMAGE_URI: ${{ inputs.image_uri }}
+          APP_NAME: ${{ vars.AZURE_APP_NAME }}
+          RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+        run: |
+          if [ -z "$IMAGE_URI" ]; then
+            REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+            IMAGE_URI="ghcr.io/$REPO:${{ github.sha }}"
+            echo "inputs.image_uri was empty, reconstructed: $IMAGE_URI"
+          else
+            echo "Deploying image: $IMAGE_URI"
+          fi
+          az webapp config container set \
+            --name "$APP_NAME" \
+            --resource-group "$RESOURCE_GROUP" \
+            --container-image-name "$IMAGE_URI"
+          az webapp restart --name "$APP_NAME" --resource-group "$RESOURCE_GROUP"
+
+      - name: Smoke test
+        env:
+          APP_NAME: ${{ vars.AZURE_APP_NAME }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          APP_URL="https://$APP_NAME.azurewebsites.net"
+          echo "Smoke testing $APP_URL..."
+          for i in $(seq 1 16); do
+            BODY=$(curl -sf --max-time 30 -H "Authorization: Bearer $CRON_SECRET" "$APP_URL/api/health/deep" 2>/dev/null || echo '{}')
+            STATUS=$(echo "$BODY" | jq -r '.status' 2>/dev/null || echo 'error')
+            if [ "$STATUS" = "ok" ]; then
+              echo "Smoke test passed on attempt $i"
+              exit 0
+            fi
+            echo "Attempt $i: status=$STATUS, retrying in 15s..."
+            sleep 15
+          done
+          echo "Smoke test failed after 16 attempts"
+          exit 1

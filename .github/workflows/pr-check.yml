@@ -1,9 +1,9 @@
 name: PR Check
 
+# Pushes to main are covered by dev-deploy.yml, which runs the same gates.
+
 on:
   pull_request:
-    branches: [main]
-  push:
     branches: [main]
 
 permissions:

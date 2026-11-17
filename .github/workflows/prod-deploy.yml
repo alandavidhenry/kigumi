@@ -1,0 +1,57 @@
+name: Deploy to Production
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  packages: write
+  actions: read
+  id-token: write
+
+jobs:
+  lint_and_test:
+    name: Lint and Test
+    uses: ./.github/workflows/lint-format.yml
+
+  e2e:
+    name: Playwright E2E
+    uses: ./.github/workflows/playwright.yml
+
+  setup:
+    name: Extract Version
+    needs: [lint_and_test, e2e]
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Strip v prefix from release tag
+        id: version
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          echo "version=${TAG#v}" >> $GITHUB_OUTPUT
+
+  build:
+    name: Build Docker Image
+    needs: setup
+    uses: ./.github/workflows/docker-build.yml
+    with:
+      environment: Production
+      version: ${{ needs.setup.outputs.version }}
+      push: true
+    secrets: inherit
+
+  deploy:
+    name: Deploy to Azure Production
+    needs: [setup, build]
+    uses: ./.github/workflows/azure-deploy.yml
+    with:
+      environment: Production
+      image_uri: ${{ needs.build.outputs.image_uri }}
+    secrets:
+      ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
